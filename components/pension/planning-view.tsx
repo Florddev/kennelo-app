@@ -32,6 +32,7 @@ import {
 } from "@/components/pension/stay-sheet"
 import { ActivityPage, Bar, Kpi, Widget } from "@/components/today/widgets"
 import { Badge } from "@/components/ui/badge"
+import { NewStayDialog } from "@/components/pension/new-stay-dialog"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTab } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
@@ -154,10 +155,15 @@ export function PlanningView() {
   return (
     <ActivityPage
       actions={
-        <Button size="sm">
-          <HugeiconsIcon icon={CalendarAdd01Icon} />
-          Nouveau séjour
-        </Button>
+        <NewStayDialog
+          onCreate={(stay) => setStays((list) => [...list, stay])}
+          trigger={
+            <Button size="sm">
+              <HugeiconsIcon icon={CalendarAdd01Icon} />
+              Nouveau séjour
+            </Button>
+          }
+        />
       }
       activity="Pension"
       className="max-w-7xl"

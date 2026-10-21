@@ -32,6 +32,7 @@ import {
 } from "@/components/today/widgets"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { NewStayDialog } from "@/components/pension/new-stay-dialog"
 import { Button } from "@/components/ui/button"
 import { CardFrame } from "@/components/ui/card"
 import {
@@ -115,10 +116,15 @@ export function StaysView() {
   return (
     <ActivityPage
       actions={
-        <Button size="sm">
-          <HugeiconsIcon icon={CalendarAdd01Icon} />
-          Nouveau séjour
-        </Button>
+        <NewStayDialog
+          onCreate={(stay) => setStays((list) => [...list, stay])}
+          trigger={
+            <Button size="sm">
+              <HugeiconsIcon icon={CalendarAdd01Icon} />
+              Nouveau séjour
+            </Button>
+          }
+        />
       }
       activity="Pension"
       title="Séjours"

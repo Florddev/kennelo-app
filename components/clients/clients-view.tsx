@@ -32,6 +32,8 @@ import {
 import { formatAmount, Kpi, PageShell } from "@/components/today/widgets"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { NewStayDialog } from "@/components/pension/new-stay-dialog"
+import { petHref } from "@/components/pets/data"
 import { Button } from "@/components/ui/button"
 import { CardFrame } from "@/components/ui/card"
 import {
@@ -176,28 +178,30 @@ function ClientSheet({
               <Section title={`Animaux · ${client.pets.length}`}>
                 <ul className="space-y-2">
                   {client.pets.map((pet) => (
-                    <li
-                      className="flex items-center gap-3 rounded-lg border p-3"
-                      key={pet.name}
-                    >
-                      <Avatar className="size-9">
-                        <AvatarFallback className="text-xs">
-                          {pet.name.slice(0, 2)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium">{pet.name}</p>
-                        <p className="truncate text-xs text-muted-foreground">
-                          {pet.species}
-                          {pet.breed && ` · ${pet.breed}`}
-                          {pet.care && ` · ${pet.care}`}
-                        </p>
-                      </div>
-                      <div className="flex gap-1">
-                        {pet.activities.map((a) => (
-                          <ActivityMark activity={a} key={a} />
-                        ))}
-                      </div>
+                    <li key={pet.name}>
+                      <Link
+                        className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-accent/40"
+                        href={petHref(pet.name, client.name)}
+                      >
+                        <Avatar className="size-9">
+                          <AvatarFallback className="text-xs">
+                            {pet.name.slice(0, 2)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium">{pet.name}</p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {pet.species}
+                            {pet.breed && ` · ${pet.breed}`}
+                            {pet.care && ` · ${pet.care}`}
+                          </p>
+                        </div>
+                        <div className="flex gap-1">
+                          {pet.activities.map((a) => (
+                            <ActivityMark activity={a} key={a} />
+                          ))}
+                        </div>
+                      </Link>
                     </li>
                   ))}
                 </ul>
@@ -271,10 +275,15 @@ function ClientSheet({
                 <HugeiconsIcon icon={Message01Icon} />
                 Écrire
               </Button>
-              <Button render={<Link href="/reservations" />}>
-                <HugeiconsIcon icon={Calendar03Icon} />
-                Nouvelle réservation
-              </Button>
+              <NewStayDialog
+                defaultClient={client.name}
+                trigger={
+                  <Button>
+                    <HugeiconsIcon icon={Calendar03Icon} />
+                    Nouveau séjour
+                  </Button>
+                }
+              />
             </SheetFooter>
           </>
         )}
@@ -502,11 +511,10 @@ export function ClientsView() {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {pets.map((pet) => (
-            <button
+            <Link
               className="flex flex-col gap-3 rounded-xl border bg-card p-4 text-start transition-colors hover:bg-accent/40"
+              href={petHref(pet.name, pet.owner.name)}
               key={`${pet.owner.name}-${pet.name}`}
-              onClick={() => open(pet.owner.name)}
-              type="button"
             >
               <div className="flex items-center gap-3">
                 <Avatar className="size-10">
@@ -537,7 +545,7 @@ export function ClientsView() {
                   ))}
                 </span>
               </div>
-            </button>
+            </Link>
           ))}
         </div>
       )}

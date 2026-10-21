@@ -48,6 +48,8 @@ import {
 } from "@/components/ui/alert"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { CheckFlow } from "@/components/pension/check-flow"
+import { NewStayDialog } from "@/components/pension/new-stay-dialog"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -540,6 +542,8 @@ function NewsCard() {
 export function PensionTodayView() {
   const [kennels, setKennels] = useState(initialKennels)
   const [movements, setMovements] = useState(stayMovements)
+  const [flowId, setFlowId] = useState<string | null>(null)
+  const [flowOpen, setFlowOpen] = useState(false)
   const present = kennels.filter(isPresent).length
   const count = (type: StayMovement["type"]) =>
     movements.filter((m) => m.type === type)
@@ -576,10 +580,14 @@ export function PensionTodayView() {
             <HugeiconsIcon icon={PrinterIcon} />
             Feuille de soins
           </Button>
-          <Button size="sm">
-            <HugeiconsIcon icon={CalendarAdd01Icon} />
-            Nouveau séjour
-          </Button>
+          <NewStayDialog
+            trigger={
+              <Button size="sm">
+                <HugeiconsIcon icon={CalendarAdd01Icon} />
+                Nouveau séjour
+              </Button>
+            }
+          />
         </>
       }
       activity="Pension"
@@ -672,7 +680,19 @@ export function PensionTodayView() {
 
       <div className="grid gap-4 lg:grid-cols-3">
         <KennelMap className="lg:col-span-2" kennels={kennels} />
-        <MovementsCard movements={movements} onComplete={complete} />
+        <MovementsCard
+          movements={movements}
+          onComplete={(m) => {
+            setFlowId(m.id)
+            setFlowOpen(true)
+          }}
+        />
+        <CheckFlow
+          movement={movements.find((m) => m.id === flowId) ?? null}
+          onComplete={complete}
+          onOpenChange={setFlowOpen}
+          open={flowOpen}
+        />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

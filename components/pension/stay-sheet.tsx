@@ -8,6 +8,7 @@ import {
   Restaurant01Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
+import Link from "next/link"
 import type { ReactNode } from "react"
 import { relativeDate, shortDate, TODAY } from "@/components/calendar"
 import {
@@ -21,6 +22,7 @@ import {
   stayProgress,
 } from "@/components/pension/data"
 import { Bar, formatAmount } from "@/components/today/widgets"
+import { petHref } from "@/components/pets/data"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -118,7 +120,13 @@ export function StaySheet({
               </div>
               <SheetTitle>Séjour de {stay.pet}</SheetTitle>
               <SheetDescription>
-                {stay.breed} · {stay.owner}
+                {stay.breed} · {stay.owner} ·{" "}
+                <Link
+                  className="underline underline-offset-2"
+                  href={petHref(stay.pet, stay.owner)}
+                >
+                  Fiche de {stay.pet}
+                </Link>
               </SheetDescription>
             </SheetHeader>
             <SheetPanel className="space-y-6">
