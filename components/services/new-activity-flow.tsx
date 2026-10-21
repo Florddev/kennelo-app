@@ -9,6 +9,7 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react"
 import Link from "next/link"
 import { type ReactNode, useState } from "react"
+import { PeriodDialog, PeriodDot } from "@/components/periods/period-forms"
 import { ReuseRow, useReusable } from "@/components/services/activity-offers"
 import {
   createActivity,
@@ -20,6 +21,9 @@ import {
   type Offer,
   offer,
   type Place,
+  periodDates,
+  periodRate,
+  placeRate,
   type Service,
   type Species,
   speciesList,
@@ -129,6 +133,9 @@ const gridOf = (metier: MetierId, draft: ServiceDraft): GridRow[] =>
           }
     return [row]
   })
+
+/** Place en cours de création : son prix devient celui de la période de base. */
+type PlaceDraft = Place & { price: number; extra: number }
 
 const dayNames = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
 const daysLabel = (days: number[]) => {
@@ -337,8 +344,8 @@ export function NewActivityFlow() {
     radius: 15,
     remote: false,
   })
-  const [places, setPlaces] = useState<Place[]>([])
-  const [season, setSeason] = useState(false)
+  const [places, setPlaces] = useState<PlaceDraft[]>([])
+  const [seasons, setSeasons] = useState<Record<string, number>>({})
   const [minStay, setMinStay] = useState(1)
   const [services, setServices] = useState<ServiceDraft[]>([])
   const [options, setOptions] = useState<OptionDraft[]>([])
@@ -395,7 +402,14 @@ export function NewActivityFlow() {
     setDays(journey === "stay" ? [0, 1, 2, 3, 4, 5, 6] : [1, 2, 3, 4, 5])
   }
 
-  const setPlace = (i: number, patch: Partial<Place>) =>
+  const toggleSeason = (id: string, on: boolean) =>
+    setSeasons((current) => {
+      const next = { ...current }
+      if (on) next[id] = 20
+      else delete next[id]
+      return next
+    })
+  const setPlace = (i: number, patch: Partial<PlaceDraft>) =>
     setPlaces((list) => list.map((p, j) => (j === i ? { ...p, ...patch } : p)))
   const setService = (i: number, patch: Partial<ServiceDraft>) =>
     setServices((list) =>
@@ -472,7 +486,28 @@ export function NewActivityFlow() {
         ),
         ...Object.entries(reuse).map(([serviceId, r]) => offer(serviceId, r)),
       ],
-      places: stay ? places : [],
+      places: stay
+        ? places.map((p) => ({
+            animals: p.animals,
+            count: p.count,
+            name: p.name,
+            species: p.species,
+          }))
+        : [],
+      rates: stay
+        ? [
+            periodRate(catalog.periods.find((p) => p.base)!.id, {
+              closed: [0, 1, 2, 3, 4, 5, 6].filter((d) => !days.includes(d)),
+              minStay,
+              places: Object.fromEntries(
+                places.map((p) => [p.name, placeRate(p.price, p.extra)])
+              ),
+            }),
+            ...Object.entries(seasons).map(([periodId, percent]) =>
+              periodRate(periodId, { percent })
+            ),
+          ]
+        : [],
       services: own,
     })
     setCreated(label)
@@ -806,15 +841,6 @@ export function NewActivityFlow() {
                           unit={`€ / ${unit}`}
                           value={place.price}
                         />
-                        {season && (
-                          <Unit
-                            className="w-36"
-                            label="Prix haute saison"
-                            onChange={(v) => setPlace(i, { high: Number(v) })}
-                            unit="€ haute s."
-                            value={place.high ?? place.price}
-                          />
-                        )}
                         {place.animals > 1 && (
                           <Unit
                             className="w-36"
@@ -852,17 +878,64 @@ export function NewActivityFlow() {
             </Field>
             <Frame>
               <FramePanel className="divide-y p-0">
-                <Label className="flex items-center gap-3 px-4 py-3 font-normal">
+                <div className="flex items-start gap-3 px-4 py-3">
                   <span className="flex-1">
                     <span className="block text-sm font-medium">
-                      Prix différent en haute saison
+                      Périodes tarifaires
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      Juillet, août et vacances de Noël
+                      Communes à vos activités. Appliquez-les avec un
+                      pourcentage de vos prix habituels, les prix précis se
+                      règlent ensuite.
                     </span>
                   </span>
-                  <Switch checked={season} onCheckedChange={setSeason} />
-                </Label>
+                  <PeriodDialog
+                    onSaved={(p) => toggleSeason(p.id, true)}
+                    trigger={
+                      <Button size="xs" variant="ghost">
+                        <HugeiconsIcon icon={PlusSignIcon} />
+                        Nouvelle saison
+                      </Button>
+                    }
+                  />
+                </div>
+                {catalog.periods
+                  .filter((p) => !p.base)
+                  .map((period) => (
+                    <div
+                      className="flex items-center gap-3 px-4 py-3"
+                      key={period.id}
+                    >
+                      <PeriodDot period={period} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-medium">
+                          {period.name}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {periodDates(period)}
+                        </span>
+                      </span>
+                      {period.id in seasons && (
+                        <Unit
+                          className="w-36"
+                          label={`Majoration ${period.name}`}
+                          onChange={(v) =>
+                            setSeasons((s) => ({
+                              ...s,
+                              [period.id]: Number(v),
+                            }))
+                          }
+                          unit="% de plus"
+                          value={seasons[period.id]}
+                        />
+                      )}
+                      <Switch
+                        aria-label={`Appliquer ${period.name}`}
+                        checked={period.id in seasons}
+                        onCheckedChange={(on) => toggleSeason(period.id, on)}
+                      />
+                    </div>
+                  ))}
                 <div className="flex items-center gap-3 px-4 py-3">
                   <span className="flex-1 text-sm font-medium">
                     Séjour minimum
@@ -1177,6 +1250,11 @@ export function NewActivityFlow() {
                   ? places
                       .map(
                         (p) => `${p.count} × ${p.name} · ${p.price} € / ${unit}`
+                      )
+                      .concat(
+                        catalog.periods
+                          .filter((p) => p.id in seasons)
+                          .map((p) => `${p.name} +${seasons[p.id]} %`)
                       )
                       .join(" · ")
                   : services

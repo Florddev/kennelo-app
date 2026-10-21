@@ -2,6 +2,7 @@
 
 import {
   ArrowLeft01Icon,
+  Calendar03Icon,
   Building03Icon,
   CircleArrowUpIcon,
   CodeIcon,
@@ -83,6 +84,11 @@ const sections: { label: string; items: NavItem[] }[] = [
       },
       { href: "/settings/members", icon: UserGroupIcon, title: "Membres" },
       { href: "/settings/activities", icon: Store01Icon, title: "Activités" },
+      {
+        href: "/settings/periods",
+        icon: Calendar03Icon,
+        title: "Périodes tarifaires",
+      },
       {
         href: "/settings/booking",
         icon: Globe02Icon,

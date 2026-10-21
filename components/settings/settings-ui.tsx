@@ -285,17 +285,19 @@ export function LinkRow({
   value,
   href,
   locked,
+  media,
 }: {
-  icon: IconSvgElement
+  icon?: IconSvgElement
   title: string
-  description: string
+  description?: string
   value?: string
   href: string
   locked?: string
+  media?: ReactNode
 }) {
   const content = (
     <>
-      <IconTile icon={icon} />
+      {media ?? (icon && <IconTile icon={icon} />)}
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium">{title}</p>
         <p className="truncate text-xs text-muted-foreground">{description}</p>

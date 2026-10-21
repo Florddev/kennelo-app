@@ -18,6 +18,7 @@ import {
   OrganizationSecurityPage,
   PaymentsPage,
 } from "@/components/settings/organization-pages"
+import { PeriodsPage } from "@/components/periods/periods-pages"
 import { ServicesCatalogPage } from "@/components/services/catalog-page"
 
 export const settingsPages: Record<string, ComponentType> = {
@@ -33,6 +34,7 @@ export const settingsPages: Record<string, ComponentType> = {
   notifications: NotificationsPage,
   organization: OrganizationPage,
   payments: PaymentsPage,
+  periods: PeriodsPage,
   preferences: PreferencesPage,
   profile: ProfilePage,
   security: OrganizationSecurityPage,

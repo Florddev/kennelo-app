@@ -2,7 +2,6 @@
 
 import {
   ArrowRight01Icon,
-  Calendar03Icon,
   Location01Icon,
   PlusSignIcon,
 } from "@hugeicons/core-free-icons"
@@ -13,9 +12,12 @@ import { ActivityMark, activityMeta } from "@/components/activity-mark"
 import { groomingSteps, stock, waitlist } from "@/components/grooming/data"
 import { kennels } from "@/components/pension/data"
 import {
-  ActivityOffers,
-  ActivityPlaces,
-} from "@/components/services/activity-offers"
+  Exceptions,
+  PlaceTypes,
+  PlacePrices,
+  Simulator,
+} from "@/components/periods/periods-pages"
+import { ActivityOffers } from "@/components/services/activity-offers"
 import { journeyOf, metierOf, useCatalog } from "@/components/services/data"
 import { ActivityDot } from "@/components/services/service-form"
 import { kennelLabel } from "@/components/pension/stay-sheet"
@@ -71,6 +73,7 @@ const AddButton = ({ label }: { label: string }) => (
 /** Activité créée avec le formulaire : ses places et ses prestations. */
 function CreatedActivityOverview({ id }: { id: string }) {
   const activity = useCatalog().activities.find((a) => a.id === id)
+  const stay = journeyOf(activity) === "stay"
   if (!activity)
     return (
       <SettingsPage
@@ -94,15 +97,14 @@ function CreatedActivityOverview({ id }: { id: string }) {
         </>
       }
     >
-      {journeyOf(activity) === "stay" && <ActivityPlaces activityId={id} />}
+      {stay && <PlaceTypes activityId={id} />}
+      {stay && <PlacePrices activityId={id} />}
       <ActivityOffers
         activityId={id}
-        title={
-          journeyOf(activity) === "stay"
-            ? "Options du séjour"
-            : "Prestations principales"
-        }
+        title={stay ? "Options du séjour" : "Prestations principales"}
       />
+      {stay && <Simulator activityId={id} />}
+      <Exceptions activityId={id} />
     </SettingsPage>
   )
 }
@@ -354,12 +356,6 @@ function MembersSection({ activity }: SectionProps) {
   )
 }
 
-const closures = [
-  { date: "Dim. 1 nov.", label: "Toussaint" },
-  { date: "Ven. 25 déc.", label: "Noël" },
-  { date: "Ven. 1 janv.", label: "Jour de l'an" },
-]
-
 function HoursSection({ activity }: SectionProps) {
   const { days, from, to } = activity.hours
   const pension = activity.name === "Pension"
@@ -375,23 +371,7 @@ function HoursSection({ activity }: SectionProps) {
       >
         <WeeklyHours initial={weekHours(days, from, to)} />
       </SettingsSection>
-      <SettingsSection
-        action={<AddButton label="Ajouter" />}
-        title="Fermetures exceptionnelles"
-      >
-        {closures.map((closure) => (
-          <SettingsRow
-            description={closure.date}
-            key={closure.label}
-            media={<IconTile icon={Calendar03Icon} />}
-            title={closure.label}
-          >
-            <Badge variant={pension ? "secondary" : "outline"}>
-              {pension ? "Accueil fermé, pensionnaires gardés" : "Fermé"}
-            </Badge>
-          </SettingsRow>
-        ))}
-      </SettingsSection>
+      <Exceptions activityId={activity.slug} />
       <SettingsGroups
         groups={[
           {
@@ -497,6 +477,7 @@ function KennelsSection() {
   const list = kennels.filter((k) => k.area === area)
   return (
     <>
+      <PlaceTypes activityId="pension" />
       <SettingsSection
         action={
           <div className="flex items-center gap-2">
@@ -578,19 +559,6 @@ const pensionGroups: Record<string, SettingsGroup[]> = {
           title: "Acompte",
           type: "number",
           unit: "%",
-        },
-        {
-          defaultValue: 1,
-          title: "Durée minimale",
-          type: "number",
-          unit: "nuit",
-        },
-        {
-          defaultValue: 3,
-          description: "Juillet, août et vacances de Noël",
-          title: "Durée minimale en haute saison",
-          type: "number",
-          unit: "nuits",
         },
         {
           defaultChecked: true,
@@ -887,9 +855,10 @@ const pensionGroups: Record<string, SettingsGroup[]> = {
 function RatesSection() {
   return (
     <>
-      <ActivityPlaces activityId="pension" />
+      <PlacePrices activityId="pension" />
       <ActivityOffers activityId="pension" title="Options du séjour" />
       <SettingsGroups groups={pensionGroups.rates} />
+      <Simulator activityId="pension" />
     </>
   )
 }

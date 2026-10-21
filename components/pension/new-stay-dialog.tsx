@@ -30,6 +30,8 @@ import {
 } from "@/components/pets/data"
 import {
   adjusted,
+  groupNights,
+  quote,
   rowFor,
   sizeOfWeight,
   useCatalog,
@@ -224,6 +226,16 @@ export function NewStayDialog({
     kennelChoice && free.some((k) => k.id === kennelChoice)
       ? kennelChoice
       : suggested
+  // Hébergement calculé nuit par nuit selon les périodes tarifaires
+  const stayQuote = datesSet
+    ? quote(
+        catalog,
+        "pension",
+        kennelId?.startsWith("c") ? "Chatterie" : "Box",
+        isoOf(arrival),
+        departure - arrival
+      )
+    : null
   // Options de la pension, prises dans le catalogue commun
   const prices: OptionPrices = {}
   const included: string[] = []
@@ -261,6 +273,9 @@ export function NewStayDialog({
           owner,
           payment: "due",
           pet: animal,
+          rates: stayQuote
+            ? groupNights(stayQuote.nights.filter((n) => !n.closed))
+            : undefined,
           status: "upcoming",
         }
       : null
@@ -764,6 +779,29 @@ export function NewStayDialog({
                   )}
                 </div>
 
+                {stayQuote?.short && (
+                  <Alert variant="warning">
+                    <HugeiconsIcon icon={Alert02Icon} />
+                    <AlertTitle>
+                      Séjour minimum de {stayQuote.minStay} nuits
+                    </AlertTitle>
+                    <AlertDescription>
+                      Pour une arrivée pendant «{" "}
+                      {stayQuote.nights[0]?.period?.name} ».
+                    </AlertDescription>
+                  </Alert>
+                )}
+                {stayQuote && stayQuote.closed.length > 0 && (
+                  <Alert variant="warning">
+                    <HugeiconsIcon icon={Alert02Icon} />
+                    <AlertTitle>Fermé sur une partie du séjour</AlertTitle>
+                    <AlertDescription>
+                      {stayQuote.closed
+                        .map((n) => `${formatDate(n.date)} : ${n.closed}`)
+                        .join(" · ")}
+                    </AlertDescription>
+                  </Alert>
+                )}
                 {issues.length > 0 && (
                   <Alert variant="warning">
                     <HugeiconsIcon icon={Alert02Icon} />

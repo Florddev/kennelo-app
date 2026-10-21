@@ -23,7 +23,7 @@ import {
   useCatalog,
 } from "@/components/services/data"
 import { ActivityTag, ServiceDialog } from "@/components/services/service-form"
-import { SettingsRow, SettingsSection } from "@/components/settings/settings-ui"
+import { SettingsSection } from "@/components/settings/settings-ui"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -153,40 +153,6 @@ export function OfferControls({
       )}
       {children}
     </div>
-  )
-}
-
-/** Places d'une activité de séjour. */
-export function ActivityPlaces({ activityId }: { activityId: string }) {
-  const catalog = useCatalog()
-  const activity = catalog.activities.find((a) => a.id === activityId)
-  const unit = activity?.metier === "garderie" ? "jour" : "nuit"
-  return (
-    <SettingsSection
-      action={
-        <Button size="sm" variant="ghost">
-          <HugeiconsIcon icon={PlusSignIcon} />
-          Ajouter
-        </Button>
-      }
-      description="Le client réserve une place, puis ses options"
-      title="Places"
-    >
-      {(catalog.places[activityId] ?? []).map((place) => (
-        <SettingsRow
-          description={`${place.count} places · ${place.animals} ${place.animals > 1 ? "animaux" : "animal"} max · ${place.species.join(", ")}${place.extra ? ` · +${place.extra} € par animal en plus` : ""}${place.high ? ` · ${place.high} € en haute saison` : ""}`}
-          key={place.name}
-          title={place.name}
-        >
-          <span className="text-sm font-medium tabular-nums">
-            {place.price} € / {unit}
-          </span>
-          <Button size="sm" variant="ghost">
-            Modifier
-          </Button>
-        </SettingsRow>
-      ))}
-    </SettingsSection>
   )
 }
 

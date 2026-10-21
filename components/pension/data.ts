@@ -438,6 +438,8 @@ export type Stay = {
   payment: StayPayment
   options: string[]
   note?: string
+  /** Nuits par période tarifaire, figées à la réservation. */
+  rates?: { label: string; nights: number; price: number }[]
 }
 
 export type OptionPrices = Record<string, { price: number; perNight?: boolean }>
@@ -455,8 +457,14 @@ export const nightlyRate = (kennelId?: string) =>
 export function stayLines(stay: Stay, prices = optionPrices) {
   const nights = stay.departure - stay.arrival
   const rate = nightlyRate(stay.kennelId)
+  const lodging = stay.rates?.length
+    ? stay.rates.map((r) => ({
+        amount: r.nights * r.price,
+        label: `${r.nights} nuit${r.nights > 1 ? "s" : ""} × ${r.price} € · ${r.label}`,
+      }))
+    : [{ amount: nights * rate, label: `${nights} nuits × ${rate} €` }]
   return [
-    { amount: nights * rate, label: `${nights} nuits × ${rate} €` },
+    ...lodging,
     ...stay.options.map((option) => {
       const { perNight, price } = prices[option] ?? { price: 0 }
       return {

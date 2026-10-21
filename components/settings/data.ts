@@ -5,7 +5,6 @@ import {
   Calendar03Icon,
   CalendarCheckIn01Icon,
   Camera01Icon,
-  ChartLineData01Icon,
   CheckListIcon,
   Clock01Icon,
   Coins01Icon,
@@ -162,18 +161,18 @@ export const activitySettings: ActivitySettings[] = [
       {
         links: [
           {
-            description: "Emplacements, gabarits et équipements",
+            description: "Types de place, emplacements et gabarits",
             icon: BedDoubleIcon,
             slug: "kennels",
             title: "Box & chatterie",
             value: "24 emplacements",
           },
           {
-            description: "Places, prix des nuits, options du séjour et remises",
+            description: "Prix par période, options du séjour et remises",
             icon: EuroCircleIcon,
             slug: "rates",
-            title: "Places, tarifs & options",
-            value: "25 € / nuit",
+            title: "Tarifs",
+            value: "Dès 25 € / nuit",
           },
           {
             description: "Créneaux d'accueil et règles de départ",
@@ -188,7 +187,7 @@ export const activitySettings: ActivitySettings[] = [
       {
         links: [
           {
-            description: "Acompte, durée minimale et annulation",
+            description: "Acompte, validation et annulation",
             icon: Agreement01Icon,
             slug: "booking",
             title: "Conditions de réservation",
@@ -200,13 +199,6 @@ export const activitySettings: ActivitySettings[] = [
             slug: "documents",
             title: "Documents exigés",
             value: "3 documents",
-          },
-          {
-            description: "Ajuster les prix en haute saison automatiquement",
-            icon: ChartLineData01Icon,
-            locked: "Disponible avec Pro",
-            slug: "seasonal",
-            title: "Tarification saisonnière",
           },
         ],
         title: "Réservations",

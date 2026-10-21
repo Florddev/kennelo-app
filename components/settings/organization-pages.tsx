@@ -457,6 +457,13 @@ export function ActivitiesPage() {
           title="Toutes les prestations"
           value={`${catalog.services.length} prestations`}
         />
+        <LinkRow
+          description="Haute saison, fêtes, ponts : le prix des places varie selon la date"
+          href="/settings/periods"
+          icon={Calendar03Icon}
+          title="Périodes tarifaires"
+          value={`${catalog.periods.length - 1} saisons`}
+        />
       </SettingsSection>
       <SettingsGroups
         groups={[
@@ -1202,7 +1209,12 @@ export function OrganizationSecurityPage() {
 const plans = [
   {
     current: true,
-    features: ["3 activités", "5 membres", "250 SMS / mois"],
+    features: [
+      "3 activités",
+      "5 membres",
+      "250 SMS / mois",
+      "3 saisons tarifaires",
+    ],
     name: "Gratuit",
     price: 0,
   },
@@ -1211,7 +1223,7 @@ const plans = [
       "Activités illimitées",
       "15 membres",
       "1 000 SMS / mois",
-      "Tarification saisonnière",
+      "Saisons tarifaires illimitées",
     ],
     name: "Pro",
     price: 29,
