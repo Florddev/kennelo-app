@@ -89,7 +89,7 @@ const activities: {
   {
     defaultOpen: true,
     items: [
-      { icon: SunDimIcon, title: "Aujourd'hui" },
+      { href: "/pension/today", icon: SunDimIcon, title: "Aujourd'hui" },
       { href: "/", icon: LayoutPanelLeftIcon, title: "Planning des box" },
       { icon: ClipboardIcon, title: "Séjours" },
       { icon: FileTextIcon, title: "Factures" },
@@ -98,7 +98,7 @@ const activities: {
   },
   {
     items: [
-      { icon: SunDimIcon, title: "Aujourd'hui" },
+      { href: "/grooming/today", icon: SunDimIcon, title: "Aujourd'hui" },
       { icon: CalendarIcon, title: "Rendez-vous" },
       { icon: FileTextIcon, title: "Factures" },
     ],
@@ -106,7 +106,7 @@ const activities: {
   },
   {
     items: [
-      { icon: SunDimIcon, title: "Aujourd'hui" },
+      { href: "/training/today", icon: SunDimIcon, title: "Aujourd'hui" },
       { icon: CalendarIcon, title: "Séances" },
       { icon: FileTextIcon, title: "Factures" },
     ],
@@ -226,7 +226,10 @@ export function AppSidebar() {
         <NavSection label="Vos activités">
           {activities.map((activity) => (
             <Collapsible
-              defaultOpen={activity.defaultOpen}
+              defaultOpen={
+                activity.defaultOpen ||
+                activity.items.some((item) => item.href === pathname)
+              }
               key={activity.name}
               render={<SidebarMenuItem />}
             >

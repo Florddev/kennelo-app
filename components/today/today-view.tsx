@@ -13,9 +13,9 @@ import {
   SunCloud01Icon,
   Tick02Icon,
 } from "@hugeicons/core-free-icons"
-import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
+import { HugeiconsIcon } from "@hugeicons/react"
 import Link from "next/link"
-import { type ReactNode, useState } from "react"
+import { useState } from "react"
 import {
   type Activity,
   ActivityMark,
@@ -35,19 +35,16 @@ import {
   todos,
   week,
 } from "@/components/today/data"
+import {
+  formatAmount,
+  formatHour,
+  Kpi,
+  Widget,
+} from "@/components/today/widgets"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Avatar, AvatarFallback, AvatarGroup } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardFrame,
-  CardFrameAction,
-  CardFrameDescription,
-  CardFrameHeader,
-  CardFrameTitle,
-  CardPanel,
-} from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   Progress,
@@ -65,10 +62,6 @@ const hours = Array.from(
   (_, i) => DAY_START + i
 )
 const pct = (hour: number) => ((hour - DAY_START) / (DAY_END - DAY_START)) * 100
-const formatHour = (hour: number) =>
-  `${Math.floor(hour)}h${hour % 1 ? String(Math.round((hour % 1) * 60)).padStart(2, "0") : ""}`
-const formatAmount = (amount: number) =>
-  `${String(amount).replace(/\B(?=(\d{3})+(?!\d))/g, " ")} €`
 
 const boxStyles: Record<BoxStatus, { label: string; className: string }> = {
   arriving: {
@@ -83,62 +76,6 @@ const boxStyles: Record<BoxStatus, { label: string; className: string }> = {
   departing: { className: "bg-amber-500 text-white", label: "Départ prévu" },
   free: { className: "bg-muted text-muted-foreground", label: "Libre" },
   occupied: { className: "bg-emerald-800 text-white", label: "Occupé" },
-}
-
-function Widget({
-  title,
-  description,
-  action,
-  className,
-  children,
-}: {
-  title: string
-  description?: string
-  action?: ReactNode
-  className?: string
-  children: ReactNode
-}) {
-  return (
-    <CardFrame className={className}>
-      <CardFrameHeader className="px-4 py-3">
-        <CardFrameTitle>{title}</CardFrameTitle>
-        {description && (
-          <CardFrameDescription>{description}</CardFrameDescription>
-        )}
-        {action && <CardFrameAction>{action}</CardFrameAction>}
-      </CardFrameHeader>
-      <Card className="flex-1">
-        <CardPanel className="p-4">{children}</CardPanel>
-      </Card>
-    </CardFrame>
-  )
-}
-
-function Kpi({
-  label,
-  icon,
-  value,
-  children,
-}: {
-  label: string
-  icon: IconSvgElement
-  value: ReactNode
-  children: ReactNode
-}) {
-  return (
-    <Card>
-      <CardPanel className="space-y-2 p-4">
-        <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
-          {label}
-          <HugeiconsIcon className="size-4 shrink-0" icon={icon} />
-        </div>
-        <p className="font-heading text-2xl font-semibold tabular-nums">
-          {value}
-        </p>
-        <div className="text-xs text-muted-foreground">{children}</div>
-      </CardPanel>
-    </Card>
-  )
 }
 
 function DayTimeline() {

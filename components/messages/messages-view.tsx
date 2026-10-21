@@ -1,8 +1,11 @@
 "use client"
 
 import {
+  ArrowLeft01Icon,
+  ArrowRight01Icon,
   ArrowUpIcon,
   Attachment01Icon,
+  Calendar03Icon,
   Call02Icon,
   PlusSignIcon,
   Search01Icon,
@@ -10,11 +13,7 @@ import {
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { useId, useState } from "react"
-import {
-  type Activity,
-  ActivityMark,
-  activityNames,
-} from "@/components/activity-mark"
+import { type Activity, ActivityMark } from "@/components/activity-mark"
 import { ChatConversation } from "@/components/chat/chat-conversation"
 import { ChatDatePill } from "@/components/chat/chat-date-pill"
 import { ChatDeliveryIndicator } from "@/components/chat/chat-delivery-indicator"
@@ -22,15 +21,19 @@ import { ChatMessage } from "@/components/chat/chat-message"
 import { ChatMessageActionToolbar } from "@/components/chat/chat-message-actions"
 import { ChatReactionChip } from "@/components/chat/chat-reaction-chip"
 import { ChatReactionPicker } from "@/components/chat/chat-reaction-picker"
-import { ChatStatusBar } from "@/components/chat/chat-states"
 import { ChatTypingIndicator } from "@/components/chat/chat-typing-indicator"
 import { ChatUnreadDivider } from "@/components/chat/chat-unread-divider"
 import { useChatScroll } from "@/components/chat/hooks/use-chat-scroll"
 import {
-  activityMessaging,
+  type Booking,
+  type BookingEntry,
+  type BookingEvent,
+  type BookingStatus,
+  type ChatEntry,
   type Conversation,
   conversations as initialConversations,
   type Message,
+  quickReplies,
   reactionOptions,
 } from "@/components/messages/data"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -50,13 +53,22 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group"
-import { MenuItem } from "@/components/ui/menu"
+import { Menu, MenuItem, MenuPopup, MenuTrigger } from "@/components/ui/menu"
+import {
+  Sheet,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetPanel,
+  SheetPopup,
+  SheetTitle,
+} from "@/components/ui/sheet"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Tabs, TabsList, TabsTab } from "@/components/ui/tabs"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { cn } from "@/lib/utils"
 
-type Filter = "all" | Activity
+type Filter = "all" | "unread" | "ongoing"
 
 const statusLabels = {
   delivered: "Distribué",
@@ -66,27 +78,91 @@ const statusLabels = {
   sent: "Envoyé",
 } as const
 
+const bookingStatus = {
+  cancelled: { label: "Annulée", variant: "error" },
+  done: { label: "Terminée", variant: "secondary" },
+  ongoing: { label: "En cours", variant: "success" },
+  pending: { label: "À confirmer", variant: "warning" },
+  upcoming: { label: "À venir", variant: "info" },
+} as const satisfies Record<BookingStatus, { label: string; variant: string }>
+
+const statusOrder: BookingStatus[] = [
+  "ongoing",
+  "pending",
+  "upcoming",
+  "done",
+  "cancelled",
+]
+
+const isActive = (booking: Booking) =>
+  booking.status === "ongoing" ||
+  booking.status === "pending" ||
+  booking.status === "upcoming"
+
+const sortBookings = (bookings: Booking[]) =>
+  [...bookings].sort(
+    (a, b) => statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status)
+  )
+
+const activeActivities = (bookings: Booking[]) => [
+  ...new Set(sortBookings(bookings.filter(isActive)).map((b) => b.activity)),
+]
+
+const formatEuro = (amount: number) => `${amount} €`
+
+const nowTime = () =>
+  new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
+
+const newId = () => `new-${Date.now()}`
+
+const bookingEntry = (
+  bookingId: string,
+  event: BookingEvent
+): BookingEntry => ({
+  bookingId,
+  day: "Aujourd'hui",
+  event,
+  id: newId(),
+  kind: "booking",
+  time: nowTime(),
+})
+
+function eventLabel(event: BookingEvent, booking: Booking) {
+  switch (event) {
+    case "created":
+      return "Nouvelle demande de réservation"
+    case "confirmed":
+      return "Réservation confirmée"
+    case "started":
+      return booking.activity === "Pension"
+        ? "Arrivée enregistrée"
+        : "Prestation commencée"
+    case "shared":
+      return "Réservation partagée"
+  }
+}
+
+function groupByDay(entries: ChatEntry[]) {
+  const days: { day: string; entries: ChatEntry[] }[] = []
+  for (const entry of entries) {
+    const last = days[days.length - 1]
+    if (last?.day === entry.day) last.entries.push(entry)
+    else days.push({ day: entry.day, entries: [entry] })
+  }
+  return days
+}
+
 function ClientAvatar({
   initials,
-  activity,
   className,
 }: {
   initials: string
-  activity?: Activity
   className?: string
 }) {
   return (
-    <span className="relative inline-flex shrink-0">
-      <Avatar aria-hidden="true" className={cn("size-7 text-xs", className)}>
-        <AvatarFallback>{initials}</AvatarFallback>
-      </Avatar>
-      {activity && (
-        <ActivityMark
-          activity={activity}
-          className="absolute -end-1 -bottom-1 size-4 rounded text-[0.5rem] ring-2 ring-background"
-        />
-      )}
-    </span>
+    <Avatar aria-hidden="true" className={cn("size-7 text-xs", className)}>
+      <AvatarFallback>{initials}</AvatarFallback>
+    </Avatar>
   )
 }
 
@@ -110,49 +186,355 @@ function toggleReaction(message: Message, emoji: string): Message {
   }
 }
 
-function ConversationPane({
+function BookingSummary({
+  booking,
+  onClick,
+  footer,
+}: {
+  booking: Booking
+  onClick: () => void
+  footer?: boolean
+}) {
+  const status = bookingStatus[booking.status]
+  return (
+    <button
+      className="w-full rounded-xl border bg-card p-3 text-start shadow-xs/5 transition-colors hover:bg-accent/50"
+      onClick={onClick}
+      type="button"
+    >
+      <div className="flex items-center gap-3">
+        <ActivityMark
+          activity={booking.activity}
+          className="size-8 rounded-lg text-xs"
+        />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-2">
+            <p className="truncate text-sm font-medium">{booking.title}</p>
+            <Badge variant={status.variant}>{status.label}</Badge>
+          </div>
+          <p className="truncate text-xs text-muted-foreground">
+            {booking.pet} · {booking.dates}
+          </p>
+        </div>
+      </div>
+      {footer && (
+        <div className="mt-3 flex items-center justify-between border-t pt-2.5 text-xs">
+          <span className="text-muted-foreground">
+            {booking.activity} · {formatEuro(booking.amount)}
+          </span>
+          <span className="flex items-center gap-1 font-medium">
+            Voir la réservation
+            <HugeiconsIcon className="size-3.5" icon={ArrowRight01Icon} />
+          </span>
+        </div>
+      )}
+    </button>
+  )
+}
+
+function BookingCard({
+  booking,
+  entry,
+  onOpen,
+}: {
+  booking: Booking
+  entry: BookingEntry
+  onOpen: () => void
+}) {
+  return (
+    <div className="mx-auto w-full max-w-sm space-y-1.5">
+      <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+        <HugeiconsIcon className="size-3.5" icon={Calendar03Icon} />
+        {eventLabel(entry.event, booking)} · {entry.time}
+      </p>
+      <BookingSummary booking={booking} footer onClick={onOpen} />
+    </div>
+  )
+}
+
+function ActiveBookingsBar({
+  bookings,
+  onOpen,
+  onShowAll,
+}: {
+  bookings: Booking[]
+  onOpen: (id: string) => void
+  onShowAll: () => void
+}) {
+  const active = sortBookings(bookings.filter(isActive))
+  return (
+    <div className="flex shrink-0 items-center gap-2 overflow-x-auto border-y bg-muted/40 px-4 py-2">
+      {active.length === 0 && (
+        <span className="text-xs text-muted-foreground">
+          Aucune réservation en cours ou à venir
+        </span>
+      )}
+      {active.map((booking) => (
+        <button
+          className="flex shrink-0 items-center gap-2 rounded-lg border bg-background py-1.5 ps-1.5 pe-2.5 text-start hover:bg-accent"
+          key={booking.id}
+          onClick={() => onOpen(booking.id)}
+          type="button"
+        >
+          <ActivityMark activity={booking.activity} className="size-6" />
+          <span className="leading-tight">
+            <span className="flex items-center gap-1.5 text-xs font-medium">
+              {booking.status === "ongoing" && (
+                <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
+              )}
+              {booking.title}
+            </span>
+            <span className="block text-[0.6875rem] text-muted-foreground">
+              {bookingStatus[booking.status].label} · {booking.dates}
+            </span>
+          </span>
+        </button>
+      ))}
+      <Button
+        className="ms-auto shrink-0"
+        onClick={onShowAll}
+        size="xs"
+        variant="ghost"
+      >
+        <HugeiconsIcon icon={Calendar03Icon} />
+        Toutes ({bookings.length})
+      </Button>
+    </div>
+  )
+}
+
+function BookingSheet({
   conversation,
-  onMessagesChange,
+  bookingId,
+  open,
+  onOpenChange,
+  onSelect,
+  onShare,
+  onConfirm,
 }: {
   conversation: Conversation
-  onMessagesChange: (update: (messages: Message[]) => Message[]) => void
+  bookingId: string | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onSelect: (id: string | null) => void
+  onShare: (id: string) => void
+  onConfirm: (id: string) => void
+}) {
+  const booking = conversation.bookings.find((b) => b.id === bookingId)
+  const sorted = sortBookings(conversation.bookings)
+  const sections = [
+    { bookings: sorted.filter(isActive), label: "En cours et à venir" },
+    { bookings: sorted.filter((b) => !isActive(b)), label: "Passées" },
+  ]
+
+  return (
+    <Sheet onOpenChange={onOpenChange} open={open}>
+      <SheetPopup variant="inset">
+        {booking ? (
+          <>
+            <SheetHeader>
+              <Button
+                className="-ms-2 w-fit"
+                onClick={() => onSelect(null)}
+                size="xs"
+                variant="ghost"
+              >
+                <HugeiconsIcon icon={ArrowLeft01Icon} />
+                Toutes les réservations
+              </Button>
+              <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                <ActivityMark
+                  activity={booking.activity}
+                  className="size-4 rounded text-[0.5rem]"
+                />
+                {booking.activity} · {booking.reference}
+              </span>
+              <SheetTitle>{booking.title}</SheetTitle>
+              <SheetDescription>
+                {booking.pet} · {booking.dates}
+              </SheetDescription>
+            </SheetHeader>
+            <SheetPanel className="space-y-6">
+              <div className="flex items-center justify-between rounded-xl border p-4">
+                <div>
+                  <p className="text-xs text-muted-foreground">Montant</p>
+                  <p className="text-2xl font-semibold tabular-nums">
+                    {formatEuro(booking.amount)}
+                  </p>
+                </div>
+                <Badge
+                  size="lg"
+                  variant={bookingStatus[booking.status].variant}
+                >
+                  {bookingStatus[booking.status].label}
+                </Badge>
+              </div>
+              <dl className="divide-y rounded-xl border text-sm">
+                {[
+                  ["Client", conversation.client],
+                  ["Animal", booking.pet],
+                  ["Dates", booking.dates],
+                  ...booking.details.map((detail, i) => [
+                    i === 0 ? "Détails" : "",
+                    detail,
+                  ]),
+                ].map(([label, value]) => (
+                  <div className="flex gap-4 px-4 py-2.5" key={value}>
+                    <dt className="w-20 shrink-0 text-muted-foreground">
+                      {label}
+                    </dt>
+                    <dd>{value}</dd>
+                  </div>
+                ))}
+              </dl>
+              <section className="space-y-2">
+                <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                  Dans la conversation
+                </h3>
+                {conversation.entries.some(
+                  (e) => e.kind === "booking" && e.bookingId === booking.id
+                ) ? (
+                  <ol className="ms-1 space-y-2 border-s ps-4">
+                    {conversation.entries.map(
+                      (entry) =>
+                        entry.kind === "booking" &&
+                        entry.bookingId === booking.id && (
+                          <li className="relative text-sm" key={entry.id}>
+                            <span className="absolute start-[calc(-1rem-4.5px)] top-1.5 size-2 rounded-full bg-muted-foreground/40" />
+                            {eventLabel(entry.event, booking)}
+                            <span className="text-muted-foreground">
+                              {" "}
+                              · {entry.day} à {entry.time}
+                            </span>
+                          </li>
+                        )
+                    )}
+                  </ol>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Pas encore mentionnée dans la conversation.
+                  </p>
+                )}
+              </section>
+            </SheetPanel>
+            <SheetFooter>
+              <Button onClick={() => onShare(booking.id)} variant="outline">
+                Partager dans la conversation
+              </Button>
+              {booking.status === "pending" && (
+                <Button onClick={() => onConfirm(booking.id)}>
+                  Confirmer la réservation
+                </Button>
+              )}
+            </SheetFooter>
+          </>
+        ) : (
+          <>
+            <SheetHeader>
+              <SheetTitle>Réservations de {conversation.client}</SheetTitle>
+              <SheetDescription>
+                {conversation.bookings.length} réservations · toutes activités
+                confondues
+              </SheetDescription>
+            </SheetHeader>
+            <SheetPanel className="space-y-6">
+              {sections.map(
+                (section) =>
+                  section.bookings.length > 0 && (
+                    <section className="space-y-2" key={section.label}>
+                      <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                        {section.label}
+                      </h3>
+                      {section.bookings.map((b) => (
+                        <BookingSummary
+                          booking={b}
+                          key={b.id}
+                          onClick={() => onSelect(b.id)}
+                        />
+                      ))}
+                    </section>
+                  )
+              )}
+            </SheetPanel>
+          </>
+        )}
+      </SheetPopup>
+    </Sheet>
+  )
+}
+
+function ConversationPane({
+  conversation,
+  onChange,
+}: {
+  conversation: Conversation
+  onChange: (update: (conversation: Conversation) => Conversation) => void
 }) {
   const [draft, setDraft] = useState<ComposerValue>([])
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [sheetBookingId, setSheetBookingId] = useState<string | null>(null)
   const hintId = useId()
   const touchInput = useMediaQuery({ pointer: "coarse" })
-  const { messages, activity } = conversation
+  const { entries, bookings } = conversation
   const firstName = conversation.client.split(" ")[0]
-  const petName = conversation.pet.split(" · ")[0]
-  const { contextAction, quickReplies } = activityMessaging[activity]
   const scroll = useChatScroll({
-    itemCount: messages.length,
+    itemCount: entries.length,
     layoutKey: conversation.typing ? "typing" : "idle",
   })
 
+  const replies = activeActivities(bookings).flatMap((activity) => {
+    const pet = sortBookings(bookings).find((b) => b.activity === activity)?.pet
+    return quickReplies[activity].map((reply) => ({
+      ...reply,
+      activity,
+      text: reply.text.replaceAll("{pet}", pet ?? ""),
+    }))
+  })
+
+  const { atBottomRef } = scroll
+
+  const addEntry = (entry: ChatEntry) => {
+    atBottomRef.current = true
+    onChange((c) => ({ ...c, entries: [...c.entries, entry] }))
+  }
+
+  const openBooking = (id: string | null) => {
+    setSheetBookingId(id)
+    setSheetOpen(true)
+  }
+
+  const share = (id: string) => {
+    addEntry(bookingEntry(id, "shared"))
+    setSheetOpen(false)
+  }
+
+  const confirm = (id: string) => {
+    atBottomRef.current = true
+    onChange((c) => ({
+      ...c,
+      bookings: c.bookings.map((b) =>
+        b.id === id ? { ...b, status: "upcoming" } : b
+      ),
+      entries: [...c.entries, bookingEntry(id, "confirmed")],
+    }))
+  }
+
   const react = (id: string, emoji: string) =>
-    onMessagesChange((list) =>
-      list.map((m) => (m.id === id ? toggleReaction(m, emoji) : m))
-    )
+    onChange((c) => ({
+      ...c,
+      entries: c.entries.map((e) =>
+        e.kind === "message" && e.id === id ? toggleReaction(e, emoji) : e
+      ),
+    }))
 
   return (
     <section className="flex min-w-0 flex-1 flex-col">
       <div className="flex h-14 shrink-0 items-center gap-3 px-4">
         <ClientAvatar className="size-8" initials={conversation.initials} />
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <p className="truncate text-sm font-medium">
-              {conversation.client}
-            </p>
-            <Badge variant="outline">
-              <ActivityMark
-                activity={activity}
-                className="size-3.5 rounded-sm text-[0.5rem]"
-              />
-              {activity}
-            </Badge>
-          </div>
+          <p className="truncate text-sm font-medium">{conversation.client}</p>
           <p className="truncate text-xs text-muted-foreground">
-            {conversation.pet}
+            {conversation.pets.join(" · ")}
           </p>
         </div>
         <Button aria-label="Appeler" size="icon-sm" variant="ghost">
@@ -164,14 +546,10 @@ function ConversationPane({
         </Button>
       </div>
 
-      <ChatStatusBar
-        action={
-          <Button size="xs" variant="outline">
-            {contextAction}
-          </Button>
-        }
-        description={conversation.context.description}
-        title={conversation.context.title}
+      <ActiveBookingsBar
+        bookings={bookings}
+        onOpen={openBooking}
+        onShowAll={() => openBooking(null)}
       />
 
       <ChatConversation
@@ -180,95 +558,41 @@ function ConversationPane({
         scroll={scroll}
       >
         <div className="space-y-4 py-4">
-          <ChatDatePill>Aujourd'hui</ChatDatePill>
-          {messages.map((message, index) => {
-            const incoming = message.side === "incoming"
-            const selected = (message.reactions ?? [])
-              .filter((r) => r.selected)
-              .map((r) => r.emoji)
-            return (
-              <div className="space-y-4" key={message.id}>
-                {message.id === conversation.unreadFromId && (
-                  <ChatUnreadDivider>Nouveaux messages</ChatUnreadDivider>
-                )}
-                <ChatMessage
-                  actions={
-                    <ChatMessageActionToolbar
-                      menuChildren={
-                        <>
-                          <MenuItem
-                            onClick={() =>
-                              navigator.clipboard?.writeText(message.text)
-                            }
-                          >
-                            Copier le texte
-                          </MenuItem>
-                          <MenuItem variant="destructive">Supprimer</MenuItem>
-                        </>
-                      }
-                      moreLabel="Plus d'actions"
-                      moreTooltip="Plus"
-                      reactionPicker={(toolbarRef) => (
-                        <ChatReactionPicker
-                          inToolbar
-                          onSelect={(emoji) => react(message.id, emoji)}
-                          options={reactionOptions}
-                          popupAlign={incoming ? "end" : "start"}
-                          popupAnchor={toolbarRef}
-                          popupLabel="Réactions"
-                          selectedEmojis={selected}
-                          triggerLabel="Ajouter une réaction"
-                          triggerTooltip="Réagir"
-                        />
-                      )}
-                      side={message.side}
-                      toolbarLabel="Actions du message"
-                    />
-                  }
-                  animateEntrance={message.id.startsWith("new-")}
-                  author={incoming ? firstName : undefined}
-                  avatar={
-                    incoming ? (
-                      <ClientAvatar initials={conversation.initials} />
-                    ) : undefined
-                  }
-                  footer={
-                    <span className="flex items-center gap-1">
-                      {message.time}
-                      {message.status && (
-                        <ChatDeliveryIndicator
-                          label={statusLabels[message.status]}
-                          status={message.status}
-                        />
-                      )}
-                    </span>
-                  }
-                  grouped={
-                    index > 0 && messages[index - 1].side === message.side
-                  }
-                  reactions={
-                    message.reactions?.length ? (
-                      <>
-                        {message.reactions.map((r) => (
-                          <ChatReactionChip
-                            count={r.count}
-                            emoji={r.emoji}
-                            key={r.emoji}
-                            label={`${r.emoji} ${r.count} réaction${r.count > 1 ? "s" : ""}`}
-                            onClick={() => react(message.id, r.emoji)}
-                            selected={r.selected}
-                          />
-                        ))}
-                      </>
-                    ) : undefined
-                  }
-                  side={message.side}
-                >
-                  {message.text}
-                </ChatMessage>
-              </div>
-            )
-          })}
+          {groupByDay(entries).map((group) => (
+            <section className="space-y-4" key={group.day}>
+              <ChatDatePill>{group.day}</ChatDatePill>
+              {group.entries.map((entry, index) => {
+                const previous = group.entries[index - 1]
+                return (
+                  <div className="space-y-4" key={entry.id}>
+                    {entry.id === conversation.unreadFromId && (
+                      <ChatUnreadDivider>Nouveaux messages</ChatUnreadDivider>
+                    )}
+                    {entry.kind === "booking" ? (
+                      <BookingCard
+                        booking={
+                          bookings.find((b) => b.id === entry.bookingId) ??
+                          bookings[0]
+                        }
+                        entry={entry}
+                        onOpen={() => openBooking(entry.bookingId)}
+                      />
+                    ) : (
+                      <MessageBubble
+                        conversation={conversation}
+                        grouped={
+                          previous?.kind === "message" &&
+                          previous.side === entry.side
+                        }
+                        message={entry}
+                        onReact={(emoji) => react(entry.id, emoji)}
+                      />
+                    )}
+                  </div>
+                )
+              })}
+            </section>
+          ))}
           <ChatTypingIndicator
             label={`${firstName} est en train d'écrire…`}
             visible={!!conversation.typing}
@@ -277,49 +601,42 @@ function ConversationPane({
       </ChatConversation>
 
       <div className="flex shrink-0 flex-col gap-2.5 px-4 pb-4">
-        <div
-          aria-label={`Réponses rapides · ${activity}`}
-          className="flex gap-1.5 overflow-x-auto"
-          role="group"
-        >
-          {quickReplies.map((reply) => (
-            <Button
-              className="rounded-full"
-              key={reply.label}
-              onClick={() =>
-                setDraft([
-                  {
-                    text: reply.text.replaceAll("{pet}", petName),
-                    type: "text",
-                  },
-                ])
-              }
-              size="xs"
-              variant="outline"
-            >
-              {reply.label}
-            </Button>
-          ))}
-        </div>
+        {replies.length > 0 && (
+          <div
+            aria-label="Réponses rapides"
+            className="flex gap-1.5 overflow-x-auto"
+            role="group"
+          >
+            {replies.map((reply) => (
+              <Button
+                className="shrink-0 rounded-full"
+                key={reply.label}
+                onClick={() => setDraft([{ text: reply.text, type: "text" }])}
+                size="xs"
+                variant="outline"
+              >
+                <ActivityMark
+                  activity={reply.activity}
+                  className="size-3.5 rounded-full text-[0.5rem]"
+                />
+                {reply.label}
+              </Button>
+            ))}
+          </div>
+        )}
         <Composer
           onSubmit={(value: ComposerValue) => {
             const text = getComposerText(value).trim()
             if (!text) return
-            const time = new Date().toLocaleTimeString("fr-FR", {
-              hour: "2-digit",
-              minute: "2-digit",
+            addEntry({
+              day: "Aujourd'hui",
+              id: newId(),
+              kind: "message",
+              side: "outgoing",
+              status: "sent",
+              text,
+              time: nowTime(),
             })
-            scroll.atBottomRef.current = true
-            onMessagesChange((list) => [
-              ...list,
-              {
-                id: `new-${Date.now()}`,
-                side: "outgoing",
-                status: "sent",
-                text,
-                time,
-              },
-            ])
             setDraft([])
           }}
           onValueChange={setDraft}
@@ -341,6 +658,36 @@ function ConversationPane({
               >
                 <HugeiconsIcon icon={Attachment01Icon} />
               </Button>
+              <Menu>
+                <MenuTrigger
+                  render={
+                    <Button
+                      aria-label="Partager une réservation"
+                      size="icon"
+                      variant="ghost"
+                    />
+                  }
+                >
+                  <HugeiconsIcon icon={Calendar03Icon} />
+                </MenuTrigger>
+                <MenuPopup align="start" side="top">
+                  {sortBookings(bookings).map((booking) => (
+                    <MenuItem
+                      key={booking.id}
+                      onClick={() => share(booking.id)}
+                    >
+                      <ActivityMark
+                        activity={booking.activity}
+                        className="size-4 rounded text-[0.5rem]"
+                      />
+                      {booking.title}
+                      <span className="ms-auto ps-4 text-xs text-muted-foreground">
+                        {booking.dates}
+                      </span>
+                    </MenuItem>
+                  ))}
+                </MenuPopup>
+              </Menu>
             </ComposerActionGroup>
             <ComposerActionGroup align="end">
               <ComposerSubmit
@@ -359,8 +706,116 @@ function ConversationPane({
           </p>
         )}
       </div>
+
+      <BookingSheet
+        bookingId={sheetBookingId}
+        conversation={conversation}
+        onConfirm={confirm}
+        onOpenChange={setSheetOpen}
+        onSelect={setSheetBookingId}
+        onShare={share}
+        open={sheetOpen}
+      />
     </section>
   )
+}
+
+function MessageBubble({
+  conversation,
+  message,
+  grouped,
+  onReact,
+}: {
+  conversation: Conversation
+  message: Message
+  grouped: boolean
+  onReact: (emoji: string) => void
+}) {
+  const incoming = message.side === "incoming"
+  const selected = (message.reactions ?? [])
+    .filter((r) => r.selected)
+    .map((r) => r.emoji)
+  return (
+    <ChatMessage
+      actions={
+        <ChatMessageActionToolbar
+          menuChildren={
+            <>
+              <MenuItem
+                onClick={() => navigator.clipboard?.writeText(message.text)}
+              >
+                Copier le texte
+              </MenuItem>
+              <MenuItem variant="destructive">Supprimer</MenuItem>
+            </>
+          }
+          moreLabel="Plus d'actions"
+          moreTooltip="Plus"
+          reactionPicker={(toolbarRef) => (
+            <ChatReactionPicker
+              inToolbar
+              onSelect={onReact}
+              options={reactionOptions}
+              popupAlign={incoming ? "end" : "start"}
+              popupAnchor={toolbarRef}
+              popupLabel="Réactions"
+              selectedEmojis={selected}
+              triggerLabel="Ajouter une réaction"
+              triggerTooltip="Réagir"
+            />
+          )}
+          side={message.side}
+          toolbarLabel="Actions du message"
+        />
+      }
+      animateEntrance={message.id.startsWith("new-")}
+      author={incoming ? conversation.client.split(" ")[0] : undefined}
+      avatar={
+        incoming ? <ClientAvatar initials={conversation.initials} /> : undefined
+      }
+      footer={
+        <span className="flex items-center gap-1">
+          {message.time}
+          {message.status && (
+            <ChatDeliveryIndicator
+              label={statusLabels[message.status]}
+              status={message.status}
+            />
+          )}
+        </span>
+      }
+      grouped={grouped}
+      reactions={
+        message.reactions?.length ? (
+          <>
+            {message.reactions.map((r) => (
+              <ChatReactionChip
+                count={r.count}
+                emoji={r.emoji}
+                key={r.emoji}
+                label={`${r.emoji} ${r.count} réaction${r.count > 1 ? "s" : ""}`}
+                onClick={() => onReact(r.emoji)}
+                selected={r.selected}
+              />
+            ))}
+          </>
+        ) : undefined
+      }
+      side={message.side}
+    >
+      {message.text}
+    </ChatMessage>
+  )
+}
+
+function lastPreview(conversation: Conversation) {
+  if (conversation.typing) return "En train d'écrire…"
+  const last = conversation.entries[conversation.entries.length - 1]
+  if (last.kind === "message") return last.text
+  const booking = conversation.bookings.find((b) => b.id === last.bookingId)
+  return booking
+    ? `${eventLabel(last.event, booking)} · ${booking.title}`
+    : "Réservation"
 }
 
 export function MessagesView() {
@@ -370,13 +825,20 @@ export function MessagesView() {
   const [query, setQuery] = useState("")
   const active =
     conversations.find((c) => c.id === activeId) ?? conversations[0]
+  const hasOngoing = (c: Conversation) =>
+    c.bookings.some((b) => b.status === "ongoing")
+  const counts = {
+    ongoing: conversations.filter(hasOngoing).length,
+    unread: conversations.filter((c) => c.unread > 0).length,
+  }
   const filtered = conversations.filter(
     (c) =>
-      (filter === "all" || c.activity === filter) &&
-      `${c.client} ${c.pet}`.toLowerCase().includes(query.toLowerCase())
+      (filter === "all" ||
+        (filter === "unread" ? c.unread > 0 : hasOngoing(c))) &&
+      `${c.client} ${c.pets.join(" ")}`
+        .toLowerCase()
+        .includes(query.toLowerCase())
   )
-  const hasUnread = (activity: Activity) =>
-    conversations.some((c) => c.activity === activity && c.unread > 0)
 
   const select = (id: string) => {
     setActiveId(id)
@@ -418,18 +880,16 @@ export function MessagesView() {
                 <TabsTab className="flex-1" value="all">
                   Toutes
                 </TabsTab>
-                {activityNames.map((activity) => (
-                  <TabsTab
-                    className="flex-1 gap-1"
-                    key={activity}
-                    value={activity}
-                  >
-                    {activity}
-                    {hasUnread(activity) && (
-                      <span className="size-1.5 rounded-full bg-orange-500" />
-                    )}
-                  </TabsTab>
-                ))}
+                <TabsTab className="flex-1 gap-1.5" value="unread">
+                  Non lues
+                  <span className="text-muted-foreground">{counts.unread}</span>
+                </TabsTab>
+                <TabsTab className="flex-1 gap-1.5" value="ongoing">
+                  En cours
+                  <span className="text-muted-foreground">
+                    {counts.ongoing}
+                  </span>
+                </TabsTab>
               </TabsList>
             </Tabs>
           </div>
@@ -443,7 +903,7 @@ export function MessagesView() {
               </p>
             )}
             {filtered.map((c) => {
-              const last = c.messages[c.messages.length - 1]
+              const last = c.entries[c.entries.length - 1]
               return (
                 <button
                   aria-current={c.id === active.id ? "true" : undefined}
@@ -455,23 +915,32 @@ export function MessagesView() {
                   onClick={() => select(c.id)}
                   type="button"
                 >
-                  <ClientAvatar
-                    activity={c.activity}
-                    className="size-9"
-                    initials={c.initials}
-                  />
+                  <ClientAvatar className="size-9" initials={c.initials} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="truncate text-sm font-medium">
                         {c.client}
                       </span>
                       <span className="shrink-0 text-xs text-muted-foreground">
-                        {last.time}
+                        {last.day === "Aujourd'hui" ? last.time : last.day}
                       </span>
                     </div>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {c.pet} · {c.activity}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+                        {c.pets.map((pet) => pet.split(" · ")[0]).join(", ")}
+                      </p>
+                      <span className="flex shrink-0 gap-0.5">
+                        {activeActivities(c.bookings).map(
+                          (activity: Activity) => (
+                            <ActivityMark
+                              activity={activity}
+                              className="size-3.5 rounded-sm text-[0.5rem]"
+                              key={activity}
+                            />
+                          )
+                        )}
+                      </span>
+                    </div>
                     <div className="mt-0.5 flex items-center justify-between gap-2">
                       <span
                         className={cn(
@@ -479,7 +948,7 @@ export function MessagesView() {
                           c.unread ? "font-medium" : "text-muted-foreground"
                         )}
                       >
-                        {c.typing ? "En train d'écrire…" : last.text}
+                        {lastPreview(c)}
                       </span>
                       {c.unread > 0 && (
                         <span className="shrink-0 rounded-full bg-emerald-800 px-1.5 text-xs text-white">
@@ -497,11 +966,9 @@ export function MessagesView() {
         <ConversationPane
           conversation={active}
           key={active.id}
-          onMessagesChange={(update) =>
+          onChange={(update) =>
             setConversations((list) =>
-              list.map((c) =>
-                c.id === active.id ? { ...c, messages: update(c.messages) } : c
-              )
+              list.map((c) => (c.id === active.id ? update(c) : c))
             )
           }
         />
