@@ -25,6 +25,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import type * as React from "react"
 import { type Activity, ActivityMark } from "@/components/activity-mark"
+import { inboxUnreadCount } from "@/components/inbox/data"
 import { Button } from "@/components/ui/button"
 import {
   Collapsible,
@@ -63,8 +64,13 @@ type NavItem = {
 }
 
 const primary: NavItem[] = [
-  { badge: 8, icon: InboxIcon, title: "Boîte de réception" },
-  { icon: SunIcon, title: "Ma journée" },
+  {
+    badge: inboxUnreadCount,
+    href: "/inbox",
+    icon: InboxIcon,
+    title: "Boîte de réception",
+  },
+  { href: "/today", icon: SunIcon, title: "Ma journée" },
 ]
 
 const organisation: NavItem[] = [
