@@ -124,7 +124,7 @@ const common = (
 ): { links: SettingsLink[] } => ({
   links: [
     {
-      description: "Nom, identifiant, couleur, responsable et description",
+      description: "Nom, identifiant, couleur et description",
       icon: Settings01Icon,
       slug: "general",
       title: "Général",
@@ -175,11 +175,11 @@ export const activitySettings: ActivitySettings[] = [
             value: "Dès 25 € / nuit",
           },
           {
-            description: "Créneaux d'accueil et règles de départ",
+            description: "Contrôles à l'arrivée et règles de départ",
             icon: CalendarCheckIn01Icon,
             slug: "check-in",
             title: "Arrivées & départs",
-            value: "8h – 19h",
+            value: "Départ avant 11h",
           },
         ],
         title: "Hébergement",

@@ -27,6 +27,7 @@ import Link from "next/link"
 import { useState } from "react"
 import { metierOf, useCatalog } from "@/components/services/data"
 import { ActivityDot } from "@/components/services/service-form"
+import { SizeLimits } from "@/components/services/size-limits"
 import { ActivityMark, activityNames } from "@/components/activity-mark"
 import {
   activitySettings,
@@ -42,8 +43,6 @@ import {
   SettingsPage,
   SettingsRow,
   SettingsSection,
-  WeeklyHours,
-  weekHours,
 } from "@/components/settings/settings-ui"
 import { formatAmount } from "@/components/today/widgets"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -180,12 +179,23 @@ export function OrganizationPage() {
         ]}
       />
       <SettingsSection
-        description="Horaires d'accueil affichés aux clients"
-        title="Horaires de l'accueil"
+        description="Chaque activité a ses horaires et ses fermetures, affichés aux clients"
+        title="Horaires"
       >
-        <WeeklyHours
-          initial={weekHours([0, 1, 2, 3, 4, 5], "08:00", "19:00")}
-        />
+        {activitySettings.map((activity) => (
+          <LinkRow
+            href={`/settings/activities/${activity.slug}/hours`}
+            key={activity.slug}
+            media={
+              <ActivityMark
+                activity={activity.name}
+                className="size-8 text-xs"
+              />
+            }
+            title={activity.name}
+            value={`${activity.hours.label} · ${activity.hours.from.replace(":00", "h")} – ${activity.hours.to.replace(":00", "h")}`}
+          />
+        ))}
       </SettingsSection>
       <SettingsGroups
         groups={[
@@ -492,6 +502,7 @@ export function ActivitiesPage() {
           },
         ]}
       />
+      <SizeLimits />
     </SettingsPage>
   )
 }
@@ -570,14 +581,13 @@ export function BookingPage() {
             title={activity.name}
           >
             <Button
-              render={
-                <Link href={`/settings/activities/${activity.slug}/general`} />
-              }
+              render={<Link href={`/settings/activities/${activity.slug}`} />}
               size="sm"
               variant="ghost"
             >
-              Régler
+              Règles
             </Button>
+            <SwitchCell defaultChecked label={`${activity.name} en ligne`} />
           </SettingsRow>
         ))}
       </SettingsSection>
@@ -621,7 +631,13 @@ export function BookingPage() {
   )
 }
 
-const templates = [
+const templates: {
+  channel: string
+  title: string
+  trigger: string
+  /** Envoi réglé là où le message sert : on n'y modifie ici que le texte. */
+  owner?: { href: string; label: string }
+}[] = [
   {
     channel: "E-mail · SMS",
     title: "Confirmation de réservation",
@@ -629,17 +645,26 @@ const templates = [
   },
   {
     channel: "SMS",
+    owner: {
+      href: "/settings/activities/grooming/reminders",
+      label: "Toilettage › Rappels & absences",
+    },
     title: "Rappel de rendez-vous",
     trigger: "La veille à 18h",
   },
   {
     channel: "E-mail",
+    owner: {
+      href: "/settings/activities/pension/news",
+      label: "Pension › Nouvelles aux propriétaires",
+    },
     title: "Nouvelles du jour",
     trigger: "Chaque soir pendant un séjour",
   },
   { channel: "E-mail", title: "Facture disponible", trigger: "À l'émission" },
   {
     channel: "E-mail · SMS",
+    owner: { href: "/settings/payments", label: "Paiements › Relances" },
     title: "Relance de paiement",
     trigger: "7 jours après l'échéance",
   },
@@ -695,7 +720,21 @@ export function CommunicationPage() {
       >
         {templates.map((template, index) => (
           <SettingsRow
-            description={`${template.trigger} · ${template.channel}`}
+            description={
+              template.owner ? (
+                <>
+                  {template.channel} · envoi réglé dans{" "}
+                  <Link
+                    className="font-medium underline"
+                    href={template.owner.href}
+                  >
+                    {template.owner.label}
+                  </Link>
+                </>
+              ) : (
+                `${template.trigger} · ${template.channel}`
+              )
+            }
             key={template.title}
             media={
               <IconTile
@@ -704,9 +743,11 @@ export function CommunicationPage() {
             }
             title={template.title}
           >
-            <SwitchCell defaultChecked={index !== 5} label={template.title} />
+            {!template.owner && (
+              <SwitchCell defaultChecked={index !== 5} label={template.title} />
+            )}
             <Button size="sm" variant="outline">
-              Modifier
+              Modifier le texte
             </Button>
           </SettingsRow>
         ))}
@@ -795,7 +836,8 @@ export function PaymentsPage() {
               { defaultChecked: true, title: "Chèque", type: "switch" },
               { defaultChecked: true, title: "Virement", type: "switch" },
               {
-                description: "Paiement en 3 fois sans frais au-delà de 300 €",
+                description:
+                  "En 3 fois sans frais au-delà de 300 €, pour les séjours comme pour les forfaits",
                 title: "Paiement fractionné",
                 type: "switch",
               },

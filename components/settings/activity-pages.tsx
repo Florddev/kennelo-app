@@ -20,6 +20,7 @@ import {
 import { ActivityOffers } from "@/components/services/activity-offers"
 import { journeyOf, metierOf, useCatalog } from "@/components/services/data"
 import { ActivityDot } from "@/components/services/service-form"
+import { SizeLimitsLink } from "@/components/services/size-limits"
 import { kennelLabel } from "@/components/pension/stay-sheet"
 import {
   type ActivitySettings,
@@ -210,7 +211,6 @@ const descriptions: Record<string, string> = {
 }
 
 function GeneralSection({ activity }: SectionProps) {
-  const team = teamOf(activity)
   return (
     <SettingsGroups
       groups={[
@@ -234,36 +234,12 @@ function GeneralSection({ activity }: SectionProps) {
               type: "custom",
             },
             {
-              defaultValue: team[team.length > 1 ? 1 : 0].name,
-              description: "Reçoit les demandes et valide les réservations",
-              items: options(...team.map((m) => m.name)),
-              title: "Responsable",
-              type: "select",
-            },
-            {
               defaultValue: descriptions[activity.name],
               description: "Affichée sur le portail client",
               title: "Description",
               type: "textarea",
             },
           ],
-        },
-        {
-          settings: [
-            {
-              defaultValue: "Tous les membres",
-              items: options("Tous les membres", "Membres de l'activité"),
-              title: "Visible par",
-              type: "select",
-            },
-            {
-              defaultChecked: true,
-              description: "Les clients peuvent réserver depuis le portail",
-              title: "Réservation en ligne",
-              type: "switch",
-            },
-          ],
-          title: "Accès",
         },
         {
           settings: [
@@ -291,6 +267,7 @@ function MembersSection({ activity }: SectionProps) {
     <>
       <SettingsSection
         action={<AddButton label="Ajouter" />}
+        description="Le responsable reçoit les demandes et valide les réservations"
         title={`${team.length} membres`}
       >
         {team.map((member, index) => (
@@ -519,20 +496,7 @@ function KennelsSection() {
       <SettingsGroups
         groups={[
           {
-            description: "Poids maximum pour chaque taille de box",
             settings: [
-              {
-                defaultValue: 10,
-                title: "Petit gabarit",
-                type: "number",
-                unit: "kg",
-              },
-              {
-                defaultValue: 25,
-                title: "Moyen gabarit",
-                type: "number",
-                unit: "kg",
-              },
               {
                 defaultChecked: true,
                 description:
@@ -541,10 +505,10 @@ function KennelsSection() {
                 type: "switch",
               },
             ],
-            title: "Gabarits",
           },
         ]}
       />
+      <SizeLimitsLink />
     </>
   )
 }
@@ -691,11 +655,6 @@ const pensionGroups: Record<string, SettingsGroup[]> = {
     {
       settings: [
         {
-          defaultValue: "8h – 12h · 14h – 19h",
-          title: "Créneaux d'arrivée",
-          type: "input",
-        },
-        {
           defaultValue: "11h00",
           items: options("10h00", "11h00", "12h00"),
           title: "Départ avant",
@@ -708,14 +667,10 @@ const pensionGroups: Record<string, SettingsGroup[]> = {
           type: "number",
           unit: "€",
         },
-        {
-          defaultValue: "Matin uniquement",
-          items: options("Fermé", "Matin uniquement", "Toute la journée"),
-          title: "Dimanche",
-          type: "select",
-        },
       ],
-      title: "Horaires",
+      description:
+        "Les heures d'accueil et les fermetures se règlent dans Horaires & fermetures",
+      title: "Départ",
     },
     {
       settings: [
@@ -841,7 +796,7 @@ const pensionGroups: Record<string, SettingsGroup[]> = {
         },
         {
           defaultValue: 15,
-          description: "Sur le deuxième animal du même foyer",
+          description: "Deuxième animal du même foyer, dans sa propre place",
           title: "Deuxième animal",
           type: "number",
           unit: "%",
@@ -869,28 +824,7 @@ function ServicesSection() {
   return (
     <>
       <ActivityOffers activityId="grooming" />
-      <SettingsGroups
-        groups={[
-          {
-            description: "Utilisés par la grille de prix du catalogue",
-            settings: [
-              {
-                defaultValue: 10,
-                title: "Petit gabarit jusqu'à",
-                type: "number",
-                unit: "kg",
-              },
-              {
-                defaultValue: 25,
-                title: "Moyen gabarit jusqu'à",
-                type: "number",
-                unit: "kg",
-              },
-            ],
-            title: "Gabarits",
-          },
-        ]}
-      />
+      <SizeLimitsLink />
     </>
   )
 }
@@ -1182,12 +1116,6 @@ function PackagesSection() {
                 items: options("3 mois", "6 mois", "1 an"),
                 title: "Validité d'un forfait",
                 type: "select",
-              },
-              {
-                defaultChecked: true,
-                description: "Échéancier en 3 versements",
-                title: "Paiement en plusieurs fois",
-                type: "switch",
               },
               {
                 defaultValue: 24,

@@ -180,6 +180,8 @@ type State = {
   periods: Period[]
   rates: Record<string, PeriodRate[]>
   exceptions: Record<string, DayException[]>
+  /** Poids maximum d'un petit et d'un moyen chien, communs à toutes les activités. */
+  sizeLimits: { small: number; medium: number }
 }
 
 export const weekdays = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
@@ -519,6 +521,7 @@ let state: State = {
       periodRate("toussaint", { percent: 10 }),
     ],
   },
+  sizeLimits: { medium: 25, small: 10 },
   services: seedServices.map((service) => ({
     ...service,
     owner: ["promenade", "traitement", "regime", "parc", "photos"].includes(
@@ -763,12 +766,18 @@ export const euros = (n: number) =>
 export const minutes = (n: number) =>
   n < 60 ? `${n} min` : `${Math.floor(n / 60)} h${n % 60 ? ` ${n % 60}` : ""}`
 
-export const sizeOfWeight = (kg?: number): Size | undefined =>
+export const setSizeLimits = (sizeLimits: State["sizeLimits"]) =>
+  commit((s) => ({ ...s, sizeLimits }))
+
+export const sizeOfWeight = (
+  kg?: number,
+  limits: State["sizeLimits"] = state.sizeLimits
+): Size | undefined =>
   kg === undefined
     ? undefined
-    : kg <= 10
+    : kg <= limits.small
       ? "Petit"
-      : kg <= 25
+      : kg <= limits.medium
         ? "Moyen"
         : "Grand"
 
