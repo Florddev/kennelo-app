@@ -14,7 +14,7 @@ import { dateOf, shortDate, TODAY, weekdayOf } from "@/components/calendar"
 import { clients } from "@/components/clients/data"
 import {
   kennels,
-  optionPrices,
+  type OptionPrices,
   type Stay,
   stayAmount,
   stayDeposit,
@@ -28,6 +28,12 @@ import {
   petHref,
   vaccineIssues,
 } from "@/components/pets/data"
+import {
+  adjusted,
+  rowFor,
+  sizeOfWeight,
+  useCatalog,
+} from "@/components/services/data"
 import { formatAmount } from "@/components/today/widgets"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -137,6 +143,7 @@ export function NewStayDialog({
 }) {
   const [open, setOpen] = useState(false)
   const [startedAt, setStartedAt] = useState(0)
+  const catalog = useCatalog()
   const [query, setQuery] = useState("")
   const [clientName, setClientName] = useState<string | undefined>(
     defaultClient
@@ -217,10 +224,29 @@ export function NewStayDialog({
     kennelChoice && free.some((k) => k.id === kennelChoice)
       ? kennelChoice
       : suggested
+  // Options de la pension, prises dans le catalogue commun
+  const prices: OptionPrices = {}
+  const included: string[] = []
+  for (const offer of catalog.offers.pension ?? []) {
+    const service = catalog.services.find((s) => s.id === offer.serviceId)
+    if (!service?.active || !offer.active) continue
+    const row = rowFor(service, {
+      breed,
+      size: sizeOfWeight(pet?.weight),
+      species,
+    })
+    if (!row) continue
+    prices[service.name] = {
+      perNight: offer.perNight,
+      price: offer.included ? 0 : adjusted(row.price, offer.adjust),
+    }
+    if (offer.included) included.push(service.name)
+  }
   const defaultOptions = [
+    ...included,
     ...(pet?.treatments.length ? ["Traitement"] : []),
     ...(pet?.food.treats === "Aucune" ? ["Régime"] : []),
-  ]
+  ].filter((o) => o in prices)
   const chosenOptions = options ?? defaultOptions
 
   const draftStay: Stay | null =
@@ -241,7 +267,7 @@ export function NewStayDialog({
   const issues = pet && datesSet ? vaccineIssues(pet, isoOf(departure)) : []
   const whoDone = Boolean(animal && owner && (client || draft.phone))
   const ready = Boolean(draftStay && kennelId && whoDone)
-  const deposit = draftStay ? stayDeposit(draftStay) : 0
+  const deposit = draftStay ? stayDeposit(draftStay, prices) : 0
   const first = owner.split(" ")[0]
   const smsText = draftStay
     ? `Bonjour ${first}, le séjour de ${animal} aux Coteaux du ${dateOf(draftStay.arrival).day} ${dateOf(draftStay.arrival).month} au ${dateOf(draftStay.departure).day} ${dateOf(draftStay.departure).month} est réservé. Merci de régler l'acompte de ${formatAmount(deposit)} ici : kennelo.fr/p/8F2K. À bientôt !`
@@ -312,7 +338,7 @@ export function NewStayDialog({
                   {shortDate(created.stay.arrival)} →{" "}
                   {shortDate(created.stay.departure)} ·{" "}
                   {kennelLabel(created.stay.kennelId)} ·{" "}
-                  {formatAmount(stayAmount(created.stay))}
+                  {formatAmount(stayAmount(created.stay, prices))}
                 </DialogDescription>
               </div>
               <div className="flex flex-wrap justify-center gap-2">
@@ -320,8 +346,10 @@ export function NewStayDialog({
                 {sms && (
                   <Badge variant="info">
                     <HugeiconsIcon icon={SmsCodeIcon} />
-                    Acompte de {formatAmount(stayDeposit(created.stay))} demandé
-                    au {phone}
+                    Acompte de {formatAmount(
+                      stayDeposit(created.stay, prices)
+                    )}{" "}
+                    demandé au {phone}
                   </Badge>
                 )}
               </div>
@@ -641,7 +669,7 @@ export function NewStayDialog({
                         )}
                       </div>
                       <div className="grid gap-2 sm:grid-cols-2">
-                        {Object.entries(optionPrices).map(
+                        {Object.entries(prices).map(
                           ([option, { price, perNight }]) => (
                             <Label
                               className="flex items-center gap-2 rounded-lg border px-3 py-2 font-normal"
@@ -661,7 +689,9 @@ export function NewStayDialog({
                               />
                               <span className="flex-1">{option}</span>
                               <span className="text-xs text-muted-foreground">
-                                {price} €{perNight && "/nuit"}
+                                {included.includes(option)
+                                  ? "Incluse"
+                                  : `${price} €${perNight ? "/nuit" : ""}`}
                               </span>
                             </Label>
                           )
@@ -701,23 +731,27 @@ export function NewStayDialog({
                   )}
                   {draftStay && (
                     <ul className="space-y-1 border-t pt-3 text-sm">
-                      {stayLines({ ...draftStay, kennelId }).map((line) => (
-                        <li
-                          className="flex justify-between gap-2"
-                          key={line.label}
-                        >
-                          <span className="text-muted-foreground">
-                            {line.label}
-                          </span>
-                          <span className="tabular-nums">
-                            {formatAmount(line.amount)}
-                          </span>
-                        </li>
-                      ))}
+                      {stayLines({ ...draftStay, kennelId }, prices).map(
+                        (line) => (
+                          <li
+                            className="flex justify-between gap-2"
+                            key={line.label}
+                          >
+                            <span className="text-muted-foreground">
+                              {line.label}
+                            </span>
+                            <span className="tabular-nums">
+                              {formatAmount(line.amount)}
+                            </span>
+                          </li>
+                        )
+                      )}
                       <li className="flex justify-between border-t pt-2 font-semibold">
                         <span>Total</span>
                         <span className="tabular-nums">
-                          {formatAmount(stayAmount({ ...draftStay, kennelId }))}
+                          {formatAmount(
+                            stayAmount({ ...draftStay, kennelId }, prices)
+                          )}
                         </span>
                       </li>
                       <li className="flex justify-between text-muted-foreground">

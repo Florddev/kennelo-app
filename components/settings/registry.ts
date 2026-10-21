@@ -18,6 +18,7 @@ import {
   OrganizationSecurityPage,
   PaymentsPage,
 } from "@/components/settings/organization-pages"
+import { ServicesCatalogPage } from "@/components/services/catalog-page"
 
 export const settingsPages: Record<string, ComponentType> = {
   "account-security": AccountSecurityPage,
@@ -35,4 +36,5 @@ export const settingsPages: Record<string, ComponentType> = {
   preferences: PreferencesPage,
   profile: ProfilePage,
   security: OrganizationSecurityPage,
+  services: ServicesCatalogPage,
 }

@@ -440,26 +440,25 @@ export type Stay = {
   note?: string
 }
 
-export const optionPrices: Record<
-  string,
-  { price: number; perNight?: boolean }
-> = {
-  "Promenades +": { perNight: true, price: 6 },
+export type OptionPrices = Record<string, { price: number; perNight?: boolean }>
+
+export const optionPrices: OptionPrices = {
+  Promenade: { perNight: true, price: 6 },
   Régime: { perNight: true, price: 2 },
-  "Toilettage de départ": { price: 35 },
+  "Bain & brossage": { price: 35 },
   Traitement: { perNight: true, price: 3 },
 }
 
 export const nightlyRate = (kennelId?: string) =>
   kennelId?.startsWith("c") ? 16 : 25
 
-export function stayLines(stay: Stay) {
+export function stayLines(stay: Stay, prices = optionPrices) {
   const nights = stay.departure - stay.arrival
   const rate = nightlyRate(stay.kennelId)
   return [
     { amount: nights * rate, label: `${nights} nuits × ${rate} €` },
     ...stay.options.map((option) => {
-      const { perNight, price } = optionPrices[option] ?? { price: 0 }
+      const { perNight, price } = prices[option] ?? { price: 0 }
       return {
         amount: perNight ? price * nights : price,
         label: perNight ? `${option} · ${nights} × ${price} €` : option,
@@ -468,16 +467,17 @@ export function stayLines(stay: Stay) {
   ]
 }
 
-export const stayAmount = (stay: Stay) =>
-  stayLines(stay).reduce((sum, line) => sum + line.amount, 0)
+export const stayAmount = (stay: Stay, prices = optionPrices) =>
+  stayLines(stay, prices).reduce((sum, line) => sum + line.amount, 0)
 
-export const stayDeposit = (stay: Stay) => Math.round(stayAmount(stay) * 0.3)
+export const stayDeposit = (stay: Stay, prices = optionPrices) =>
+  Math.round(stayAmount(stay, prices) * 0.3)
 
 const extraOptions: Record<string, string[]> = {
-  b13: ["Promenades +"],
-  b18: ["Promenades +", "Toilettage de départ"],
-  b4: ["Toilettage de départ"],
-  b7: ["Promenades +"],
+  b13: ["Promenade"],
+  b18: ["Promenade", "Bain & brossage"],
+  b4: ["Bain & brossage"],
+  b7: ["Promenade"],
 }
 
 const currentStays: Stay[] = kennels
@@ -561,7 +561,7 @@ const otherStays: Stay[] = [
     [-7, -3],
     "done",
     "due",
-    ["Promenades +"]
+    ["Promenade"]
   ),
   stay(
     "ficelle",
@@ -582,7 +582,7 @@ const otherStays: Stay[] = [
     [-3, 2],
     "done",
     "paid",
-    ["Toilettage de départ"]
+    ["Bain & brossage"]
   ),
   stay(
     "vanille",
@@ -626,7 +626,7 @@ const otherStays: Stay[] = [
     [4, 8],
     "upcoming",
     "deposit",
-    ["Toilettage de départ"]
+    ["Bain & brossage"]
   ),
   stay(
     "iris",
@@ -657,7 +657,7 @@ const otherStays: Stay[] = [
     [5, 9],
     "upcoming",
     "deposit",
-    ["Promenades +"]
+    ["Promenade"]
   ),
   stay(
     "minou",
@@ -688,7 +688,7 @@ const otherStays: Stay[] = [
     [6, 13],
     "upcoming",
     "deposit",
-    ["Promenades +"]
+    ["Promenade"]
   ),
   stay(
     "tenor",
@@ -764,7 +764,7 @@ const otherStays: Stay[] = [
     [11, 16],
     "upcoming",
     "deposit",
-    ["Promenades +"]
+    ["Promenade"]
   ),
   stay(
     "caline",
@@ -775,7 +775,7 @@ const otherStays: Stay[] = [
     [12, 17],
     "pending",
     "deposit",
-    ["Promenades +"]
+    ["Promenade"]
   ),
 ]
 

@@ -17,6 +17,7 @@ import {
   Message01Icon,
   PlusSignIcon,
   ShieldUserIcon,
+  Tag01Icon,
   UserAdd01Icon,
   WebhookIcon,
   WhatsappIcon,
@@ -24,6 +25,8 @@ import {
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
 import Link from "next/link"
 import { useState } from "react"
+import { metierOf, useCatalog } from "@/components/services/data"
+import { ActivityDot } from "@/components/services/service-form"
 import { ActivityMark, activityNames } from "@/components/activity-mark"
 import {
   activitySettings,
@@ -33,6 +36,7 @@ import {
 } from "@/components/settings/data"
 import {
   IconTile,
+  LinkRow,
   options,
   SettingsGroups,
   SettingsPage,
@@ -386,50 +390,73 @@ export function MembersPage() {
 }
 
 export function ActivitiesPage() {
+  const catalog = useCatalog()
   return (
     <SettingsPage
       action={
-        <Button size="sm">
+        <Button render={<Link href="/settings/activities/new" />} size="sm">
           <HugeiconsIcon icon={PlusSignIcon} />
           Créer une activité
         </Button>
       }
-      description="Chaque activité a ses propres membres, horaires, tarifs et réglages"
+      description="Chaque activité a ses membres, ses horaires et choisit ses prestations dans le catalogue commun"
       title="Activités"
     >
       <SettingsSection>
-        {activitySettings.map((activity) => {
+        {catalog.activities.map((activity) => {
+          const settings = activitySettings.find((a) => a.slug === activity.id)
           const team = members.filter((m) =>
-            m.activities.includes(activity.name)
+            m.activities.some((name) => name === activity.name)
           )
-          return (
-            <Link
-              className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-accent/60"
-              href={`/settings/activities/${activity.slug}`}
-              key={activity.slug}
-            >
-              <ActivityMark
-                activity={activity.name}
-                className="size-8 text-xs"
-              />
+          const count = (catalog.offers[activity.id] ?? []).length
+          const content = (
+            <>
+              <ActivityDot activity={activity} />
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium">{activity.name}</p>
+                <p className="flex items-center gap-2 text-sm font-medium">
+                  {activity.name}
+                  {!settings && (
+                    <Badge size="sm" variant="success">
+                      Nouvelle
+                    </Badge>
+                  )}
+                </p>
                 <p className="text-xs text-muted-foreground">
-                  {activity.hours.label} ·{" "}
-                  {activity.hours.from.replace(":00", "h")} –{" "}
-                  {activity.hours.to.replace(":00", "h")}
+                  {metierOf(activity.metier).label}
+                  {activity.hours && ` · ${activity.hours}`}
+                  {settings &&
+                    !activity.hours &&
+                    ` · ${settings.hours.label} · ${settings.hours.from.replace(":00", "h")} – ${settings.hours.to.replace(":00", "h")}`}
                 </p>
               </div>
               <span className="text-xs text-muted-foreground">
-                {team.length} membres
+                {count} prestations · {team.length} membres
               </span>
               <HugeiconsIcon
                 className="size-4 text-muted-foreground"
                 icon={ArrowRight01Icon}
               />
+            </>
+          )
+          return (
+            <Link
+              className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-accent/60"
+              href={`/settings/activities/${activity.id}`}
+              key={activity.id}
+            >
+              {content}
             </Link>
           )
         })}
+      </SettingsSection>
+      <SettingsSection>
+        <LinkRow
+          description="Vue d'ensemble des prestations créées par vos activités et de leurs reprises"
+          href="/settings/services"
+          icon={Tag01Icon}
+          title="Toutes les prestations"
+          value={`${catalog.services.length} prestations`}
+        />
       </SettingsSection>
       <SettingsGroups
         groups={[

@@ -10,13 +10,14 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import Link from "next/link"
 import { type ComponentType, useState } from "react"
 import { ActivityMark, activityMeta } from "@/components/activity-mark"
-import {
-  groomingSteps,
-  services,
-  stock,
-  waitlist,
-} from "@/components/grooming/data"
+import { groomingSteps, stock, waitlist } from "@/components/grooming/data"
 import { kennels } from "@/components/pension/data"
+import {
+  ActivityOffers,
+  ActivityPlaces,
+} from "@/components/services/activity-offers"
+import { journeyOf, metierOf, useCatalog } from "@/components/services/data"
+import { ActivityDot } from "@/components/services/service-form"
 import { kennelLabel } from "@/components/pension/stay-sheet"
 import {
   type ActivitySettings,
@@ -67,9 +68,48 @@ const AddButton = ({ label }: { label: string }) => (
   </Button>
 )
 
+/** Activité créée avec le formulaire : ses places et ses prestations. */
+function CreatedActivityOverview({ id }: { id: string }) {
+  const activity = useCatalog().activities.find((a) => a.id === id)
+  if (!activity)
+    return (
+      <SettingsPage
+        back={{ href: "/settings/activities", label: "Activités" }}
+        description="Les activités créées pendant la démonstration disparaissent au rechargement."
+        title="Activité introuvable"
+      >
+        {null}
+      </SettingsPage>
+    )
+  return (
+    <SettingsPage
+      back={{ href: "/settings/activities", label: "Activités" }}
+      description={[metierOf(activity.metier).label, activity.hours]
+        .filter(Boolean)
+        .join(" · ")}
+      title={
+        <>
+          <ActivityDot activity={activity} className="size-7 rounded-md" />
+          {activity.name}
+        </>
+      }
+    >
+      {journeyOf(activity) === "stay" && <ActivityPlaces activityId={id} />}
+      <ActivityOffers
+        activityId={id}
+        title={
+          journeyOf(activity) === "stay"
+            ? "Options du séjour"
+            : "Prestations principales"
+        }
+      />
+    </SettingsPage>
+  )
+}
+
 export function ActivityOverview({ slug }: { slug: string }) {
   const activity = findActivity(slug)
-  if (!activity) return null
+  if (!activity) return <CreatedActivityOverview id={slug} />
   return (
     <SettingsPage
       action={
@@ -825,62 +865,6 @@ const pensionGroups: Record<string, SettingsGroup[]> = {
     {
       settings: [
         {
-          defaultValue: 25,
-          title: "Chien · box",
-          type: "number",
-          unit: "€ / nuit",
-        },
-        {
-          defaultValue: 16,
-          title: "Chat · chatterie",
-          type: "number",
-          unit: "€ / nuit",
-        },
-        {
-          defaultValue: 5,
-          title: "Supplément grand gabarit",
-          type: "number",
-          unit: "€ / nuit",
-        },
-      ],
-      title: "Nuitées",
-    },
-    {
-      settings: [
-        {
-          defaultValue: 6,
-          description: "Deux sorties supplémentaires par jour",
-          title: "Promenades +",
-          type: "number",
-          unit: "€ / nuit",
-        },
-        {
-          defaultValue: 2,
-          description: "Alimentation spécifique préparée",
-          title: "Régime",
-          type: "number",
-          unit: "€ / nuit",
-        },
-        {
-          defaultValue: 3,
-          description: "Administration de médicaments",
-          title: "Traitement",
-          type: "number",
-          unit: "€ / nuit",
-        },
-        {
-          defaultValue: 35,
-          description: "Bain et brossage la veille du départ",
-          title: "Toilettage de départ",
-          type: "number",
-          unit: "€",
-        },
-      ],
-      title: "Options",
-    },
-    {
-      settings: [
-        {
           defaultValue: 10,
           description: "À partir de 14 nuits",
           title: "Long séjour",
@@ -900,64 +884,26 @@ const pensionGroups: Record<string, SettingsGroup[]> = {
   ],
 }
 
+function RatesSection() {
+  return (
+    <>
+      <ActivityPlaces activityId="pension" />
+      <ActivityOffers activityId="pension" title="Options du séjour" />
+      <SettingsGroups groups={pensionGroups.rates} />
+    </>
+  )
+}
+
 /* ——— Toilettage ——— */
 
 function ServicesSection() {
   return (
     <>
-      <SettingsSection
-        action={<AddButton label="Ajouter" />}
-        title="Prestations"
-      >
-        <div className="flex items-center gap-3 bg-muted/40 px-4 py-2 text-xs font-medium text-muted-foreground">
-          <span className="flex-1">Prestation</span>
-          {["Petit", "Moyen", "Grand"].map((size) => (
-            <span className="w-14 text-end" key={size}>
-              {size}
-            </span>
-          ))}
-        </div>
-        {services.map((service) => (
-          <div
-            className="flex items-center gap-3 px-4 py-3"
-            key={service.label}
-          >
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium">{service.label}</p>
-              <p className="text-xs text-muted-foreground">
-                {service.duration}
-              </p>
-            </div>
-            {service.prices.map((price, i) => (
-              <span className="w-14 text-end text-sm tabular-nums" key={i}>
-                {price} €
-              </span>
-            ))}
-          </div>
-        ))}
-      </SettingsSection>
+      <ActivityOffers activityId="grooming" />
       <SettingsGroups
         groups={[
           {
-            settings: [
-              {
-                defaultValue: 10,
-                description: "Animal anxieux ou difficile à manipuler",
-                title: "Comportement",
-                type: "number",
-                unit: "€",
-              },
-              {
-                defaultValue: 15,
-                description: "Pelage très emmêlé",
-                title: "Nœuds importants",
-                type: "number",
-                unit: "€",
-              },
-            ],
-            title: "Suppléments",
-          },
-          {
+            description: "Utilisés par la grille de prix du catalogue",
             settings: [
               {
                 defaultValue: 10,
@@ -1254,45 +1200,10 @@ const groomingGroups: Record<string, SettingsGroup[]> = {
 
 /* ——— Éducation ——— */
 
-const formulas = [
-  {
-    detail: "1 h · terrain ou à domicile",
-    name: "Séance individuelle",
-    price: 45,
-  },
-  {
-    detail: "1 h 30 · premier rendez-vous",
-    name: "Bilan comportemental",
-    price: 60,
-  },
-  { detail: "8 séances individuelles", name: "Éducation de base", price: 320 },
-  { detail: "10 séances individuelles", name: "Programme rappel", price: 380 },
-  {
-    detail: "6 séances · chiots de 2 à 6 mois",
-    name: "École du chiot",
-    price: 120,
-  },
-]
-
 function PackagesSection() {
   return (
     <>
-      <SettingsSection action={<AddButton label="Ajouter" />} title="Formules">
-        {formulas.map((formula) => (
-          <SettingsRow
-            description={formula.detail}
-            key={formula.name}
-            title={formula.name}
-          >
-            <span className="text-sm font-medium tabular-nums">
-              {formula.price} €
-            </span>
-            <Button size="sm" variant="ghost">
-              Modifier
-            </Button>
-          </SettingsRow>
-        ))}
-      </SettingsSection>
+      <ActivityOffers activityId="training" />
       <SettingsGroups
         groups={[
           {
@@ -1548,7 +1459,7 @@ const sectionContent: Record<string, ComponentType<SectionProps>> = {
   packages: PackagesSection,
   places: PlacesSection,
   products: ProductsSection,
-  rates: fromGroups(pensionGroups.rates),
+  rates: RatesSection,
   reminders: fromGroups(groomingGroups.reminders),
   reports: fromGroups(trainingGroupsSettings.reports),
   services: ServicesSection,

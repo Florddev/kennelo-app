@@ -42,8 +42,8 @@ export const invoiceBooks: Record<Activity, InvoiceBook> = {
         issued: 2,
         lines: [
           { label: "Nuits en box", quantity: 7, unit: 25 },
-          { label: "Promenades +", quantity: 7, unit: 6 },
-          { label: "Toilettage de départ", quantity: 1, unit: 35 },
+          { label: "Promenade", quantity: 7, unit: 6 },
+          { label: "Bain & brossage", quantity: 1, unit: 35 },
           { label: "Acompte déjà versé", quantity: 1, unit: -76 },
         ],
         number: "F-2026-0164",
@@ -72,7 +72,7 @@ export const invoiceBooks: Record<Activity, InvoiceBook> = {
         issued: 2,
         lines: [
           { label: "Nuits en box", quantity: 5, unit: 25 },
-          { label: "Toilettage de départ", quantity: 1, unit: 35 },
+          { label: "Bain & brossage", quantity: 1, unit: 35 },
         ],
         method: "Carte bancaire",
         number: "F-2026-0162",
@@ -122,7 +122,7 @@ export const invoiceBooks: Record<Activity, InvoiceBook> = {
         issued: -3,
         lines: [
           { label: "Nuits en box", quantity: 4, unit: 25 },
-          { label: "Promenades +", quantity: 4, unit: 6 },
+          { label: "Promenade", quantity: 4, unit: 6 },
           { label: "Acompte déjà versé", quantity: 1, unit: -37 },
         ],
         number: "F-2026-0157",

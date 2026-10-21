@@ -169,10 +169,10 @@ export const activitySettings: ActivitySettings[] = [
             value: "24 emplacements",
           },
           {
-            description: "Prix des nuitées, options et remises",
+            description: "Places, prix des nuits, options du séjour et remises",
             icon: EuroCircleIcon,
             slug: "rates",
-            title: "Tarifs & options",
+            title: "Places, tarifs & options",
             value: "25 € / nuit",
           },
           {
@@ -247,11 +247,11 @@ export const activitySettings: ActivitySettings[] = [
       {
         links: [
           {
-            description: "Prestations proposées, durées et prix par gabarit",
+            description: "Prestations et forfaits vendus au salon",
             icon: Scissor01Icon,
             slug: "services",
             title: "Prestations & tarifs",
-            value: "7 prestations",
+            value: "5 prestations",
           },
           {
             description: "Durée des créneaux, battements et postes de travail",
@@ -325,11 +325,11 @@ export const activitySettings: ActivitySettings[] = [
       {
         links: [
           {
-            description: "Séances individuelles, forfaits et tarifs",
+            description: "Séances, bilans et cours vendus",
             icon: Coins01Icon,
             slug: "packages",
-            title: "Formules & forfaits",
-            value: "5 formules",
+            title: "Prestations & tarifs",
+            value: "4 prestations",
           },
           {
             description: "Groupes, capacités et créneaux récurrents",
