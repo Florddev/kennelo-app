@@ -42,7 +42,7 @@ export function Widget({
 }) {
   return (
     <CardFrame className={className}>
-      <CardFrameHeader className="px-4 py-3">
+      <CardFrameHeader className="px-5 py-3.5">
         <CardFrameTitle>{title}</CardFrameTitle>
         {description && (
           <CardFrameDescription>{description}</CardFrameDescription>
@@ -50,7 +50,7 @@ export function Widget({
         {action && <CardFrameAction>{action}</CardFrameAction>}
       </CardFrameHeader>
       <Card className="flex-1">
-        <CardPanel className="p-4">{children}</CardPanel>
+        <CardPanel className="p-5">{children}</CardPanel>
       </Card>
     </CardFrame>
   )
@@ -69,7 +69,7 @@ export function Kpi({
 }) {
   return (
     <Card>
-      <CardPanel className="space-y-2 p-4">
+      <CardPanel className="space-y-2 p-5">
         <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
           {label}
           <HugeiconsIcon className="size-4 shrink-0" icon={icon} />
@@ -147,7 +147,7 @@ export function PageShell({
       </header>
       <div className="flex-1 overflow-y-auto">
         <div
-          className={cn("mx-auto max-w-6xl space-y-6 p-4 md:p-6", className)}
+          className={cn("mx-auto max-w-6xl space-y-8 p-5 md:p-8", className)}
         >
           {children}
         </div>
@@ -175,7 +175,7 @@ export function ActivityPage({
       <ActivityHeader actions={actions} activity={activity} title={title} />
       <div className="flex-1 overflow-y-auto">
         <div
-          className={cn("mx-auto max-w-6xl space-y-6 p-4 md:p-6", className)}
+          className={cn("mx-auto max-w-6xl space-y-8 p-5 md:p-8", className)}
         >
           {children}
         </div>
@@ -206,7 +206,7 @@ export function ActivityDayPage({
         title="Aujourd'hui"
       />
       <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-6xl space-y-6 p-4 md:p-6">
+        <div className="mx-auto max-w-6xl space-y-8 p-5 md:p-8">
           <section className="flex flex-wrap items-end justify-between gap-4">
             <div className="space-y-1">
               <p className="text-sm text-muted-foreground">
