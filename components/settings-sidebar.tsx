@@ -1,34 +1,34 @@
 "use client"
 
-import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
 import {
-  AtSignIcon,
-  BellIcon,
-  ChevronLeftIcon,
+  ArrowLeft01Icon,
+  Building03Icon,
+  CircleArrowUpIcon,
   CodeIcon,
-  FileTextIcon,
-  FlameIcon,
-  HandIcon,
-  InfinityIcon,
-  LayoutTemplateIcon,
+  CreditCardIcon,
+  ArrowDataTransferHorizontalIcon,
+  Globe02Icon,
   LinkIcon,
-  MessageSquareIcon,
-  OctagonIcon,
-  PackageIcon,
-  RocketIcon,
-  SearchIcon,
-  SendIcon,
+  Message01Icon,
+  Notification03Icon,
+  PlugIcon,
+  PlusSignIcon,
+  Search01Icon,
+  Shield01Icon,
   ShieldIcon,
   SlidersHorizontalIcon,
-  SmileIcon,
-  SparklesIcon,
-  TagIcon,
-  TrendingUpIcon,
+  Store01Icon,
+  UserGroupIcon,
   UserIcon,
-  ZapIcon,
+  Wallet01Icon,
 } from "@hugeicons/core-free-icons"
+import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useState } from "react"
+import { ActivityMark } from "@/components/activity-mark"
+import { activitySettings } from "@/components/settings/data"
+import { Button } from "@/components/ui/button"
 import {
   InputGroup,
   InputGroupAddon,
@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/input-group"
 import {
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupLabel,
   SidebarHeader,
@@ -44,99 +45,183 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 
-type NavItem = { title: string; icon: IconSvgElement; href?: string }
+type NavItem = { title: string; icon: IconSvgElement; href: string }
 
 const sections: { label: string; items: NavItem[] }[] = [
   {
     items: [
-      { href: "/settings", icon: SlidersHorizontalIcon, title: "Preferences" },
-      { icon: UserIcon, title: "Profile" },
-      { icon: BellIcon, title: "Notifications" },
-      { icon: CodeIcon, title: "Code & reviews" },
-      { icon: ShieldIcon, title: "Security & access" },
-      { icon: LinkIcon, title: "Connected accounts" },
-      { icon: SendIcon, title: "Agent personalization" },
+      {
+        href: "/settings/preferences",
+        icon: SlidersHorizontalIcon,
+        title: "Préférences",
+      },
+      { href: "/settings/profile", icon: UserIcon, title: "Profil" },
+      {
+        href: "/settings/notifications",
+        icon: Notification03Icon,
+        title: "Notifications",
+      },
+      {
+        href: "/settings/account-security",
+        icon: ShieldIcon,
+        title: "Sécurité & accès",
+      },
+      {
+        href: "/settings/connected-accounts",
+        icon: LinkIcon,
+        title: "Comptes connectés",
+      },
     ],
-    label: "Personal",
+    label: "Compte",
   },
   {
     items: [
-      { icon: TagIcon, title: "Labels" },
-      { icon: LayoutTemplateIcon, title: "Templates" },
-      { icon: FlameIcon, title: "SLAs" },
+      {
+        href: "/settings/organization",
+        icon: Building03Icon,
+        title: "Établissement",
+      },
+      { href: "/settings/members", icon: UserGroupIcon, title: "Membres" },
+      { href: "/settings/activities", icon: Store01Icon, title: "Activités" },
+      {
+        href: "/settings/booking",
+        icon: Globe02Icon,
+        title: "Réservation en ligne",
+      },
+      {
+        href: "/settings/communication",
+        icon: Message01Icon,
+        title: "Communication",
+      },
+      {
+        href: "/settings/payments",
+        icon: Wallet01Icon,
+        title: "Paiements & factures",
+      },
+      { href: "/settings/integrations", icon: PlugIcon, title: "Intégrations" },
+      { href: "/settings/api", icon: CodeIcon, title: "API" },
+      { href: "/settings/security", icon: Shield01Icon, title: "Sécurité" },
+      { href: "/settings/billing", icon: CreditCardIcon, title: "Abonnement" },
+      {
+        href: "/settings/import-export",
+        icon: ArrowDataTransferHorizontalIcon,
+        title: "Import & export",
+      },
     ],
-    label: "Issues",
-  },
-  {
-    items: [
-      { icon: TagIcon, title: "Labels" },
-      { icon: LayoutTemplateIcon, title: "Templates" },
-      { icon: OctagonIcon, title: "Statuses" },
-      { icon: TrendingUpIcon, title: "Updates" },
-    ],
-    label: "Projects",
-  },
-  {
-    items: [
-      { icon: SparklesIcon, title: "AI & agents" },
-      { icon: InfinityIcon, title: "Loops" },
-      { icon: RocketIcon, title: "Initiatives" },
-      { icon: FileTextIcon, title: "Documents" },
-      { icon: MessageSquareIcon, title: "Customer requests" },
-      { icon: PackageIcon, title: "Releases" },
-      { icon: ZapIcon, title: "Pulse" },
-      { icon: HandIcon, title: "Asks" },
-      { icon: SmileIcon, title: "Emojis" },
-      { icon: AtSignIcon, title: "Integrations" },
-    ],
-    label: "Features",
+    label: "Organisation",
   },
 ]
 
 export function SettingsSidebar() {
   const pathname = usePathname()
+  const [query, setQuery] = useState("")
+  const match = (title: string) =>
+    title.toLowerCase().includes(query.trim().toLowerCase())
+  const activities = activitySettings.filter((a) => match(a.name))
+
   return (
     <>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton render={<Link href="/" />}>
-              <HugeiconsIcon icon={ChevronLeftIcon} />
-              <span>Back to app</span>
+            <SidebarMenuButton render={<Link href="/today" />}>
+              <HugeiconsIcon icon={ArrowLeft01Icon} />
+              <span>Retour à l&apos;application</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
         <InputGroup>
           <InputGroupAddon>
-            <HugeiconsIcon icon={SearchIcon} />
+            <HugeiconsIcon icon={Search01Icon} />
           </InputGroupAddon>
           <InputGroupInput
-            aria-label="Search settings"
-            placeholder="Search..."
+            aria-label="Rechercher un paramètre"
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Rechercher…"
+            value={query}
           />
         </InputGroup>
       </SidebarHeader>
 
       <SidebarContent>
-        {sections.map((section) => (
-          <SidebarGroup key={section.label}>
-            <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
+        {sections.map((section) => {
+          const items = section.items.filter((item) => match(item.title))
+          if (items.length === 0) return null
+          return (
+            <SidebarGroup key={section.label}>
+              <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
+              <SidebarMenu>
+                {items.map((item) => (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      isActive={item.href === pathname}
+                      render={<Link href={item.href} />}
+                    >
+                      <HugeiconsIcon icon={item.icon} />
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroup>
+          )
+        })}
+
+        {(activities.length > 0 || !query) && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Vos activités</SidebarGroupLabel>
             <SidebarMenu>
-              {section.items.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    isActive={item.href === pathname}
-                    render={<Link href={item.href ?? "#"} />}
-                  >
-                    <HugeiconsIcon icon={item.icon} />
-                    <span>{item.title}</span>
+              {activities.map((activity) => {
+                const href = `/settings/activities/${activity.slug}`
+                return (
+                  <SidebarMenuItem key={activity.slug}>
+                    <SidebarMenuButton
+                      isActive={
+                        pathname === href || pathname.startsWith(`${href}/`)
+                      }
+                      render={<Link href={href} />}
+                    >
+                      <ActivityMark
+                        activity={activity.name}
+                        className="size-4 rounded text-[0.5rem]"
+                      />
+                      <span>{activity.name}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
+              })}
+              {!query && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton className="text-muted-foreground">
+                    <HugeiconsIcon icon={PlusSignIcon} />
+                    <span>Créer une activité</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              ))}
+              )}
             </SidebarMenu>
           </SidebarGroup>
-        ))}
+        )}
       </SidebarContent>
+
+      <SidebarFooter className="flex-row items-center">
+        <Button
+          aria-label="Aide"
+          className="rounded-full"
+          size="icon-sm"
+          variant="outline"
+        >
+          ?
+        </Button>
+        <Button
+          className="rounded-full"
+          render={<Link href="/settings/billing" />}
+          size="sm"
+          variant="outline"
+        >
+          <HugeiconsIcon icon={CircleArrowUpIcon} />
+          Offre gratuite
+        </Button>
+      </SidebarFooter>
     </>
   )
 }

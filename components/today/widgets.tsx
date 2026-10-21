@@ -101,6 +101,56 @@ export function Bar({
   )
 }
 
+export function ActivityHeader({
+  activity,
+  title,
+  actions,
+}: {
+  activity: Activity
+  title: string
+  actions?: ReactNode
+}) {
+  return (
+    <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
+      <SidebarTrigger className="md:hidden" />
+      <ActivityMark activity={activity} />
+      <h1 className="truncate text-sm font-medium">
+        {activity}
+        <span className="text-muted-foreground"> / {title}</span>
+      </h1>
+      <div className="ms-auto flex items-center gap-2">{actions}</div>
+    </header>
+  )
+}
+
+/** Shell for an activity page: header and a scrollable, centered body. */
+export function ActivityPage({
+  activity,
+  title,
+  actions,
+  className,
+  children,
+}: {
+  activity: Activity
+  title: string
+  actions?: ReactNode
+  className?: string
+  children: ReactNode
+}) {
+  return (
+    <>
+      <ActivityHeader actions={actions} activity={activity} title={title} />
+      <div className="flex-1 overflow-y-auto">
+        <div
+          className={cn("mx-auto max-w-6xl space-y-6 p-4 md:p-6", className)}
+        >
+          {children}
+        </div>
+      </div>
+    </>
+  )
+}
+
 /** Shell shared by the activity "Aujourd'hui" pages. */
 export function ActivityDayPage({
   activity,
@@ -117,15 +167,11 @@ export function ActivityDayPage({
 }) {
   return (
     <>
-      <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
-        <SidebarTrigger className="md:hidden" />
-        <ActivityMark activity={activity} />
-        <h1 className="text-sm font-medium">
-          {activity}
-          <span className="text-muted-foreground"> / Aujourd&apos;hui</span>
-        </h1>
-        <div className="ms-auto flex items-center gap-2">{actions}</div>
-      </header>
+      <ActivityHeader
+        actions={actions}
+        activity={activity}
+        title="Aujourd'hui"
+      />
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-6xl space-y-6 p-4 md:p-6">
           <section className="flex flex-wrap items-end justify-between gap-4">

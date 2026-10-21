@@ -1,11 +1,11 @@
-import type * as React from "react";
-import { AppShell } from "@/components/app-shell";
-import { AppSidebar } from "@/components/app-sidebar";
+import type * as React from "react"
+import { AppShell } from "@/components/app-shell"
+import { AppSidebar } from "@/components/app-sidebar"
 
 export default function MainLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
-  return <AppShell sidebar={<AppSidebar />}>{children}</AppShell>;
+  return <AppShell sidebar={<AppSidebar />}>{children}</AppShell>
 }

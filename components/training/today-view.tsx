@@ -71,8 +71,7 @@ function planAt(elapsed: number) {
     return {
       ...exercise,
       from,
-      state:
-        cursor <= elapsed ? "done" : from <= elapsed ? "live" : "upcoming",
+      state: cursor <= elapsed ? "done" : from <= elapsed ? "live" : "upcoming",
     }
   })
 }

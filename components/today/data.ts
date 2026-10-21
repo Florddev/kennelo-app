@@ -49,7 +49,7 @@ export const timeline: TimelineEvent[] = [
     label: "Mochi",
     start: 17.5,
   },
-  { activity: "Toilettage", end: 10.25, label: "Biscuit", start: 9 },
+  { activity: "Toilettage", end: 10.25, label: "Flocon", start: 9 },
   { activity: "Toilettage", end: 11.5, label: "Rex", start: 10.5 },
   { activity: "Toilettage", end: 12.5, label: "Cannelle", start: 11.75 },
   { activity: "Toilettage", end: 15.5, label: "Rocky", start: 14 },

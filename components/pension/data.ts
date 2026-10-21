@@ -1,3 +1,5 @@
+import { shortDate, TODAY } from "@/components/calendar"
+
 export type KennelStatus =
   "occupied" | "departing" | "arriving" | "cleaning" | "free"
 
@@ -9,7 +11,8 @@ export type Kennel = {
   pet?: string
   breed?: string
   owner?: string
-  stay?: { day: number; nights: number; until: string }
+  /** Day offsets, see components/calendar.ts */
+  stay?: { arrival: number; departure: number }
   meds?: string
   diet?: string
   warning?: string
@@ -44,14 +47,14 @@ export const kennels: Kennel[] = [
     breed: "Labrador",
     owner: "Julie Masson",
     pet: "Oscar",
-    stay: { day: 4, nights: 6, until: "Ven. 23 oct." },
+    stay: { arrival: -1, departure: 4 },
   }),
   dog(2, "occupied", {
     breed: "Beagle",
     meds: "Collyre 2×/jour",
     owner: "Marie Fontaine",
     pet: "Ulysse",
-    stay: { day: 1, nights: 5, until: "Lun. 26 oct." },
+    stay: { arrival: 2, departure: 7 },
   }),
   dog(3, "free"),
   dog(4, "occupied", {
@@ -59,97 +62,97 @@ export const kennels: Kennel[] = [
     meds: "Anti-inflammatoire matin et soir",
     owner: "Camille Martin",
     pet: "Max",
-    stay: { day: 3, nights: 7, until: "Dim. 25 oct." },
+    stay: { arrival: -1, departure: 5 },
   }),
   dog(5, "cleaning"),
   dog(6, "occupied", {
     breed: "Border collie",
     owner: "Romain Petit",
     pet: "Bella",
-    stay: { day: 2, nights: 3, until: "Jeu. 22 oct." },
+    stay: { arrival: 1, departure: 3 },
   }),
   dog(7, "occupied", {
     breed: "Spitz nain",
     diet: "Pâtée mélangée, 3 repas",
     owner: "Agathe Leroux",
     pet: "Kiwi",
-    stay: { day: 5, nights: 9, until: "Mer. 28 oct." },
+    stay: { arrival: -2, departure: 9 },
   }),
   dog(8, "occupied", {
     breed: "Malinois",
     owner: "Yanis Morel",
     pet: "Loki",
-    stay: { day: 2, nights: 4, until: "Ven. 23 oct." },
+    stay: { arrival: 1, departure: 4 },
   }),
   dog(9, "arriving", {
     breed: "Berger blanc suisse",
     owner: "Antoine Roux",
     pet: "Gaïa",
-    stay: { day: 0, nights: 4, until: "Dim. 25 oct." },
+    stay: { arrival: 2, departure: 6 },
     warning: "Premier séjour",
   }),
   dog(10, "occupied", {
     breed: "Cavalier King Charles",
     owner: "Lucie Henry",
     pet: "Praline",
-    stay: { day: 3, nights: 4, until: "Jeu. 22 oct." },
+    stay: { arrival: -1, departure: 3 },
   }),
   dog(11, "occupied", {
     breed: "Bouledogue français",
     diet: "Ration réduite, pas de friandises",
     owner: "Olivier Blanc",
     pet: "Hercule",
-    stay: { day: 6, nights: 10, until: "Sam. 31 oct." },
+    stay: { arrival: -3, departure: 12 },
     warning: "Promenades courtes",
   }),
   dog(12, "arriving", {
     breed: "Jack Russell",
     owner: "Claire Vidal",
     pet: "Tango",
-    stay: { day: 0, nights: 3, until: "Sam. 24 oct." },
+    stay: { arrival: 2, departure: 5 },
   }),
   dog(13, "occupied", {
     breed: "Husky",
     owner: "Hélène Garcia",
     pet: "Taïga",
-    stay: { day: 2, nights: 5, until: "Sam. 24 oct." },
+    stay: { arrival: 1, departure: 5 },
   }),
   dog(14, "departing", {
     breed: "Teckel",
     owner: "Nina Robert",
     pet: "Pixel",
-    stay: { day: 5, nights: 5, until: "Aujourd'hui 10h" },
+    stay: { arrival: -3, departure: 2 },
   }),
   dog(15, "occupied", {
     breed: "Basset hound",
     owner: "Denis Lopez",
     pet: "Gus",
-    stay: { day: 2, nights: 6, until: "Lun. 26 oct." },
+    stay: { arrival: 1, departure: 7 },
   }),
   dog(16, "free"),
   dog(17, "occupied", {
     breed: "Shiba inu",
     owner: "Kevin Nguyen",
     pet: "Nouky",
-    stay: { day: 1, nights: 2, until: "Ven. 23 oct." },
+    stay: { arrival: 1, departure: 4 },
   }),
   dog(18, "departing", {
     breed: "Husky",
     owner: "Hugo Lambert",
     pet: "Sirius",
-    stay: { day: 7, nights: 7, until: "Aujourd'hui 16h" },
+    stay: { arrival: -5, departure: 2 },
   }),
   dog(19, "occupied", {
     breed: "Setter irlandais",
     owner: "Pauline Simon",
     pet: "Ruby",
-    stay: { day: 4, nights: 8, until: "Mar. 27 oct." },
+    stay: { arrival: -1, departure: 8 },
   }),
   dog(20, "occupied", {
     breed: "Rottweiler",
     owner: "Franck Rey",
     pet: "Brutus",
-    stay: { day: 3, nights: 5, until: "Ven. 23 oct." },
+    stay: { arrival: 0, departure: 4 },
     warning: "Sorties seul, sans congénères",
   }),
   cat(1, "occupied", {
@@ -157,25 +160,25 @@ export const kennels: Kennel[] = [
     diet: "Croquettes sans céréales fournies",
     owner: "Julien Bernard",
     pet: "Pistache",
-    stay: { day: 4, nights: 8, until: "Mer. 28 oct." },
+    stay: { arrival: 1, departure: 3 },
   }),
   cat(2, "occupied", {
     breed: "Chartreux",
     owner: "Sarah Klein",
     pet: "Réglisse",
-    stay: { day: 2, nights: 3, until: "Jeu. 22 oct." },
+    stay: { arrival: 1, departure: 3 },
   }),
   cat(3, "arriving", {
     breed: "Sacré de Birmanie",
     owner: "Inès Faure",
     pet: "Mochi",
-    stay: { day: 0, nights: 6, until: "Mar. 27 oct." },
+    stay: { arrival: 2, departure: 8 },
   }),
   cat(4, "occupied", {
     breed: "Maine coon",
     owner: "Nicolas Perrin",
     pet: "Plume",
-    stay: { day: 3, nights: 4, until: "Jeu. 22 oct." },
+    stay: { arrival: 0, departure: 3 },
   }),
 ]
 
@@ -214,7 +217,7 @@ export const stayMovements: StayMovement[] = [
     type: "arrival",
   },
   {
-    balance: 126,
+    balance: 87,
     id: "pixel",
     kennel: "Box 14",
     owner: "Nina Robert",
@@ -244,7 +247,7 @@ export const stayMovements: StayMovement[] = [
     type: "arrival",
   },
   {
-    balance: 245,
+    balance: 176,
     id: "sirius",
     kennel: "Box 18",
     owner: "Hugo Lambert",
@@ -395,3 +398,403 @@ export const ownerNews: OwnerNews[] = [
     sent: false,
   },
 ]
+
+/** Nights elapsed and a human label for a stay, relative to today. */
+export function stayProgress({
+  arrival,
+  departure,
+}: {
+  arrival: number
+  departure: number
+}) {
+  const nights = departure - arrival
+  const elapsed = Math.min(Math.max(TODAY - arrival, 0), nights)
+  const label =
+    arrival === TODAY
+      ? "Arrive aujourd'hui"
+      : departure === TODAY
+        ? "Part aujourd'hui"
+        : arrival > TODAY
+          ? `Arrive le ${shortDate(arrival)}`
+          : departure < TODAY
+            ? "Terminé"
+            : `${elapsed} nuit${elapsed > 1 ? "s" : ""} sur ${nights}`
+  return { elapsed, label, nights }
+}
+
+export type StayStatus = "ongoing" | "upcoming" | "pending" | "done"
+export type StayPayment = "deposit" | "paid" | "due"
+
+export type Stay = {
+  id: string
+  /** Undefined while a request still has to be placed in a box. */
+  kennelId?: string
+  pet: string
+  breed: string
+  owner: string
+  arrival: number
+  departure: number
+  status: StayStatus
+  payment: StayPayment
+  options: string[]
+  note?: string
+}
+
+export const optionPrices: Record<
+  string,
+  { price: number; perNight?: boolean }
+> = {
+  "Promenades +": { perNight: true, price: 6 },
+  Régime: { perNight: true, price: 2 },
+  "Toilettage de départ": { price: 35 },
+  Traitement: { perNight: true, price: 3 },
+}
+
+export const nightlyRate = (kennelId?: string) =>
+  kennelId?.startsWith("c") ? 16 : 25
+
+export function stayLines(stay: Stay) {
+  const nights = stay.departure - stay.arrival
+  const rate = nightlyRate(stay.kennelId)
+  return [
+    { amount: nights * rate, label: `${nights} nuits × ${rate} €` },
+    ...stay.options.map((option) => {
+      const { perNight, price } = optionPrices[option] ?? { price: 0 }
+      return {
+        amount: perNight ? price * nights : price,
+        label: perNight ? `${option} · ${nights} × ${price} €` : option,
+      }
+    }),
+  ]
+}
+
+export const stayAmount = (stay: Stay) =>
+  stayLines(stay).reduce((sum, line) => sum + line.amount, 0)
+
+export const stayDeposit = (stay: Stay) => Math.round(stayAmount(stay) * 0.3)
+
+const extraOptions: Record<string, string[]> = {
+  b13: ["Promenades +"],
+  b18: ["Promenades +", "Toilettage de départ"],
+  b4: ["Toilettage de départ"],
+  b7: ["Promenades +"],
+}
+
+const currentStays: Stay[] = kennels
+  .filter((k) => k.pet && k.stay)
+  .map((k) => ({
+    arrival: k.stay!.arrival,
+    breed: k.breed ?? "",
+    departure: k.stay!.departure,
+    id: `${k.id}-now`,
+    kennelId: k.id,
+    note: k.warning,
+    options: [
+      ...(k.meds ? ["Traitement"] : []),
+      ...(k.diet ? ["Régime"] : []),
+      ...(extraOptions[k.id] ?? []),
+    ],
+    owner: k.owner ?? "",
+    payment:
+      k.status === "departing"
+        ? "due"
+        : k.id === "b11" || k.id === "c1"
+          ? "paid"
+          : "deposit",
+    pet: k.pet ?? "",
+    status: k.status === "arriving" ? "upcoming" : "ongoing",
+  }))
+
+const stay = (
+  id: string,
+  kennelId: string | undefined,
+  pet: string,
+  breed: string,
+  owner: string,
+  [arrival, departure]: [number, number],
+  status: StayStatus,
+  payment: StayPayment,
+  options: string[] = [],
+  note?: string
+): Stay => ({
+  arrival,
+  breed,
+  departure,
+  id,
+  kennelId,
+  note,
+  options,
+  owner,
+  payment,
+  pet,
+  status,
+})
+
+const otherStays: Stay[] = [
+  stay(
+    "sultan",
+    "b3",
+    "Sultan",
+    "Dogue allemand",
+    "Patrick Morin",
+    [-9, -2],
+    "done",
+    "paid"
+  ),
+  stay(
+    "choupette",
+    "c4",
+    "Choupette",
+    "Persan",
+    "Émilie Roy",
+    [-8, -1],
+    "done",
+    "paid",
+    ["Régime"]
+  ),
+  stay(
+    "rio",
+    "b12",
+    "Rio",
+    "Épagneul breton",
+    "Benoît Caron",
+    [-7, -3],
+    "done",
+    "due",
+    ["Promenades +"]
+  ),
+  stay(
+    "ficelle",
+    "b16",
+    "Ficelle",
+    "Whippet",
+    "Anne Lefèvre",
+    [-6, 0],
+    "done",
+    "paid"
+  ),
+  stay(
+    "caramel",
+    "b5",
+    "Caramel",
+    "Cocker",
+    "Lucas Garnier",
+    [-3, 2],
+    "done",
+    "paid",
+    ["Toilettage de départ"]
+  ),
+  stay(
+    "vanille",
+    "b3",
+    "Vanille",
+    "Bichon frisé",
+    "Monique Petit",
+    [3, 6],
+    "upcoming",
+    "deposit"
+  ),
+  stay(
+    "cookie",
+    "b10",
+    "Cookie",
+    "Carlin",
+    "Manon Rivière",
+    [3, 5],
+    "upcoming",
+    "deposit",
+    ["Régime"]
+  ),
+  stay(
+    "rocco",
+    "b18",
+    "Rocco",
+    "Cane corso",
+    "Samuel Leblanc",
+    [3, 10],
+    "upcoming",
+    "deposit",
+    [],
+    "Sorties seul"
+  ),
+  stay(
+    "saphir",
+    "b5",
+    "Saphir",
+    "Lévrier afghan",
+    "Sandrine Colas",
+    [4, 8],
+    "upcoming",
+    "deposit",
+    ["Toilettage de départ"]
+  ),
+  stay(
+    "iris",
+    "b14",
+    "Iris",
+    "Whippet",
+    "Jeanne Barbier",
+    [4, 7],
+    "upcoming",
+    "deposit"
+  ),
+  stay(
+    "sushi",
+    "c4",
+    "Sushi",
+    "Ragdoll",
+    "Yuki Tanaka",
+    [4, 9],
+    "upcoming",
+    "deposit"
+  ),
+  stay(
+    "indie",
+    "b6",
+    "Indie",
+    "Berger australien",
+    "Arthur Noël",
+    [5, 9],
+    "upcoming",
+    "deposit",
+    ["Promenades +"]
+  ),
+  stay(
+    "minou",
+    "c1",
+    "Minou",
+    "Européen",
+    "Clara Duval",
+    [5, 12],
+    "upcoming",
+    "deposit"
+  ),
+  stay(
+    "gaston",
+    "b1",
+    "Gaston",
+    "Épagneul breton",
+    "Céline Marchal",
+    [6, 10],
+    "upcoming",
+    "deposit"
+  ),
+  stay(
+    "ozzy",
+    "b12",
+    "Ozzy",
+    "Staffordshire",
+    "Lisa Martins",
+    [6, 13],
+    "upcoming",
+    "deposit",
+    ["Promenades +"]
+  ),
+  stay(
+    "tenor",
+    "b4",
+    "Ténor",
+    "Bouvier bernois",
+    "Famille Lemoine",
+    [7, 12],
+    "upcoming",
+    "deposit",
+    ["Traitement"]
+  ),
+  stay(
+    "moka",
+    "b16",
+    "Moka",
+    "Labrador",
+    "Paul Girard",
+    [8, 11],
+    "pending",
+    "deposit",
+    [],
+    "Rappel CHPPiL expiré : certificat à fournir"
+  ),
+  stay(
+    "lucky",
+    "b2",
+    "Lucky",
+    "Labrador",
+    "Jérôme Faure",
+    [9, 13],
+    "upcoming",
+    "deposit"
+  ),
+  stay(
+    "zeus",
+    "b20",
+    "Zeus",
+    "Dobermann",
+    "Fabrice Morel",
+    [9, 12],
+    "upcoming",
+    "deposit"
+  ),
+  stay(
+    "pacha",
+    "b8",
+    "Pacha",
+    "Chow-chow",
+    "Victor Hugues",
+    [10, 15],
+    "upcoming",
+    "deposit"
+  ),
+  stay(
+    "nala",
+    "b7",
+    "Nala",
+    "Border collie",
+    "Léa Moreau",
+    [11, 14],
+    "pending",
+    "deposit",
+    [],
+    "A peur de l'orage, laisser sa couverture"
+  ),
+  stay(
+    "elfe",
+    "b17",
+    "Elfe",
+    "Samoyède",
+    "Damien Roux",
+    [11, 16],
+    "upcoming",
+    "deposit",
+    ["Promenades +"]
+  ),
+  stay(
+    "caline",
+    undefined,
+    "Câline",
+    "Golden retriever",
+    "Laura Mercier",
+    [12, 17],
+    "pending",
+    "deposit",
+    ["Promenades +"]
+  ),
+]
+
+export const stays: Stay[] = [...currentStays, ...otherStays]
+
+/** First kennel of the right area with no stay overlapping the dates. */
+export function findFreeKennel(list: Stay[], target: Stay) {
+  const area = target.breed.match(/Persan|Ragdoll|Européen|Chartreux/)
+    ? "Chatterie"
+    : "Chenil"
+  return kennels.find(
+    (k) =>
+      k.area === area &&
+      !list.some(
+        (s) =>
+          s.kennelId === k.id &&
+          s.id !== target.id &&
+          s.arrival < target.departure &&
+          target.arrival < s.departure
+      )
+  )
+}

@@ -320,7 +320,11 @@ function BoxesCard() {
   return (
     <Widget
       action={
-        <Button render={<Link href="/" />} size="xs" variant="ghost">
+        <Button
+          render={<Link href="/pension/planning" />}
+          size="xs"
+          variant="ghost"
+        >
           Planning
           <HugeiconsIcon icon={ArrowRight01Icon} />
         </Button>

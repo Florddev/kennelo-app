@@ -90,25 +90,33 @@ const activities: {
     defaultOpen: true,
     items: [
       { href: "/pension/today", icon: SunDimIcon, title: "Aujourd'hui" },
-      { href: "/", icon: LayoutPanelLeftIcon, title: "Planning des box" },
-      { icon: ClipboardIcon, title: "Séjours" },
-      { icon: FileTextIcon, title: "Factures" },
+      {
+        href: "/pension/planning",
+        icon: LayoutPanelLeftIcon,
+        title: "Planning des box",
+      },
+      { href: "/pension/stays", icon: ClipboardIcon, title: "Séjours" },
+      { href: "/pension/invoices", icon: FileTextIcon, title: "Factures" },
     ],
     name: "Pension",
   },
   {
     items: [
       { href: "/grooming/today", icon: SunDimIcon, title: "Aujourd'hui" },
-      { icon: CalendarIcon, title: "Rendez-vous" },
-      { icon: FileTextIcon, title: "Factures" },
+      {
+        href: "/grooming/appointments",
+        icon: CalendarIcon,
+        title: "Rendez-vous",
+      },
+      { href: "/grooming/invoices", icon: FileTextIcon, title: "Factures" },
     ],
     name: "Toilettage",
   },
   {
     items: [
       { href: "/training/today", icon: SunDimIcon, title: "Aujourd'hui" },
-      { icon: CalendarIcon, title: "Séances" },
-      { icon: FileTextIcon, title: "Factures" },
+      { href: "/training/sessions", icon: CalendarIcon, title: "Séances" },
+      { href: "/training/invoices", icon: FileTextIcon, title: "Factures" },
     ],
     name: "Éducation",
   },

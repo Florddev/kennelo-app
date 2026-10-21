@@ -434,7 +434,7 @@ export const conversations: Conversation[] = [
       {
         activity: "Toilettage",
         amount: 68,
-        dates: "Jeu. 23 oct. · 14h",
+        dates: "Ven. 23 oct. · 14h",
         details: ["Bain, coupe aux ciseaux et griffes", "1 h 30"],
         id: "r-0339",
         pet: "Lune",

@@ -19,6 +19,7 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react"
 import Link from "next/link"
 import { useState } from "react"
+import { shortDate } from "@/components/calendar"
 import {
   type Kennel,
   type KennelStatus,
@@ -28,6 +29,7 @@ import {
   ownerNews,
   type StayMovement,
   stayMovements,
+  stayProgress,
 } from "@/components/pension/data"
 import { careTasks, NOW } from "@/components/today/data"
 import {
@@ -127,7 +129,7 @@ function KennelDetail({ kennel }: { kennel: Kennel }) {
       </p>
     )
   }
-  const { day, nights, until } = kennel.stay
+  const { elapsed, label, nights } = stayProgress(kennel.stay)
   return (
     <div className="flex flex-wrap items-start gap-4">
       <div className="min-w-48 flex-1 space-y-1">
@@ -163,15 +165,13 @@ function KennelDetail({ kennel }: { kennel: Kennel }) {
       </div>
       <div className="w-full space-y-1.5 sm:w-56">
         <div className="flex justify-between text-xs text-muted-foreground">
-          <span>
-            {day === 0 ? "Arrive aujourd'hui" : `Jour ${day} sur ${nights}`}
-          </span>
-          <span>Départ {until}</span>
+          <span>{label}</span>
+          <span>Départ {shortDate(kennel.stay.departure)}</span>
         </div>
         <Bar
           className="bg-emerald-700"
           label="Avancement du séjour"
-          value={(day / nights) * 100}
+          value={(elapsed / nights) * 100}
         />
       </div>
     </div>
@@ -192,7 +192,11 @@ function KennelMap({
   return (
     <Widget
       action={
-        <Button render={<Link href="/" />} size="xs" variant="ghost">
+        <Button
+          render={<Link href="/pension/planning" />}
+          size="xs"
+          variant="ghost"
+        >
           Planning des box
           <HugeiconsIcon icon={ArrowRight01Icon} />
         </Button>
@@ -558,9 +562,6 @@ export function PensionTodayView() {
           ? {
               ...k,
               status,
-              ...(status === "occupied" && k.stay
-                ? { stay: { ...k.stay, day: 1 } }
-                : {}),
             }
           : k
       )

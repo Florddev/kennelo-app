@@ -178,7 +178,7 @@ function actionsFor(item: InboxItem): Action[] {
           label: "Activer la liste d'attente",
           variant: "outline",
         },
-        { href: "/", label: "Ouvrir le planning" },
+        { href: "/pension/planning", label: "Ouvrir le planning" },
       ]
     case "review":
       return [{ done: "Réponse publiée", label: "Remercier le client" }]
