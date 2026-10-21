@@ -8,7 +8,6 @@ import {
   CircleArrowUpIcon,
   ClipboardIcon,
   ClipboardListIcon,
-  FileTextIcon,
   InboxIcon,
   LayoutPanelLeftIcon,
   LogOutIcon,
@@ -74,11 +73,11 @@ const primary: NavItem[] = [
 ]
 
 const organisation: NavItem[] = [
-  { icon: ClipboardListIcon, title: "Réservations" },
-  { icon: UsersIcon, title: "Clients & animaux" },
-  { icon: ReceiptIcon, title: "Facturation" },
+  { href: "/reservations", icon: ClipboardListIcon, title: "Réservations" },
+  { href: "/clients", icon: UsersIcon, title: "Clients & animaux" },
+  { href: "/billing", icon: ReceiptIcon, title: "Facturation" },
   { dot: true, href: "/messages", icon: MessageCircleIcon, title: "Messages" },
-  { icon: ChartNoAxesColumnIcon, title: "Statistiques" },
+  { href: "/statistics", icon: ChartNoAxesColumnIcon, title: "Statistiques" },
 ]
 
 const activities: {
@@ -96,7 +95,6 @@ const activities: {
         title: "Planning des box",
       },
       { href: "/pension/stays", icon: ClipboardIcon, title: "Séjours" },
-      { href: "/pension/invoices", icon: FileTextIcon, title: "Factures" },
     ],
     name: "Pension",
   },
@@ -108,7 +106,6 @@ const activities: {
         icon: CalendarIcon,
         title: "Rendez-vous",
       },
-      { href: "/grooming/invoices", icon: FileTextIcon, title: "Factures" },
     ],
     name: "Toilettage",
   },
@@ -116,7 +113,6 @@ const activities: {
     items: [
       { href: "/training/today", icon: SunDimIcon, title: "Aujourd'hui" },
       { href: "/training/sessions", icon: CalendarIcon, title: "Séances" },
-      { href: "/training/invoices", icon: FileTextIcon, title: "Factures" },
     ],
     name: "Éducation",
   },

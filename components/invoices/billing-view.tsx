@@ -9,23 +9,29 @@ import {
   MailSend01Icon,
   MoreHorizontalIcon,
   PlusSignIcon,
+  ReceiptIcon,
   Search01Icon,
   Tick02Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { useState } from "react"
-import { type Activity, activityMeta } from "@/components/activity-mark"
-import { shortDate, TODAY } from "@/components/calendar"
 import {
-  type Invoice,
+  type Activity,
+  ActivityMark,
+  activityMeta,
+  activityNames,
+} from "@/components/activity-mark"
+import { shortDate, TODAY } from "@/components/calendar"
+import { type ActivityInvoice, allInvoices } from "@/components/clients/data"
+import {
   type InvoiceStatus,
   invoiceBooks,
   invoiceTotal,
 } from "@/components/invoices/data"
 import {
-  ActivityPage,
   formatAmount,
   Kpi,
+  PageShell,
   Widget,
 } from "@/components/today/widgets"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -111,39 +117,50 @@ const initials = (name: string) =>
     .join("")
     .slice(0, 2)
 
-const sumOf = (list: Invoice[]) =>
+const sumOf = (list: ActivityInvoice[]) =>
   list.reduce((sum, invoice) => sum + invoiceTotal(invoice), 0)
 
-function MonthlyChart({
-  activity,
-  months,
-}: {
-  activity: Activity
-  months: { label: string; amount: number }[]
-}) {
-  const max = Math.max(...months.map((m) => m.amount))
+/** Monthly revenue over 6 months, stacked by activity. */
+export function RevenueChart({ activities }: { activities: Activity[] }) {
+  const months = invoiceBooks.Pension.months.map((m, i) => ({
+    label: m.label,
+    parts: activities.map((activity) => ({
+      activity,
+      amount: invoiceBooks[activity].months[i].amount,
+    })),
+  }))
+  const totalOf = (parts: { amount: number }[]) =>
+    parts.reduce((sum, p) => sum + p.amount, 0)
+  const max = Math.max(...months.map((m) => totalOf(m.parts)))
   return (
-    <div className="flex h-44 items-end gap-3">
+    <div className="flex h-48 items-end gap-3">
       {months.map((m, i) => {
         const current = i === months.length - 1
+        const total = totalOf(m.parts)
         return (
           <div
             className="flex h-full flex-1 flex-col items-center justify-end gap-1.5"
             key={m.label}
           >
             <span className="text-[0.6875rem] text-muted-foreground tabular-nums">
-              {(m.amount / 1000).toFixed(1).replace(".", ",")} k
+              {(total / 1000).toFixed(1).replace(".", ",")} k
             </span>
             <div
               className={cn(
-                "w-full max-w-12 rounded-md",
-                current
-                  ? activityMeta[activity].color
-                  : `${activityMeta[activity].color} opacity-30`
+                "flex w-full max-w-12 flex-col-reverse overflow-hidden rounded-md",
+                !current && "opacity-40"
               )}
-              style={{ height: `${(m.amount / max) * 100}%` }}
-              title={formatAmount(m.amount)}
-            />
+              style={{ height: `${(total / max) * 100}%` }}
+              title={formatAmount(total)}
+            >
+              {m.parts.map((p) => (
+                <div
+                  className={activityMeta[p.activity].color}
+                  key={p.activity}
+                  style={{ height: `${(p.amount / total) * 100}%` }}
+                />
+              ))}
+            </div>
             <span
               className={cn(
                 "text-xs text-muted-foreground",
@@ -166,11 +183,11 @@ function InvoiceSheet({
   onPaid,
   onRemind,
 }: {
-  invoice: Invoice | null
+  invoice: ActivityInvoice | null
   open: boolean
   onOpenChange: (open: boolean) => void
-  onPaid: (number: string) => void
-  onRemind: (number: string) => void
+  onPaid: (id: string) => void
+  onRemind: (id: string) => void
 }) {
   const total = invoice ? invoiceTotal(invoice) : 0
   const ht = Math.round((total / 1.2) * 100) / 100
@@ -180,12 +197,18 @@ function InvoiceSheet({
         {invoice && (
           <>
             <SheetHeader>
-              <Badge
-                className="w-fit"
-                variant={statusMeta[invoice.status].variant}
-              >
-                {statusMeta[invoice.status].label}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant={statusMeta[invoice.status].variant}>
+                  {statusMeta[invoice.status].label}
+                </Badge>
+                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <ActivityMark
+                    activity={invoice.activity}
+                    className="size-4 text-[0.5rem]"
+                  />
+                  {invoice.activity}
+                </span>
+              </div>
               <SheetTitle>
                 {invoice.status === "draft"
                   ? "Facture brouillon"
@@ -214,7 +237,7 @@ function InvoiceSheet({
                     <div className="text-xs">
                       <p className="font-medium">Les Coteaux</p>
                       <p className="text-muted-foreground">
-                        12 chemin des Vignes · 69130 Écully
+                        12 chemin des Coteaux · 33500 Libourne
                       </p>
                     </div>
                   </div>
@@ -293,7 +316,7 @@ function InvoiceSheet({
                 PDF
               </Button>
               {invoice.status === "draft" && (
-                <Button onClick={() => onRemind(invoice.number)}>
+                <Button onClick={() => onRemind(invoice.id)}>
                   <HugeiconsIcon icon={MailSend01Icon} />
                   Émettre et envoyer
                 </Button>
@@ -302,13 +325,13 @@ function InvoiceSheet({
                 invoice.status === "overdue") && (
                 <>
                   <Button
-                    onClick={() => onRemind(invoice.number)}
+                    onClick={() => onRemind(invoice.id)}
                     variant="outline"
                   >
                     <HugeiconsIcon icon={MailSend01Icon} />
                     Relancer
                   </Button>
-                  <Button onClick={() => onPaid(invoice.number)}>
+                  <Button onClick={() => onPaid(invoice.id)}>
                     Marquer payée
                   </Button>
                 </>
@@ -321,19 +344,24 @@ function InvoiceSheet({
   )
 }
 
-export function InvoicesView({ activity }: { activity: Activity }) {
-  const book = invoiceBooks[activity]
-  const [invoices, setInvoices] = useState(book.invoices)
+type ActivityFilter = Activity | "all"
+
+export function BillingView() {
+  const [invoices, setInvoices] = useState(allInvoices)
+  const [activity, setActivity] = useState<ActivityFilter>("all")
   const [filter, setFilter] = useState<Filter>("all")
   const [query, setQuery] = useState("")
-  const [openNumber, setOpenNumber] = useState<string | null>(null)
+  const [openId, setOpenId] = useState<string | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
 
+  const scoped = invoices.filter(
+    (i) => activity === "all" || i.activity === activity
+  )
   const of = (status: InvoiceStatus) =>
-    invoices.filter((i) => i.status === status)
-  const issued = invoices.filter((i) => i.status !== "draft")
+    scoped.filter((i) => i.status === status)
+  const issued = scoped.filter((i) => i.status !== "draft")
   const q = query.trim().toLowerCase()
-  const rows = invoices
+  const rows = scoped
     .filter((i) => filter === "all" || i.status === filter)
     .filter(
       (i) =>
@@ -342,30 +370,31 @@ export function InvoicesView({ activity }: { activity: Activity }) {
           .toLowerCase()
           .includes(q)
     )
-  const openInvoice = invoices.find((i) => i.number === openNumber) ?? null
+  const openInvoice = invoices.find((i) => i.id === openId) ?? null
+  const chartActivities = activity === "all" ? activityNames : [activity]
 
-  const update = (number: string, patch: Partial<Invoice>) =>
+  const update = (id: string, patch: Partial<ActivityInvoice>) =>
     setInvoices((list) =>
-      list.map((i) => (i.number === number ? { ...i, ...patch } : i))
+      list.map((i) => (i.id === id ? { ...i, ...patch } : i))
     )
-  const markPaid = (number: string) =>
-    update(number, { method: "Carte bancaire", status: "paid" })
-  const remind = (number: string) => {
-    const invoice = invoices.find((i) => i.number === number)
+  const markPaid = (id: string) =>
+    update(id, { method: "Carte bancaire", status: "paid" })
+  const remind = (id: string) => {
+    const invoice = invoices.find((i) => i.id === id)
     if (!invoice) return
     if (invoice.status === "draft") {
-      update(number, {
-        number: `${prefixes[activity]}-2026-0${170 + invoices.length}`,
+      update(id, {
+        number: `${prefixes[invoice.activity]}-2026-0${170 + invoices.length}`,
         status: "pending",
       })
       setSheetOpen(false)
       return
     }
-    update(number, { reminders: (invoice.reminders ?? 0) + 1 })
+    update(id, { reminders: (invoice.reminders ?? 0) + 1 })
   }
 
   return (
-    <ActivityPage
+    <PageShell
       actions={
         <>
           <Button className="max-sm:hidden" size="sm" variant="outline">
@@ -378,9 +407,24 @@ export function InvoicesView({ activity }: { activity: Activity }) {
           </Button>
         </>
       }
-      activity={activity}
-      title="Factures"
+      icon={ReceiptIcon}
+      title="Facturation"
     >
+      <Tabs
+        onValueChange={(value) => setActivity(value as ActivityFilter)}
+        value={activity}
+      >
+        <TabsList>
+          <TabsTab value="all">Toutes les activités</TabsTab>
+          {activityNames.map((name) => (
+            <TabsTab className="gap-1.5" key={name} value={name}>
+              <ActivityMark activity={name} className="size-4 text-[0.5rem]" />
+              {name}
+            </TabsTab>
+          ))}
+        </TabsList>
+      </Tabs>
+
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi
           icon={Invoice01Icon}
@@ -394,7 +438,8 @@ export function InvoicesView({ activity }: { activity: Activity }) {
           label="Encaissé"
           value={formatAmount(sumOf(of("paid")))}
         >
-          {Math.round((sumOf(of("paid")) / sumOf(issued)) * 100)} % du facturé
+          {Math.round((sumOf(of("paid")) / Math.max(1, sumOf(issued))) * 100)} %
+          du facturé
         </Kpi>
         <Kpi
           icon={Clock01Icon}
@@ -427,7 +472,23 @@ export function InvoicesView({ activity }: { activity: Activity }) {
           description="Chiffre d'affaires facturé sur 6 mois"
           title="Évolution"
         >
-          <MonthlyChart activity={activity} months={book.months} />
+          <RevenueChart activities={chartActivities} />
+          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 border-t pt-3">
+            {chartActivities.map((name) => (
+              <span className="flex items-center gap-2 text-xs" key={name}>
+                <span
+                  className={cn(
+                    "size-2 rounded-full",
+                    activityMeta[name].color
+                  )}
+                />
+                <span className="text-muted-foreground">{name}</span>
+                <span className="font-medium tabular-nums">
+                  {formatAmount(invoiceBooks[name].months[5].amount)}
+                </span>
+              </span>
+            ))}
+          </div>
         </Widget>
         <Widget description="Factures échues non réglées" title="À relancer">
           {of("overdue").length === 0 ? (
@@ -437,10 +498,16 @@ export function InvoicesView({ activity }: { activity: Activity }) {
           ) : (
             <ul className="space-y-3">
               {of("overdue").map((i) => (
-                <li className="space-y-2 rounded-lg border p-3" key={i.number}>
+                <li className="space-y-2 rounded-lg border p-3" key={i.id}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{i.client}</p>
+                      <p className="flex items-center gap-1.5 truncate text-sm font-medium">
+                        <ActivityMark
+                          activity={i.activity}
+                          className="size-4 text-[0.5rem]"
+                        />
+                        {i.client}
+                      </p>
                       <p className="truncate text-xs text-muted-foreground">
                         {i.number} · {TODAY - i.due} jours de retard
                       </p>
@@ -456,7 +523,7 @@ export function InvoicesView({ activity }: { activity: Activity }) {
                         : "Jamais relancée"}
                     </span>
                     <Button
-                      onClick={() => remind(i.number)}
+                      onClick={() => remind(i.id)}
                       size="xs"
                       variant="outline"
                     >
@@ -481,7 +548,7 @@ export function InvoicesView({ activity }: { activity: Activity }) {
               <TabsTab className="gap-1.5" key={f.value} value={f.value}>
                 {f.label}
                 <span className="text-muted-foreground tabular-nums">
-                  {f.value === "all" ? invoices.length : of(f.value).length}
+                  {f.value === "all" ? scoped.length : of(f.value).length}
                 </span>
               </TabsTab>
             ))}
@@ -494,7 +561,7 @@ export function InvoicesView({ activity }: { activity: Activity }) {
           <InputGroupInput
             aria-label="Rechercher une facture"
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="N°, client, objet…"
+            placeholder="N°, client, animal…"
             value={query}
           />
         </InputGroup>
@@ -516,9 +583,7 @@ export function InvoicesView({ activity }: { activity: Activity }) {
               <TableRow>
                 <TableHead>Facture</TableHead>
                 <TableHead>Client</TableHead>
-                <TableHead className="max-md:hidden">
-                  {book.extraLabel}
-                </TableHead>
+                <TableHead className="max-md:hidden">Activité</TableHead>
                 <TableHead>Échéance</TableHead>
                 <TableHead className="text-end">Montant</TableHead>
                 <TableHead>Statut</TableHead>
@@ -529,9 +594,9 @@ export function InvoicesView({ activity }: { activity: Activity }) {
               {rows.map((i) => (
                 <TableRow
                   className="cursor-pointer"
-                  key={i.number}
+                  key={i.id}
                   onClick={() => {
-                    setOpenNumber(i.number)
+                    setOpenId(i.id)
                     setSheetOpen(true)
                   }}
                 >
@@ -556,8 +621,16 @@ export function InvoicesView({ activity }: { activity: Activity }) {
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground max-md:hidden">
-                    {i.extra}
+                  <TableCell className="max-md:hidden">
+                    <div className="flex items-center gap-2">
+                      <ActivityMark activity={i.activity} />
+                      <div>
+                        <p>{i.activity}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {i.extra}
+                        </p>
+                      </div>
+                    </div>
                   </TableCell>
                   <TableCell
                     className={cn(
@@ -601,7 +674,7 @@ export function InvoicesView({ activity }: { activity: Activity }) {
                           Télécharger le PDF
                         </MenuItem>
                         {i.status !== "paid" && (
-                          <MenuItem onClick={() => remind(i.number)}>
+                          <MenuItem onClick={() => remind(i.id)}>
                             <HugeiconsIcon icon={MailSend01Icon} />
                             {i.status === "draft" ? "Émettre" : "Relancer"}
                           </MenuItem>
@@ -609,7 +682,7 @@ export function InvoicesView({ activity }: { activity: Activity }) {
                         {(i.status === "pending" || i.status === "overdue") && (
                           <>
                             <MenuSeparator />
-                            <MenuItem onClick={() => markPaid(i.number)}>
+                            <MenuItem onClick={() => markPaid(i.id)}>
                               <HugeiconsIcon icon={Tick02Icon} />
                               Marquer payée
                             </MenuItem>
@@ -639,13 +712,13 @@ export function InvoicesView({ activity }: { activity: Activity }) {
       <InvoiceSheet
         invoice={openInvoice}
         onOpenChange={setSheetOpen}
-        onPaid={(number) => {
-          markPaid(number)
+        onPaid={(id) => {
+          markPaid(id)
           setSheetOpen(false)
         }}
         onRemind={remind}
         open={sheetOpen}
       />
-    </ActivityPage>
+    </PageShell>
   )
 }

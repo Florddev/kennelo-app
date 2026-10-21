@@ -123,6 +123,39 @@ export function ActivityHeader({
   )
 }
 
+/** Shell for an organisation page: header and a scrollable, centered body. */
+export function PageShell({
+  title,
+  icon,
+  actions,
+  className,
+  children,
+}: {
+  title: string
+  icon: IconSvgElement
+  actions?: ReactNode
+  className?: string
+  children: ReactNode
+}) {
+  return (
+    <>
+      <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
+        <SidebarTrigger className="md:hidden" />
+        <HugeiconsIcon className="size-4 text-muted-foreground" icon={icon} />
+        <h1 className="truncate text-sm font-medium">{title}</h1>
+        <div className="ms-auto flex items-center gap-2">{actions}</div>
+      </header>
+      <div className="flex-1 overflow-y-auto">
+        <div
+          className={cn("mx-auto max-w-6xl space-y-6 p-4 md:p-6", className)}
+        >
+          {children}
+        </div>
+      </div>
+    </>
+  )
+}
+
 /** Shell for an activity page: header and a scrollable, centered body. */
 export function ActivityPage({
   activity,

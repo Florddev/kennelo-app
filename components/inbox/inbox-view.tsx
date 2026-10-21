@@ -159,7 +159,7 @@ function actionsFor(item: InboxItem): Action[] {
       ]
     case "payment":
       return item.data.status === "paid"
-        ? [{ label: "Télécharger la facture", variant: "outline" }]
+        ? [{ href: "/billing", label: "Voir la facture", variant: "outline" }]
         : [
             {
               done: "Facture marquée comme payée",
