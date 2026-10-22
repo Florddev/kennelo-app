@@ -46,9 +46,9 @@ const nightsOn = (list: Stay[], day: number) =>
 
 function occupancyClass(ratio: number) {
   if (ratio >= 1) return "bg-orange-500 text-white"
-  if (ratio >= 0.8) return "bg-emerald-800 text-white"
-  if (ratio >= 0.5) return "bg-emerald-800/40"
-  return "bg-emerald-800/15"
+  if (ratio >= 0.8) return "bg-pension text-pension-foreground"
+  if (ratio >= 0.5) return "bg-pension/70"
+  return "bg-pension/35"
 }
 
 function KennelRow({
@@ -184,7 +184,7 @@ export function PlanningView() {
           }
         >
           <Bar
-            className="bg-emerald-700"
+            className="bg-pension-strong"
             label="Occupation cette nuit"
             value={(tonight / capacity) * 100}
           />

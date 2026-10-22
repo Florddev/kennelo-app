@@ -223,7 +223,7 @@ export function StaysView() {
                             className={cn(
                               "text-xs",
                               s.status === "ongoing" &&
-                                "bg-emerald-800 text-white"
+                                "bg-pension text-pension-foreground"
                             )}
                           >
                             {s.pet.slice(0, 2)}
@@ -267,7 +267,7 @@ export function StaysView() {
                       {s.status === "ongoing" ? (
                         <div className="space-y-1">
                           <Bar
-                            className="bg-emerald-700"
+                            className="bg-pension-strong"
                             label={`Séjour de ${s.pet}`}
                             value={(progress.elapsed / progress.nights) * 100}
                           />

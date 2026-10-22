@@ -1,12 +1,17 @@
-import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google"
+import { Archivo, Geist_Mono, Inter } from "next/font/google"
 
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'})
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" })
 
-const heading = Bricolage_Grotesque({subsets:['latin'],variable:'--font-heading'})
+/* Remplace Wise Sans (sous licence) pour les grands titres */
+const display = Archivo({
+  axes: ["wdth"],
+  subsets: ["latin"],
+  variable: "--font-display",
+})
 
 const geistMono = Geist_Mono({subsets:['latin'],variable:'--font-mono'})
 
@@ -19,7 +24,7 @@ export default function RootLayout({
     <html
       lang="fr"
       suppressHydrationWarning
-      className={cn("antialiased", "font-sans", geist.variable, heading.variable, geistMono.variable)}
+      className={cn("antialiased", "font-sans", inter.variable, display.variable, geistMono.variable)}
     >
       <body>
         <ThemeProvider>{children}</ThemeProvider>

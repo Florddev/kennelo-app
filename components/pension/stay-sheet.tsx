@@ -49,7 +49,7 @@ export const stayStatusMeta: Record<
     variant: "secondary",
   },
   ongoing: {
-    bar: "bg-emerald-800 text-white",
+    bar: "bg-pension text-pension-foreground",
     label: "En cours",
     variant: "success",
   },
@@ -59,7 +59,7 @@ export const stayStatusMeta: Record<
     variant: "warning",
   },
   upcoming: {
-    bar: "border border-emerald-700/40 bg-emerald-700/15 text-emerald-900 dark:text-emerald-200",
+    bar: "border border-pension-strong/40 bg-pension/35 text-pension-foreground",
     label: "À venir",
     variant: "info",
   },
@@ -69,7 +69,7 @@ export const paymentMeta: Record<StayPayment, { label: string; dot: string }> =
   {
     deposit: { dot: "bg-sky-500", label: "Acompte versé" },
     due: { dot: "bg-amber-500", label: "À régler" },
-    paid: { dot: "bg-emerald-500", label: "Soldé" },
+    paid: { dot: "bg-success", label: "Soldé" },
   }
 
 export const kennelLabel = (kennelId?: string) => {
@@ -206,7 +206,7 @@ export function StaySheet({
                       .slice(0, 5)
                       .map((day, i) => (
                         <li className="relative text-sm" key={day}>
-                          <span className="absolute start-[calc(-1rem-4.5px)] top-1.5 size-2 rounded-full bg-emerald-700" />
+                          <span className="absolute start-[calc(-1rem-4.5px)] top-1.5 size-2 rounded-full bg-pension-strong" />
                           <p className="text-xs text-muted-foreground">
                             {relativeDate(day)}
                           </p>
@@ -286,7 +286,7 @@ function StayDates({ stay }: { stay: Stay }) {
       {stay.status === "ongoing" && (
         <div className="space-y-1.5">
           <Bar
-            className="bg-emerald-700"
+            className="bg-pension-strong"
             label="Avancement du séjour"
             value={(elapsed / nights) * 100}
           />

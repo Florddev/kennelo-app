@@ -81,7 +81,7 @@ export function OrganizationPage() {
         <SettingsRow
           description="Utilisé sur les factures, e-mails et le portail client"
           media={
-            <span className="flex size-10 items-center justify-center rounded-lg bg-emerald-800 text-sm font-semibold text-white">
+            <span className="flex size-10 items-center justify-center rounded-lg bg-pension text-pension-foreground text-sm font-semibold">
               LC
             </span>
           }
@@ -328,7 +328,7 @@ export function MembersPage() {
               <span className="flex items-center gap-2">
                 {member.name}
                 {member.lastSeen === "En ligne" && (
-                  <span className="size-1.5 rounded-full bg-emerald-500" />
+                  <span className="size-1.5 rounded-full bg-success" />
                 )}
               </span>
             }
@@ -812,7 +812,7 @@ export function PaymentsPage() {
           description="Paiement des acomptes et factures par carte"
           media={
             <IconTile
-              className="bg-violet-600 text-white"
+              className="bg-grooming text-grooming-foreground"
               icon={CreditCardIcon}
             />
           }
@@ -933,7 +933,7 @@ type Integration = {
 
 const integrations: Integration[] = [
   {
-    color: "bg-violet-600",
+    color: "bg-grooming-strong",
     connected: true,
     description: "Paiements en ligne et terminal",
     icon: CreditCardIcon,
@@ -947,7 +947,7 @@ const integrations: Integration[] = [
     name: "Google Agenda",
   },
   {
-    color: "bg-emerald-600",
+    color: "bg-success",
     description: "Conversations avec vos clients",
     icon: WhatsappIcon,
     name: "WhatsApp Business",
@@ -1329,7 +1329,7 @@ export function BillingPage() {
             className={cn(
               "flex flex-col gap-4 rounded-xl border bg-card p-4",
               plan.name === "Pro" &&
-                "border-emerald-800/40 ring-1 ring-emerald-800/20"
+                "border-pension-strong/40 ring-1 ring-pension-strong/20"
             )}
             key={plan.name}
           >
@@ -1350,7 +1350,7 @@ export function BillingPage() {
               {plan.features.map((feature) => (
                 <li className="flex items-center gap-2" key={feature}>
                   <HugeiconsIcon
-                    className="size-4 text-emerald-700"
+                    className="size-4 text-pension-strong"
                     icon={CheckmarkCircle02Icon}
                   />
                   {feature}

@@ -1,3 +1,4 @@
+import { activityColors } from "@/components/activity-mark"
 import { useSyncExternalStore } from "react"
 
 /* ——— Métiers : ils imposent le parcours client ——— */
@@ -394,7 +395,7 @@ export const offer = (
 let state: State = {
   activities: [
     {
-      color: "bg-emerald-800",
+      color: activityColors[0],
       href: "/settings/activities/pension",
       pricingHref: "/settings/activities/pension/rates",
       id: "pension",
@@ -402,7 +403,7 @@ let state: State = {
       name: "Pension",
     },
     {
-      color: "bg-violet-600",
+      color: activityColors[1],
       href: "/settings/activities/grooming",
       pricingHref: "/settings/activities/grooming/services",
       id: "grooming",
@@ -410,7 +411,7 @@ let state: State = {
       name: "Toilettage",
     },
     {
-      color: "bg-blue-700",
+      color: activityColors[2],
       href: "/settings/activities/training",
       pricingHref: "/settings/activities/training/packages",
       id: "training",
@@ -476,7 +477,7 @@ let state: State = {
       repeat: true,
     },
     {
-      color: "bg-amber-500",
+      color: "bg-wise-yellow",
       end: "2026-08-31",
       id: "ete",
       name: "Été",
@@ -484,7 +485,7 @@ let state: State = {
       start: "2026-07-01",
     },
     {
-      color: "bg-rose-500",
+      color: "bg-wise-pink",
       end: "2027-01-03",
       id: "fetes",
       name: "Fêtes",
@@ -492,7 +493,7 @@ let state: State = {
       start: "2026-12-20",
     },
     {
-      color: "bg-sky-500",
+      color: "bg-wise-blue",
       end: "2026-11-01",
       id: "toussaint",
       name: "Vacances de la Toussaint",

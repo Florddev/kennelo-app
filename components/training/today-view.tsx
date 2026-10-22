@@ -110,7 +110,7 @@ function LiveSession({
           <span>{Math.round(total - elapsed)} min restantes</span>
         </div>
         <Bar
-          className="bg-blue-700"
+          className="bg-training-strong"
           label="Avancement de la séance"
           value={(elapsed / total) * 100}
         />
@@ -128,7 +128,7 @@ function LiveSession({
                   className={cn(
                     "z-10 flex size-5 shrink-0 items-center justify-center rounded-full border bg-background",
                     exercise.state === "done" &&
-                      "border-blue-700 bg-blue-700 text-white",
+                      "border-training-strong bg-training text-training-foreground",
                     exercise.state === "live" &&
                       "border-orange-500 ring-4 ring-orange-500/20"
                   )}
@@ -174,7 +174,7 @@ function LiveSession({
                   className={cn(
                     "flex w-full items-center gap-2 rounded-lg border p-2 text-start transition-colors",
                     puppy.present
-                      ? "border-blue-700/40 bg-blue-700/5"
+                      ? "border-training-strong/40 bg-training/60"
                       : "border-dashed opacity-60"
                   )}
                   onClick={() => onToggle(puppy.id)}
@@ -185,7 +185,7 @@ function LiveSession({
                     <AvatarFallback
                       className={cn(
                         "text-[0.625rem]",
-                        puppy.present && "bg-blue-700 text-white"
+                        puppy.present && "bg-training text-training-foreground"
                       )}
                     >
                       {puppy.name.slice(0, 2)}
@@ -243,7 +243,7 @@ function WeatherCard() {
               <span
                 className={cn(
                   "h-1 w-4 rounded-full",
-                  session ? "bg-blue-700" : "bg-transparent"
+                  session ? "bg-training-strong" : "bg-transparent"
                 )}
                 title={session?.title}
               />
@@ -301,7 +301,7 @@ function SessionCard({ session }: { session: TrainingSession }) {
       </div>
       <div className="flex items-center gap-3">
         <Avatar className="size-10">
-          <AvatarFallback className="bg-blue-700 text-white">
+          <AvatarFallback className="bg-training text-training-foreground">
             {session.initials ?? "6"}
           </AvatarFallback>
         </Avatar>
@@ -337,9 +337,9 @@ function SessionCard({ session }: { session: TrainingSession }) {
               className={cn(
                 "h-1.5 flex-1 rounded-full",
                 i < index - 1
-                  ? "bg-blue-700"
+                  ? "bg-training-strong"
                   : i === index - 1
-                    ? "bg-blue-700/40"
+                    ? "bg-training/70"
                     : "bg-muted"
               )}
               key={i}
@@ -364,7 +364,7 @@ function SessionCard({ session }: { session: TrainingSession }) {
               </div>
               <Meter aria-label={skill.label} value={skill.value}>
                 <MeterTrack>
-                  <MeterIndicator className="bg-blue-700" />
+                  <MeterIndicator className="bg-training-strong" />
                 </MeterTrack>
               </Meter>
             </li>
@@ -451,13 +451,13 @@ function PackagesCard() {
                 </span>
               </div>
               <Bar
-                className={ending ? "bg-amber-500" : "bg-blue-700"}
+                className={ending ? "bg-amber-500" : "bg-training-strong"}
                 label={`Forfait de ${p.dog}`}
                 value={(p.used / p.total) * 100}
               />
               {ending &&
                 (offered.includes(p.dog) ? (
-                  <p className="flex items-center gap-1 text-xs text-emerald-700 dark:text-emerald-400">
+                  <p className="flex items-center gap-1 text-xs text-pension-strong">
                     <HugeiconsIcon className="size-3.5" icon={Tick02Icon} />
                     Renouvellement proposé à {p.owner}
                   </p>
@@ -551,7 +551,7 @@ export function TrainingTodayView() {
           value={`${Math.round((present / puppies.length) * 100)} %`}
         >
           <Bar
-            className="bg-blue-700"
+            className="bg-training-strong"
             label="Taux de présence"
             value={(present / puppies.length) * 100}
           />
@@ -602,7 +602,7 @@ export function TrainingTodayView() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <ChecklistWidget
-          barClassName="bg-blue-700"
+          barClassName="bg-training-strong"
           items={[
             {
               detail: "Cours chiots",

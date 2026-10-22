@@ -57,7 +57,7 @@ const kennelStyles: Record<KennelStatus, { label: string; className: string }> =
   {
     arriving: {
       className:
-        "border-2 border-dashed border-emerald-700 text-emerald-800 dark:border-emerald-500 dark:text-emerald-400",
+        "border-2 border-dashed border-pension-strong text-pension-strong",
       label: "Arrivée prévue",
     },
     cleaning: {
@@ -66,7 +66,7 @@ const kennelStyles: Record<KennelStatus, { label: string; className: string }> =
     },
     departing: { className: "bg-amber-500 text-white", label: "Départ prévu" },
     free: { className: "bg-muted text-muted-foreground", label: "Libre" },
-    occupied: { className: "bg-emerald-800 text-white", label: "Occupé" },
+    occupied: { className: "bg-pension text-pension-foreground", label: "Occupé" },
   }
 
 const isPresent = (k: Kennel) =>
@@ -171,7 +171,7 @@ function KennelDetail({ kennel }: { kennel: Kennel }) {
           <span>Départ {shortDate(kennel.stay.departure)}</span>
         </div>
         <Bar
-          className="bg-emerald-700"
+          className="bg-pension-strong"
           label="Avancement du séjour"
           value={(elapsed / nights) * 100}
         />
@@ -275,7 +275,7 @@ function MovementsCard({
                 className={cn(
                   "z-10 flex size-7 shrink-0 items-center justify-center rounded-full border bg-background",
                   m.status === "done" &&
-                    "border-emerald-700 bg-emerald-800 text-white",
+                    "border-pension-strong bg-pension text-pension-foreground",
                   m.status === "late" && "border-destructive text-destructive"
                 )}
               >
@@ -381,7 +381,7 @@ function MealsCard({ kennels }: { kennels: Kennel[] }) {
                 )}
               </div>
               <Bar
-                className="bg-emerald-700"
+                className="bg-pension-strong"
                 label={`Repas du ${meal.label.toLowerCase()}`}
                 value={(meal.served / meal.total) * 100}
               />
@@ -463,7 +463,7 @@ function OutingsCard() {
                   )}
                   {past && (
                     <HugeiconsIcon
-                      className="ms-auto size-4 text-emerald-700"
+                      className="ms-auto size-4 text-pension-strong"
                       icon={Tick02Icon}
                     />
                   )}
@@ -640,7 +640,7 @@ export function PensionTodayView() {
           }
         >
           <Bar
-            className="bg-emerald-700"
+            className="bg-pension-strong"
             label="Taux d'occupation"
             value={(present / kennels.length) * 100}
           />
@@ -698,7 +698,7 @@ export function PensionTodayView() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <MealsCard kennels={kennels} />
         <ChecklistWidget
-          barClassName="bg-emerald-700"
+          barClassName="bg-pension-strong"
           items={careTasks.map((t) => ({
             detail: `${t.time} · ${t.box}`,
             done: t.done,

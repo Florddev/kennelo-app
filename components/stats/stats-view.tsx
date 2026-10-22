@@ -48,7 +48,7 @@ function Delta({ value }: { value: number }) {
       className={cn(
         "inline-flex items-center gap-0.5 font-medium",
         up
-          ? "text-emerald-700 dark:text-emerald-400"
+          ? "text-pension-strong"
           : "text-destructive-foreground"
       )}
     >
@@ -250,10 +250,10 @@ export function StatsView() {
                     className={cn(
                       "w-full rounded-sm",
                       day === TODAY
-                        ? "bg-emerald-800"
+                        ? "bg-pension-strong"
                         : day < TODAY
-                          ? "bg-emerald-800/30"
-                          : "bg-emerald-800/55"
+                          ? "bg-pension/60"
+                          : "bg-pension/60"
                     )}
                     style={{ height: `${(n / KENNELS) * 100}%` }}
                     title={`${n} box sur ${KENNELS}`}
@@ -287,7 +287,7 @@ export function StatsView() {
                   </span>
                 </div>
                 <Bar
-                  className="bg-blue-700"
+                  className="bg-training-strong"
                   label={group.name}
                   value={(group.members.length / group.capacity) * 100}
                 />
@@ -312,7 +312,7 @@ export function StatsView() {
                   </span>
                 </div>
                 <Bar
-                  className="bg-violet-600"
+                  className="bg-grooming-strong"
                   label={label}
                   value={(count / topService) * 100}
                 />

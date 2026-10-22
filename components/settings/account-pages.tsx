@@ -163,7 +163,7 @@ export function ProfilePage() {
           description="JPG ou PNG, 1 Mo maximum"
           media={
             <Avatar className="size-10">
-              <AvatarFallback className="bg-emerald-800 text-white">
+              <AvatarFallback className="bg-pension text-pension-foreground">
                 AM
               </AvatarFallback>
             </Avatar>

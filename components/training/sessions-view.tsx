@@ -51,7 +51,7 @@ const kindMeta: Record<
   SessionKind,
   { icon: typeof UserGroupIcon; bar: string }
 > = {
-  Collectif: { bar: "bg-blue-700", icon: UserGroupIcon },
+  Collectif: { bar: "bg-training-strong", icon: UserGroupIcon },
   Individuel: { bar: "bg-sky-500", icon: Target02Icon },
   "À domicile": { bar: "bg-indigo-400", icon: Home01Icon },
 }
@@ -89,7 +89,7 @@ function SkillMeter({ label, value }: { label: string; value: number }) {
       </div>
       <Meter aria-label={label} value={value}>
         <MeterTrack>
-          <MeterIndicator className="bg-blue-700" />
+          <MeterIndicator className="bg-training-strong" />
         </MeterTrack>
       </Meter>
     </div>
@@ -405,7 +405,7 @@ function Programmes() {
                     <span
                       className={cn(
                         "h-1.5 flex-1 rounded-full",
-                        i < p.done ? "bg-blue-700" : "bg-muted"
+                        i < p.done ? "bg-training-strong" : "bg-muted"
                       )}
                       key={i}
                     />
@@ -479,7 +479,7 @@ function Groups() {
               </div>
               <div className="space-y-1.5">
                 <Bar
-                  className={fill >= 0.85 ? "bg-amber-500" : "bg-blue-700"}
+                  className={fill >= 0.85 ? "bg-amber-500" : "bg-training-strong"}
                   label={`Remplissage ${g.name}`}
                   value={fill * 100}
                 />
@@ -494,7 +494,7 @@ function Groups() {
                 <AvatarGroup>
                   {g.members.slice(0, 6).map((member) => (
                     <Avatar className="size-7" key={member} title={member}>
-                      <AvatarFallback className="bg-blue-700 text-[0.625rem] text-white">
+                      <AvatarFallback className="bg-training text-training-foreground text-[0.625rem]">
                         {member.slice(0, 2)}
                       </AvatarFallback>
                     </Avatar>

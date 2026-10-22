@@ -139,7 +139,7 @@ function GroomingTable({
     >
       <div className="flex flex-wrap items-start gap-4">
         <Avatar className="size-12">
-          <AvatarFallback className="bg-violet-600 text-white">
+          <AvatarFallback className="bg-grooming text-grooming-foreground">
             {current.pet.slice(0, 2)}
           </AvatarFallback>
         </Avatar>
@@ -175,9 +175,9 @@ function GroomingTable({
               className={cn(
                 "block h-1.5 rounded-full",
                 i < step
-                  ? "bg-violet-600"
+                  ? "bg-grooming-strong"
                   : i === step
-                    ? "animate-pulse bg-violet-600/50"
+                    ? "animate-pulse bg-grooming-strong/50"
                     : "bg-muted"
               )}
             />
@@ -189,7 +189,7 @@ function GroomingTable({
             >
               {i < step && (
                 <HugeiconsIcon
-                  className="size-3 text-violet-600"
+                  className="size-3 text-grooming-strong"
                   icon={Tick02Icon}
                 />
               )}
@@ -283,11 +283,11 @@ function SalonAgenda({
               "absolute inset-x-0 flex gap-2 overflow-hidden rounded-lg border px-2.5 py-1.5 text-start text-xs transition-shadow",
               a.status === "done" && "bg-muted text-muted-foreground",
               a.status === "in-progress" &&
-                "border-violet-600 bg-violet-600 text-white",
+                "border-grooming-strong bg-grooming text-grooming-foreground",
               a.status === "checked-in" &&
-                "border-violet-600/40 bg-violet-600/10",
+                "border-grooming-strong/40 bg-grooming/50",
               a.status === "upcoming" &&
-                "border-s-4 border-s-violet-600 bg-background",
+                "border-s-4 border-s-grooming-strong bg-background",
               a.id === selectedId &&
                 "ring-2 ring-ring ring-offset-2 ring-offset-background"
             )}
@@ -490,7 +490,7 @@ function CashCard({ appointments }: { appointments: GroomingAppointment[] }) {
       </div>
       <div className="mt-2">
         <Bar
-          className="bg-violet-600"
+          className="bg-grooming-strong"
           label="Encaissé"
           value={(collected / total) * 100}
         />
@@ -501,7 +501,7 @@ function CashCard({ appointments }: { appointments: GroomingAppointment[] }) {
             <span
               className={cn(
                 "size-2 shrink-0 rounded-full",
-                l.paid ? "bg-violet-600" : "bg-muted-foreground/30"
+                l.paid ? "bg-grooming-strong" : "bg-muted-foreground/30"
               )}
             />
             <span className="min-w-0 flex-1 truncate">{l.label}</span>
@@ -555,7 +555,7 @@ function StockCard() {
               <Meter aria-label={item.label} value={item.level}>
                 <MeterTrack>
                   <MeterIndicator
-                    className={low ? "bg-amber-500" : "bg-violet-600"}
+                    className={low ? "bg-amber-500" : "bg-grooming-strong"}
                   />
                 </MeterTrack>
               </Meter>
@@ -715,7 +715,7 @@ export function GroomingTodayView() {
           value={`${Math.round((planned / opening) * 100)} %`}
         >
           <Bar
-            className="bg-violet-600"
+            className="bg-grooming-strong"
             label="Remplissage du planning"
             value={(planned / opening) * 100}
           />

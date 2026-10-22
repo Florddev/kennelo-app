@@ -74,7 +74,7 @@ const statusMeta = {
 const compatMeta: Record<Compat, { label: string; dot: string }> = {
   careful: { dot: "bg-amber-500", label: "Avec précaution" },
   no: { dot: "bg-red-500", label: "Non" },
-  yes: { dot: "bg-emerald-500", label: "Oui" },
+  yes: { dot: "bg-success", label: "Oui" },
 }
 
 function Facts({ items }: { items: [string, ReactNode][] }) {
@@ -169,7 +169,7 @@ export function PetView({ slug }: { slug: string }) {
       title={`Animaux / ${pet.name}`}
     >
       <section className="flex flex-wrap items-start gap-5">
-        <div className="flex size-24 shrink-0 items-center justify-center rounded-3xl bg-linear-to-br from-lime-200 to-emerald-300 text-emerald-900 dark:from-lime-300/30 dark:to-emerald-500/30 dark:text-lime-200">
+        <div className="flex size-24 shrink-0 items-center justify-center rounded-3xl bg-wise-green text-wise-forest">
           <HugeiconsIcon className="size-10" icon={PawPrintIcon} />
         </div>
         <div className="min-w-0 flex-1 space-y-2">

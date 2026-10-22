@@ -1,5 +1,6 @@
 "use client"
 
+import { activityColors, colorName } from "@/components/activity-mark"
 import {
   ArrowRight01Icon,
   Location01Icon,
@@ -172,14 +173,7 @@ export function ActivitySection({
 
 /* ——— Sections communes ——— */
 
-const colors = [
-  "bg-emerald-800",
-  "bg-violet-600",
-  "bg-blue-700",
-  "bg-orange-600",
-  "bg-pink-600",
-  "bg-zinc-700",
-]
+const colors = activityColors
 
 function ColorPicker({ initial }: { initial: string }) {
   const [color, setColor] = useState(initial)
@@ -187,7 +181,7 @@ function ColorPicker({ initial }: { initial: string }) {
     <div className="flex gap-1.5">
       {colors.map((c) => (
         <button
-          aria-label={`Couleur ${c.replace("bg-", "")}`}
+          aria-label={`Couleur ${colorName(c)}`}
           aria-pressed={c === color}
           className={cn(
             "size-6 rounded-full ring-offset-2 ring-offset-background transition-shadow",
@@ -228,7 +222,7 @@ function GeneralSection({ activity }: SectionProps) {
             },
             {
               control: (
-                <ColorPicker initial={activityMeta[activity.name].color} />
+                <ColorPicker initial={activityMeta[activity.name].tint} />
               ),
               title: "Couleur",
               type: "custom",
@@ -849,7 +843,7 @@ function StepsSection() {
             description={stepDetails[step]}
             key={step}
             media={
-              <span className="flex size-8 items-center justify-center rounded-lg bg-violet-600/10 text-sm font-semibold text-violet-700 dark:text-violet-300">
+              <span className="flex size-8 items-center justify-center rounded-lg bg-grooming text-sm font-semibold text-grooming-foreground">
                 {i + 1}
               </span>
             }

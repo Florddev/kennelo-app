@@ -80,7 +80,7 @@ const statusMeta: Record<
     variant: "outline",
   },
   confirmed: {
-    block: "border-s-4 border-s-violet-600 bg-violet-600/10",
+    block: "border-s-4 border-s-grooming-strong bg-grooming/50",
     label: "Confirmé",
     variant: "info",
   },
@@ -323,7 +323,7 @@ function BookingSheet({
             <SheetPanel className="space-y-6">
               <div className="flex items-center gap-3 rounded-xl border p-4">
                 <Avatar className="size-10">
-                  <AvatarFallback className="bg-violet-600 text-white">
+                  <AvatarFallback className="bg-grooming text-grooming-foreground">
                     {booking.pet.slice(0, 2)}
                   </AvatarFallback>
                 </Avatar>
@@ -476,7 +476,7 @@ export function AppointmentsView() {
           value={`${Math.round((bookedHours / OPEN_HOURS_PER_WEEK) * 100)} %`}
         >
           <Bar
-            className="bg-violet-600"
+            className="bg-grooming-strong"
             label="Remplissage de la semaine"
             value={(bookedHours / OPEN_HOURS_PER_WEEK) * 100}
           />
@@ -603,7 +603,7 @@ export function AppointmentsView() {
                     </span>
                   </div>
                   <Bar
-                    className="bg-violet-600"
+                    className="bg-grooming-strong"
                     label={service}
                     value={(n / booked.length) * 100}
                   />

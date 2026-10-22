@@ -91,7 +91,7 @@ const statusMeta: Record<
     variant: "secondary",
   },
   overdue: { dot: "bg-red-500", label: "En retard", variant: "error" },
-  paid: { dot: "bg-emerald-500", label: "Payée", variant: "success" },
+  paid: { dot: "bg-success", label: "Payée", variant: "success" },
   pending: { dot: "bg-amber-500", label: "À encaisser", variant: "warning" },
 }
 
@@ -231,7 +231,7 @@ function InvoiceSheet({
               <div className="space-y-5 rounded-xl border bg-card p-5 shadow-xs/5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-center gap-2">
-                    <span className="flex size-8 items-center justify-center rounded-md bg-emerald-800 text-xs font-semibold text-white">
+                    <span className="flex size-8 items-center justify-center rounded-md bg-pension text-pension-foreground text-xs font-semibold">
                       LC
                     </span>
                     <div className="text-xs">
@@ -302,7 +302,7 @@ function InvoiceSheet({
                   </div>
                 </dl>
                 {invoice.status === "paid" && (
-                  <p className="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400">
+                  <p className="flex items-center gap-1.5 text-xs text-pension-strong">
                     <HugeiconsIcon className="size-3.5" icon={Tick02Icon} />
                     Réglée par{" "}
                     {invoice.method?.toLowerCase() ?? "carte bancaire"}

@@ -71,12 +71,12 @@ const kindMeta: Record<
   appointment: {
     icon: ScissorIcon,
     label: "Rendez-vous",
-    tone: "bg-violet-500/12 text-violet-700 dark:text-violet-400",
+    tone: "bg-grooming text-grooming-foreground",
   },
   booking: {
     icon: CalendarAdd01Icon,
     label: "Réservation",
-    tone: "bg-emerald-500/12 text-emerald-700 dark:text-emerald-400",
+    tone: "bg-pension text-pension-foreground",
   },
   capacity: {
     icon: Home01Icon,
@@ -288,7 +288,7 @@ function BookingDetail({ data }: { data: DataOf<"booking"> }) {
                 <Fragment key={night}>
                   <span className="h-px flex-1 bg-border" />
                   <HugeiconsIcon
-                    className="size-4 text-emerald-700 dark:text-emerald-400"
+                    className="size-4 text-pension-strong"
                     icon={Moon02Icon}
                   />
                 </Fragment>
@@ -322,7 +322,7 @@ function BookingDetail({ data }: { data: DataOf<"booking"> }) {
             </div>
             <Meter aria-label="Occupation" max={total} value={occupied}>
               <MeterTrack>
-                <MeterIndicator className="bg-emerald-700" />
+                <MeterIndicator className="bg-pension-strong" />
               </MeterTrack>
             </Meter>
             <p className="text-xs text-muted-foreground">
@@ -385,7 +385,7 @@ function MessageDetail({ data }: { data: DataOf<"message"> }) {
   )
 }
 
-const serviceShades = ["bg-violet-600", "bg-violet-400", "bg-violet-300"]
+const serviceShades = ["bg-grooming-strong", "bg-grooming", "bg-grooming/50"]
 
 function AppointmentDetail({ data }: { data: DataOf<"appointment"> }) {
   const minutes = data.services.reduce((total, s) => total + s.minutes, 0)
@@ -395,7 +395,7 @@ function AppointmentDetail({ data }: { data: DataOf<"appointment"> }) {
       <Section title="Créneau demandé">
         <div className={cn(panel, "flex items-center gap-4")}>
           <div className="w-20 shrink-0 overflow-hidden rounded-lg border text-center">
-            <div className="bg-violet-600 py-0.5 text-xs font-medium text-white">
+            <div className="bg-grooming text-grooming-foreground py-0.5 text-xs font-medium">
               {data.weekday}
             </div>
             <div className="pt-1 text-2xl font-semibold">{data.day}</div>
@@ -411,7 +411,7 @@ function AppointmentDetail({ data }: { data: DataOf<"appointment"> }) {
                   slot.status === "busy" &&
                     "bg-muted text-muted-foreground line-through",
                   slot.status === "requested" &&
-                    "border-violet-600 bg-violet-600 font-medium text-white"
+                    "border-grooming-strong bg-grooming text-grooming-foreground font-medium"
                 )}
                 key={slot.time}
               >
@@ -547,7 +547,7 @@ function PaymentDetail({ data }: { data: DataOf<"payment"> }) {
                   i < data.history.length - 1
                     ? "bg-muted-foreground/40"
                     : paid
-                      ? "bg-emerald-600"
+                      ? "bg-success"
                       : "bg-amber-500"
                 )}
               />
@@ -586,7 +586,7 @@ function CapacityDetail({ data }: { data: DataOf<"capacity"> }) {
                   <div
                     className={cn(
                       "absolute inset-x-0 bottom-0 rounded-lg",
-                      full ? "bg-orange-500" : "bg-emerald-700"
+                      full ? "bg-orange-500" : "bg-pension-strong"
                     )}
                     style={{ height: `${ratio * 100}%` }}
                   />
@@ -846,7 +846,7 @@ function InboxRow({
             </Badge>
           )}
           {item.unread && (
-            <span className="ms-auto size-2 shrink-0 rounded-full bg-emerald-600">
+            <span className="ms-auto size-2 shrink-0 rounded-full bg-success">
               <span className="sr-only">Non lu</span>
             </span>
           )}

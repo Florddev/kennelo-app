@@ -1,5 +1,6 @@
 "use client"
 
+import { activityColors, colorName } from "@/components/activity-mark"
 import {
   Cancel01Icon,
   CheckmarkCircle02Icon,
@@ -148,14 +149,7 @@ const daysLabel = (days: number[]) => {
 }
 const hour = (value: string) => value.replace(":00", "h").replace(":", "h")
 
-const colors = [
-  "bg-amber-600",
-  "bg-sky-600",
-  "bg-pink-600",
-  "bg-teal-600",
-  "bg-emerald-800",
-  "bg-violet-600",
-]
+const colors = activityColors
 const steps = [
   "Métier",
   "Infos pratiques",
@@ -523,7 +517,7 @@ export function NewActivityFlow() {
         <Frame>
           <FramePanel className="space-y-4 py-10 text-center">
             <HugeiconsIcon
-              className="mx-auto size-10 text-emerald-600"
+              className="mx-auto size-10 text-success"
               icon={CheckmarkCircle02Icon}
             />
             <div className="space-y-1">
@@ -614,7 +608,7 @@ export function NewActivityFlow() {
                   <div className="flex gap-1.5">
                     {colors.map((c) => (
                       <button
-                        aria-label={`Couleur ${c.replace("bg-", "")}`}
+                        aria-label={`Couleur ${colorName(c)}`}
                         aria-pressed={c === color}
                         className={cn(
                           "size-6 rounded-full ring-offset-2 ring-offset-background",

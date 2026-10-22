@@ -66,7 +66,7 @@ const pct = (hour: number) => ((hour - DAY_START) / (DAY_END - DAY_START)) * 100
 const boxStyles: Record<BoxStatus, { label: string; className: string }> = {
   arriving: {
     className:
-      "border-2 border-dashed border-emerald-700 text-emerald-800 dark:border-emerald-500 dark:text-emerald-400",
+      "border-2 border-dashed border-pension-strong text-pension-strong",
     label: "Arrivée prévue",
   },
   cleaning: {
@@ -75,7 +75,7 @@ const boxStyles: Record<BoxStatus, { label: string; className: string }> = {
   },
   departing: { className: "bg-amber-500 text-white", label: "Départ prévu" },
   free: { className: "bg-muted text-muted-foreground", label: "Libre" },
-  occupied: { className: "bg-emerald-800 text-white", label: "Occupé" },
+  occupied: { className: "bg-pension text-pension-foreground", label: "Occupé" },
 }
 
 function DayTimeline() {
@@ -275,7 +275,7 @@ function CareCard() {
         value={(done / tasks.length) * 100}
       >
         <ProgressTrack>
-          <ProgressIndicator className="bg-emerald-700" />
+          <ProgressIndicator className="bg-pension-strong" />
         </ProgressTrack>
       </Progress>
       <ul className="space-y-3">
@@ -373,7 +373,7 @@ function RevenueCard() {
         <span className="font-heading text-2xl font-semibold tabular-nums">
           {formatAmount(total)}
         </span>
-        <span className="flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+        <span className="flex items-center gap-1 text-xs font-medium text-pension-strong">
           <HugeiconsIcon className="size-3.5" icon={ChartIncreaseIcon} />
           +12 %
         </span>
@@ -416,9 +416,9 @@ function RevenueCard() {
                 className={cn(
                   "w-full rounded-sm",
                   d.today
-                    ? "bg-emerald-800"
+                    ? "bg-pension-strong"
                     : i < todayIndex
-                      ? "bg-emerald-800/30"
+                      ? "bg-pension/60"
                       : "bg-muted"
                 )}
                 style={{ height: `${(d.amount / max) * 64}px` }}
@@ -598,7 +598,7 @@ export function TodayView() {
                 value={(present / boxes.length) * 100}
               >
                 <ProgressTrack>
-                  <ProgressIndicator className="bg-emerald-700" />
+                  <ProgressIndicator className="bg-pension-strong" />
                 </ProgressTrack>
               </Progress>
               <p className="mt-1.5">
@@ -640,7 +640,7 @@ export function TodayView() {
               label="CA prévu"
               value={formatAmount(revenue.reduce((s, r) => s + r.amount, 0))}
             >
-              <span className="flex items-center gap-1 text-emerald-700 dark:text-emerald-400">
+              <span className="flex items-center gap-1 text-pension-strong">
                 <HugeiconsIcon className="size-3.5" icon={ChartIncreaseIcon} />
                 +12 % vs mercredi dernier
               </span>

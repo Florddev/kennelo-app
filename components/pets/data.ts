@@ -180,12 +180,12 @@ const fears = [
   "Voiture",
 ]
 const tones = [
-  "from-lime-200 to-emerald-300",
-  "from-amber-200 to-orange-300",
-  "from-sky-200 to-indigo-300",
-  "from-rose-200 to-fuchsia-300",
-  "from-emerald-200 to-teal-300",
-  "from-violet-200 to-purple-300",
+  "from-wise-green to-wise-green",
+  "from-wise-orange to-wise-orange",
+  "from-wise-blue to-wise-blue",
+  "from-wise-pink to-wise-pink",
+  "from-wise-yellow to-wise-yellow",
+  "from-wise-green/60 to-wise-blue",
 ]
 const authors: Record<Activity, string[]> = {
   Pension: ["Claire Dumas", "Lucas Bernard"],

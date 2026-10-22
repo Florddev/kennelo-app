@@ -280,7 +280,7 @@ function ActiveBookingsBar({
           <span className="leading-tight">
             <span className="flex items-center gap-1.5 text-xs font-medium">
               {booking.status === "ongoing" && (
-                <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
+                <span className="size-1.5 animate-pulse rounded-full bg-success" />
               )}
               {booking.title}
             </span>
@@ -951,7 +951,7 @@ export function MessagesView() {
                         {lastPreview(c)}
                       </span>
                       {c.unread > 0 && (
-                        <span className="shrink-0 rounded-full bg-emerald-800 px-1.5 text-xs text-white">
+                        <span className="shrink-0 rounded-full bg-pension text-pension-foreground px-1.5 text-xs">
                           {c.unread}
                         </span>
                       )}

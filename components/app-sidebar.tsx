@@ -131,7 +131,7 @@ function NavLink({ item }: { item: NavItem }) {
       </SidebarMenuButton>
       {item.badge ? (
         <SidebarMenuBadge>
-          <span className="rounded-full bg-emerald-800 px-1.5 text-white">
+          <span className="rounded-full bg-pension text-pension-foreground px-1.5">
             {item.badge}
           </span>
         </SidebarMenuBadge>
@@ -180,7 +180,7 @@ export function AppSidebar() {
           <MenuTrigger
             render={<Button className="px-1.5" size="sm" variant="ghost" />}
           >
-            <span className="flex size-6 items-center justify-center rounded-md bg-emerald-800 text-[0.625rem] font-semibold text-white">
+            <span className="flex size-6 items-center justify-center rounded-md bg-pension text-pension-foreground text-[0.625rem] font-semibold">
               LC
             </span>
             Les Coteaux

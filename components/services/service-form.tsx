@@ -77,7 +77,7 @@ export function ActivityDot({
     <span
       aria-hidden="true"
       className={cn(
-        "flex size-8 shrink-0 items-center justify-center rounded-lg text-xs font-semibold text-white",
+        "flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold",
         activity.color,
         className
       )}
