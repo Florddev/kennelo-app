@@ -3,17 +3,25 @@
 import {
   ArrowLeft01Icon,
   ArrowRight01Icon,
+  FavouriteIcon,
   Compass01Icon,
   Home01Icon,
   Message01Icon,
   PawPrintIcon,
+  QuoteDownIcon,
   UserCircleIcon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { type ReactNode, useEffect, useSyncExternalStore } from "react"
+import {
+  type ReactNode,
+  useEffect,
+  useState,
+  useSyncExternalStore,
+} from "react"
 import { type Activity, activityMeta } from "@/components/activity-mark"
+import { daysBetween } from "@/components/pets/data"
 import { countdown } from "@/components/site/booking-detail"
 import {
   bookingTotal,
@@ -38,7 +46,7 @@ import {
   VenueCover,
   VenueLogo,
 } from "@/components/site/site-ui"
-import { dayMonth, euros } from "@/components/services/data"
+import { dayMonth, euros, todayIso } from "@/components/services/data"
 import { cn } from "@/lib/utils"
 
 /* ——— La coque de l'app ——— */
@@ -776,12 +784,15 @@ export function QuickAction({
   href,
   onClick,
   primary,
+  circleClassName,
 }: {
   icon: IconSvgElement
   label: string
   href?: string
   onClick?: () => void
   primary?: boolean
+  /** Couleur du rond, par exemple sur un fond coloré. */
+  circleClassName?: string
 }) {
   const inner = (
     <>
@@ -790,7 +801,8 @@ export function QuickAction({
           "flex size-14 items-center justify-center rounded-full [&_svg]:size-6",
           primary
             ? "bg-primary text-primary-foreground"
-            : "bg-secondary text-secondary-foreground"
+            : "bg-secondary text-secondary-foreground",
+          circleClassName
         )}
       >
         <HugeiconsIcon icon={icon} />
@@ -810,5 +822,158 @@ export function QuickAction({
     <button className={cls} onClick={onClick} type="button">
       {inner}
     </button>
+  )
+}
+
+/* ——— Établissement en photo, nouvelles ——— */
+
+/** Avatar d'un établissement : sa photo dans un anneau à sa couleur. */
+export function VenueAvatar({
+  venue,
+  className,
+}: {
+  venue: Venue
+  className?: string
+}) {
+  const cover = venue.photos[0]
+  if (!cover) return <VenueLogo className={className} venue={venue} />
+  return (
+    <span
+      className={cn(
+        "flex size-12 shrink-0 items-center justify-center rounded-full",
+        venue.tone,
+        className
+      )}
+    >
+      <Photo
+        alt=""
+        className="size-[88%] rounded-full"
+        sizes="96px"
+        src={cover}
+      />
+    </span>
+  )
+}
+
+/** « Aujourd'hui », « hier », « il y a 5 jours », puis la date. */
+export function ago(iso: string) {
+  const days = daysBetween(iso, todayIso)
+  if (days <= 0) return "aujourd'hui"
+  if (days === 1) return "hier"
+  if (days < 7) return `il y a ${days} jours`
+  return `le ${dayMonth(iso)}`
+}
+
+/**
+ * Le mot d'un pro comme une publication : qui, les photos en grand,
+ * le texte, le bulletin, puis « Dire merci » et « Répondre ».
+ */
+export function NotePost({
+  note,
+  showPet = true,
+}: {
+  note: PetNote
+  showPet?: boolean
+}) {
+  const site = useSite()
+  const [thanked, setThanked] = useState(false)
+  const booking = site.bookings.find((b) => b.id === note.booking)
+  const venue = booking && venueOf(booking.venue)
+  const pet = site.pets.find((p) => p.id === note.pet)
+  if (!booking || !venue || !pet) return null
+  const photos = note.photos ?? []
+  const action =
+    "flex min-h-11 items-center gap-2 rounded-full px-3 font-semibold transition-colors active:bg-accent [&_svg]:size-5"
+
+  return (
+    <article className="mx-4 overflow-hidden rounded-3xl border bg-card">
+      <header className="flex items-center gap-3 p-4">
+        <VenueAvatar venue={venue} />
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-semibold">{venue.name}</p>
+          <p className="truncate text-[0.9375rem] text-muted-foreground">
+            {note.author} · {ago(note.date)}
+          </p>
+        </div>
+        {showPet && (
+          <span
+            className={cn(
+              "flex min-h-9 shrink-0 items-center gap-1.5 rounded-full ps-1 pe-3 text-sm font-semibold",
+              pet.tone
+            )}
+          >
+            <PetAvatar className="size-7 bg-white/60 text-xs" pet={pet} />
+            {pet.name}
+          </span>
+        )}
+      </header>
+
+      {photos.length > 0 ? (
+        <div className="relative">
+          <div className="flex snap-x snap-mandatory [scrollbar-width:none] overflow-x-auto">
+            {photos.map((p, i) => (
+              <Photo
+                alt={`Photo ${i + 1} sur ${photos.length}, par ${venue.name}`}
+                className="aspect-4/5 w-full shrink-0 snap-center"
+                key={p}
+                sizes="448px"
+                src={p}
+              />
+            ))}
+          </div>
+          {photos.length > 1 && (
+            <span className="absolute top-3 right-3 rounded-full bg-black/60 px-3 py-1 text-sm font-semibold text-white">
+              {photos.length} photos · faites glisser
+            </span>
+          )}
+        </div>
+      ) : (
+        <div className={cn("mx-4 rounded-3xl p-5", pet.tone)}>
+          <HugeiconsIcon className="size-8 opacity-50" icon={QuoteDownIcon} />
+          <p className="mt-2 font-heading text-2xl leading-snug font-semibold text-pretty">
+            {note.text}
+          </p>
+        </div>
+      )}
+
+      <div className="space-y-4 p-4">
+        {photos.length > 0 && (
+          <p className="text-lg text-pretty">{note.text}</p>
+        )}
+        <NoteExtras
+          author={note.author}
+          mood={note.mood}
+          tags={note.tags}
+          tip={note.tip}
+          title={venue.name}
+        />
+        <div className="-mx-2 flex items-center gap-1 border-t pt-2">
+          <button
+            aria-pressed={thanked}
+            className={action}
+            onClick={() => setThanked(!thanked)}
+            type="button"
+          >
+            <HugeiconsIcon
+              className={cn(
+                thanked && "text-destructive [&_path]:fill-current"
+              )}
+              icon={FavouriteIcon}
+            />
+            {thanked ? "Merci envoyé" : "Dire merci"}
+          </button>
+          <Link className={action} href={`/mobile/messages/${venue.slug}`}>
+            <HugeiconsIcon icon={Message01Icon} />
+            Répondre
+          </Link>
+          <Link
+            className={cn(action, "ms-auto text-link")}
+            href={`/mobile/bookings/${booking.id}`}
+          >
+            La visite
+          </Link>
+        </div>
+      </div>
+    </article>
   )
 }
