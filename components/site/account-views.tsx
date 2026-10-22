@@ -470,9 +470,16 @@ export function FavoritesView() {
 
 /* ——— Paramètres ——— */
 
-export function AccountSettings() {
+export function AccountSettings({ mobile }: { mobile?: boolean }) {
   return (
-    <SettingsPage back={{ href: "/me", label: "Compte" }} title="Paramètres">
+    <SettingsPage
+      back={
+        mobile
+          ? { href: "/mobile/profile", label: "Profil" }
+          : { href: "/me", label: "Compte" }
+      }
+      title="Paramètres"
+    >
       <SettingsGroups
         groups={[
           {

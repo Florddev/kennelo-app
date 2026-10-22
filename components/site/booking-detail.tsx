@@ -61,7 +61,7 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 
-const toBring: Record<Activity, string[]> = {
+export const toBring: Record<Activity, string[]> = {
   Éducation: [
     "Laisse et collier",
     "Des friandises qu'il adore",
@@ -80,7 +80,7 @@ const toBring: Record<Activity, string[]> = {
 }
 
 /** Le grand titre de l'en-tête : combien de temps avant le rendez-vous. */
-function countdown(b: MyBooking) {
+export function countdown(b: MyBooking) {
   if (b.status === "cancelled") return "Annulée"
   if (b.status === "ongoing") return "En cours"
   if (b.status === "done") return "Terminée"
@@ -139,7 +139,7 @@ function Action({
 }
 
 /** Suivi façon virement Wise : à l'horizontale sur grand écran. */
-function Tracking({ booking }: { booking: MyBooking }) {
+export function Tracking({ booking }: { booking: MyBooking }) {
   const venue = venueOf(booking.venue)
   const stay = !!booking.end
   const status = booking.status
@@ -245,7 +245,7 @@ function Tracking({ booking }: { booking: MyBooking }) {
 }
 
 /** Ce qu'il faut emporter, à cocher. */
-function Checklist({ items }: { items: string[] }) {
+export function Checklist({ items }: { items: string[] }) {
   const [done, setDone] = useState<string[]>([])
   return (
     <ul className="-mx-2 space-y-1">
@@ -290,7 +290,7 @@ function Checklist({ items }: { items: string[] }) {
   )
 }
 
-function ReviewDialog({
+export function ReviewDialog({
   booking,
   open,
   onOpenChange,

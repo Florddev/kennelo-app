@@ -113,7 +113,7 @@ function PriceRow({
 }
 
 /** Ce que l'établissement propose pour l'activité choisie, avec ses prix. */
-function Offers({ venue, activity }: { venue: Venue; activity: Activity }) {
+export function Offers({ venue, activity }: { venue: Venue; activity: Activity }) {
   const catalog = useCatalog()
   const id = catalogIds[activity]
   const entries = (catalog.offers[id] ?? []).flatMap((offer) => {

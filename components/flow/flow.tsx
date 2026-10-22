@@ -84,6 +84,68 @@ function FlowTopBar({
 
 const quitIcon = <HugeiconsIcon className="size-6" icon={Cancel01Icon} />
 
+/** Parcours dans l'app mobile : adresse de sortie et avancement. */
+const InMobile = createContext<{ closeHref: string; progress?: number } | null>(
+  null
+)
+
+/** Vrai dans un parcours de l'app mobile. */
+export const useFlowMobile = () => useContext(InMobile) !== null
+
+/** En-tête mobile : retour à gauche, avancement, « Quitter » à droite. */
+function MobileFlowBar({ onBack }: { onBack?: () => void }) {
+  const flow = useContext(InMobile)
+  if (!flow) return null
+  const round = "size-12 rounded-full [&_svg]:size-6"
+  return (
+    <header className="sticky top-0 z-10 flex min-h-18 items-center gap-3 bg-background px-3 pt-[env(safe-area-inset-top)]">
+      {onBack ? (
+        <Button
+          aria-label="Retour"
+          className={round}
+          onClick={onBack}
+          size="icon-lg"
+          variant="secondary"
+        >
+          <HugeiconsIcon icon={ArrowLeft01Icon} />
+        </Button>
+      ) : (
+        <span className="size-12 shrink-0" />
+      )}
+      {flow.progress === undefined ? (
+        <span className="flex-1" />
+      ) : (
+        <div
+          aria-label="Avancement"
+          aria-valuemax={100}
+          aria-valuemin={0}
+          aria-valuenow={Math.round(flow.progress * 100)}
+          className="h-1.5 flex-1 overflow-hidden rounded-full bg-secondary"
+          role="progressbar"
+        >
+          <div
+            className="h-full rounded-full bg-primary transition-[width] duration-300"
+            style={{ width: `${Math.max(6, flow.progress * 100)}%` }}
+          />
+        </div>
+      )}
+      <Button
+        aria-label="Quitter"
+        className={round}
+        render={<Link href={flow.closeHref} />}
+        size="icon-lg"
+        variant="secondary"
+      >
+        {quitIcon}
+      </Button>
+    </header>
+  )
+}
+
+/** Actions du bas sur mobile : toute la largeur, 56 px de haut. */
+const mobileFooter =
+  "sticky bottom-0 mt-auto flex flex-col gap-2 bg-background px-4 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))] *:h-14 *:w-full *:rounded-full *:text-lg"
+
 /**
  * Parcours guidé plein écran façon Wise : le logo, « Quitter », une barre de
  * progression, puis une question par écran.
@@ -136,12 +198,23 @@ export function FlowDialog({
 export function FlowPage({
   closeHref,
   progress,
+  mobile,
   children,
 }: {
   closeHref: string
   progress?: number
+  /** Version de l'app mobile : colonne de téléphone, gros boutons. */
+  mobile?: boolean
   children: ReactNode
 }) {
+  if (mobile)
+    return (
+      <InMobile value={{ closeHref, progress }}>
+        <div className="fixed inset-0 z-50 mx-auto flex max-w-md flex-col overflow-y-auto bg-background text-foreground md:shadow-2xl">
+          {children}
+        </div>
+      </InMobile>
+    )
   return (
     <div className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-background text-foreground">
       <FlowTopBar
@@ -180,6 +253,31 @@ export function FlowScreen({
   wide?: boolean
   children?: ReactNode
 }) {
+  if (useFlowMobile())
+    return (
+      <div className="flex flex-1 flex-col">
+        <MobileFlowBar onBack={onBack} />
+        <div className="space-y-8 px-4 pt-2 pb-6 motion-safe:animate-step-in">
+          <div className="space-y-3">
+            {eyebrow && (
+              <p className="font-semibold text-muted-foreground">{eyebrow}</p>
+            )}
+            <FlowTitle className="font-display text-5xl text-balance">
+              {title}
+            </FlowTitle>
+            {description && (
+              <FlowDescription className="text-lg text-muted-foreground">
+                {description}
+              </FlowDescription>
+            )}
+          </div>
+          <div className="space-y-6 [&_.-mx-3]:mx-0 [&_.space-y-1]:grid [&_.space-y-1]:gap-2">
+            {children}
+          </div>
+        </div>
+        {footer && <div className={mobileFooter}>{footer}</div>}
+      </div>
+    )
   return (
     <div
       className={cn(
@@ -255,19 +353,26 @@ export function ChoiceRow({
   selected?: boolean
   onClick: () => void
 }) {
+  const mobile = useFlowMobile()
   return (
     <button
       aria-pressed={selected}
       className={cn(
-        "flex w-full items-center gap-4 rounded-2xl p-3 text-start transition-colors hover:bg-accent",
-        selected && "bg-accent"
+        "flex w-full items-center gap-4 text-start",
+        mobile
+          ? "min-h-20 rounded-3xl border-2 p-4 transition-[transform,background-color] active:scale-[0.98]"
+          : "rounded-2xl p-3 transition-colors hover:bg-accent",
+        mobile && (selected ? "border-control bg-accent" : "border-border"),
+        !mobile && selected && "bg-accent"
       )}
       onClick={onClick}
       type="button"
     >
       {media}
       <span className="min-w-0 flex-1">
-        <span className="block font-semibold">{title}</span>
+        <span className={cn("block font-semibold", mobile && "text-lg")}>
+          {title}
+        </span>
         {description && (
           <span className="block text-sm text-muted-foreground">
             {description}
@@ -297,7 +402,10 @@ export function SummaryRow({
 }) {
   return (
     <button
-      className="flex w-full items-center gap-4 rounded-2xl bg-muted p-3 text-start transition-colors hover:bg-neutral-hover"
+      className={cn(
+        "flex w-full items-center gap-4 rounded-2xl bg-muted p-3 text-start transition-colors hover:bg-neutral-hover",
+        useFlowMobile() && "min-h-18 rounded-3xl p-4"
+      )}
       onClick={onEdit}
       type="button"
     >
@@ -346,6 +454,7 @@ export function ChoiceCards<T extends string>({
   options: { value: T; label: string; description?: string }[]
   onChange: (value: T) => void
 }) {
+  const mobile = useFlowMobile()
   return (
     <div className="grid grid-cols-2 gap-3">
       {options.map((option) => (
@@ -353,6 +462,7 @@ export function ChoiceCards<T extends string>({
           aria-pressed={value === option.value}
           className={cn(
             "rounded-2xl border p-4 text-start transition-colors",
+            mobile && "min-h-24 rounded-3xl border-2 p-5 text-lg",
             value === option.value
               ? "border-control bg-accent ring-1 ring-control"
               : "hover:bg-accent"
@@ -385,6 +495,29 @@ export function FlowDone({
   actions: ReactNode
   children?: ReactNode
 }) {
+  if (useFlowMobile())
+    return (
+      <div className="flex flex-1 flex-col">
+        <MobileFlowBar />
+        <div className="flex flex-col items-center px-4 pt-4 pb-8 text-center motion-safe:animate-step-in">
+          <span className="flex size-24 items-center justify-center rounded-full bg-primary text-primary-foreground">
+            <HugeiconsIcon
+              className="size-12"
+              icon={Tick02Icon}
+              strokeWidth={2.5}
+            />
+          </span>
+          <FlowTitle className="mt-6 font-display text-6xl text-balance">
+            {title}
+          </FlowTitle>
+          {description && (
+            <p className="mt-4 text-lg text-muted-foreground">{description}</p>
+          )}
+          {children && <div className="mt-6 w-full">{children}</div>}
+        </div>
+        <div className={mobileFooter}>{actions}</div>
+      </div>
+    )
   return (
     <div className="mx-auto flex w-full max-w-136 flex-1 flex-col items-center px-4 pt-12 pb-12 text-center md:pt-20">
       <span className="flex size-24 items-center justify-center rounded-full bg-primary text-primary-foreground">

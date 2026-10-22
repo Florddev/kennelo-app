@@ -493,14 +493,15 @@ export function PetAvatar({
     return (
       <span
         className={cn(
-          "block size-12 shrink-0 rounded-full p-[5%]",
+          "flex size-12 shrink-0 items-center justify-center rounded-full",
           pet.tone,
           className
         )}
       >
+        {/* 90 % de l'anneau, quelle que soit sa taille (un padding en % suivrait la largeur du parent). */}
         <Photo
           alt={pet.name}
-          className="size-full rounded-full"
+          className="size-[90%] rounded-full"
           sizes="240px"
           src={pet.photo}
         />
@@ -583,10 +584,13 @@ export function VenueMap({
   items,
   active,
   className,
+  base = "/places",
 }: {
   items: { venue: Venue; price?: number }[]
   active?: string | null
   className?: string
+  /** Début de l'adresse des pages d'établissement. */
+  base?: string
 }) {
   return (
     <div
@@ -605,7 +609,7 @@ export function VenueMap({
               ? "z-10 scale-110 bg-control text-control-foreground"
               : "bg-card"
           )}
-          href={`/places/${venue.slug}`}
+          href={`${base}/${venue.slug}`}
           key={venue.slug}
           style={{ left: `${venue.pos[0]}%`, top: `${venue.pos[1]}%` }}
         >

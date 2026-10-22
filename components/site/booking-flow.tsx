@@ -20,8 +20,10 @@ import {
   FlowPage,
   FlowScreen,
   SummaryRow,
+  useFlowMobile,
   useSteps,
 } from "@/components/flow/flow"
+import { routesFor } from "@/components/site/routes"
 import { durationLabel, SlotStep } from "@/components/flow/slot-step"
 import { isoOf } from "@/components/pets/data"
 import { BookingTicket } from "@/components/site/booking-detail"
@@ -100,12 +102,17 @@ function PickRow({
   disabled?: boolean
   onClick: () => void
 }) {
+  const mobile = useFlowMobile()
   return (
     <button
       aria-pressed={checked}
       className={cn(
         "flex w-full items-center gap-4 rounded-2xl p-3 text-start transition-colors hover:bg-accent disabled:pointer-events-none",
-        checked && "bg-accent"
+        checked && "bg-accent",
+        mobile &&
+          (checked
+            ? "min-h-20 rounded-3xl border-2 border-control p-4"
+            : "min-h-20 rounded-3xl border-2 border-border p-4")
       )}
       disabled={disabled}
       onClick={onClick}
@@ -140,10 +147,14 @@ function PickRow({
 export function BookingFlow({
   slug,
   initialActivity,
+  mobile,
 }: {
   slug: string
   initialActivity?: Activity
+  /** Liens vers l'app mobile plutôt que le site. */
+  mobile?: boolean
 }) {
+  const routes = routesFor(mobile)
   const venue = venueOf(slug)!
   const catalog = useCatalog()
   const site = useSite()
@@ -287,10 +298,14 @@ export function BookingFlow({
     steps.go("done")
   }
 
-  const newPetHref = `/me/pets/new?next=${encodeURIComponent(`/book/${slug}?activity=${activity}`)}`
+  const newPetHref = `${routes.newPet}?next=${encodeURIComponent(routes.book(slug, activity))}`
 
   return (
-    <FlowPage closeHref={`/places/${slug}`} progress={progress}>
+    <FlowPage
+      closeHref={routes.place(slug)}
+      mobile={mobile}
+      progress={progress}
+    >
       {steps.step === "activity" && (
         <FlowScreen
           description={venue.name}
@@ -819,13 +834,13 @@ export function BookingFlow({
           actions={
             <>
               <Button
-                render={<Link href={`/me/bookings/${created.id}`} />}
+                render={<Link href={routes.booking(created.id)} />}
                 size="lg"
               >
                 Voir ma réservation
               </Button>
               <Button
-                render={<Link href="/explore" />}
+                render={<Link href={routes.home} />}
                 size="lg"
                 variant="secondary"
               >

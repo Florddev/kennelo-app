@@ -53,14 +53,14 @@ const speciesIcon = (pet: Pick<MyPet, "species">) =>
 
 const moodWords = ["Moyen", "Bon", "Excellent"]
 
-const vaxStyle = {
+export const vaxStyle = {
   expired: { bar: "bg-destructive", label: "Expiré", variant: "error" },
   soon: { bar: "bg-warning", label: "Bientôt", variant: "warning" },
   valid: { bar: "bg-primary", label: "À jour", variant: "success" },
 } as const
 
 /** Sa carte d'identité, dessinée comme une carte Wise. */
-function IdCard({ pet }: { pet: MyPet }) {
+export function IdCard({ pet }: { pet: MyPet }) {
   const [y, m, d] = pet.birth.split("-")
   return (
     <div className="mx-auto w-full max-w-80 -rotate-3 transition-transform hover:rotate-0 md:w-80">
@@ -273,7 +273,7 @@ function Stat({ value, label }: { value: ReactNode; label: string }) {
   )
 }
 
-function WeightChart({ pet }: { pet: MyPet }) {
+export function WeightChart({ pet }: { pet: MyPet }) {
   const list = pet.weights.length
     ? pet.weights
     : [{ date: todayIso, kg: pet.weight }]

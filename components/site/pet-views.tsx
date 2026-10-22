@@ -28,6 +28,7 @@ import {
   type MyPet,
   petAlerts,
   petTones,
+  photo,
   savePet,
   useSite,
   type VaxStatus,
@@ -51,6 +52,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { routesFor } from "@/components/site/routes"
 import { cn } from "@/lib/utils"
 
 const vaxMeta: Record<
@@ -60,6 +62,11 @@ const vaxMeta: Record<
   expired: { label: "Expiré", variant: "error" },
   soon: { label: "Bientôt", variant: "warning" },
   valid: { label: "À jour", variant: "success" },
+}
+
+const speciesPhotos = {
+  Chat: photo("1514888286974-6c03e2ca1dba"),
+  Chien: photo("1543466835-00a7907e9de1"),
 }
 
 const speciesIcon = (species: MyPet["species"]) =>
@@ -138,13 +145,14 @@ export function PetsView() {
 
 /* ——— Modification de la fiche ——— */
 
-export function PetEdit({ id }: { id: string }) {
+export function PetEdit({ id, mobile }: { id: string; mobile?: boolean }) {
+  const routes = routesFor(mobile)
   const site = useSite()
   const pet = site.pets.find((p) => p.id === id)
   if (!pet)
     return (
       <SettingsPage
-        back={{ href: "/me/pets", label: "Mes animaux" }}
+        back={{ href: routes.pets, label: "Mes animaux" }}
         title="Animal introuvable"
       >
         <p className="text-muted-foreground">Cette fiche n&apos;existe plus.</p>
@@ -156,7 +164,7 @@ export function PetEdit({ id }: { id: string }) {
 
   return (
     <SettingsPage
-      back={{ href: `/me/pets/${pet.id}`, label: `Profil de ${pet.name}` }}
+      back={{ href: routes.pet(pet.id), label: `Profil de ${pet.name}` }}
       description="Ces informations sont transmises à l'établissement à chaque réservation."
       title="Modifier la fiche"
     >
@@ -339,7 +347,7 @@ type Step =
   | "recap"
   | "done"
 
-const breeds = {
+export const breeds = {
   Chat: ["Européen", "Maine coon", "Siamois", "Persan", "Croisé"],
   Chien: [
     "Labrador",
@@ -350,7 +358,14 @@ const breeds = {
   ],
 }
 
-export function NewPetFlow({ next }: { next?: string }) {
+export function NewPetFlow({
+  next,
+  mobile,
+}: {
+  next?: string
+  mobile?: boolean
+}) {
+  const routes = routesFor(mobile)
   const site = useSite()
   const steps = useSteps<Step>("species")
   const [species, setSpecies] = useState<MyPet["species"]>("Chien")
@@ -413,30 +428,66 @@ export function NewPetFlow({ next }: { next?: string }) {
   }
 
   return (
-    <FlowPage closeHref={next ?? "/me/pets"} progress={progress}>
+    <FlowPage
+      closeHref={next ?? routes.pets}
+      mobile={mobile}
+      progress={progress}
+    >
       {steps.step === "species" && (
         <FlowScreen title="Quel animal ajoutez-vous ?">
-          <div className="-mx-3 space-y-1">
-            {(["Chien", "Chat"] as const).map((s) => (
-              <ChoiceRow
-                key={s}
-                media={
-                  <FlowMedia
-                    className={s === "Chat" ? petTones[1] : petTones[0]}
-                  >
-                    <HugeiconsIcon icon={speciesIcon(s)} />
-                  </FlowMedia>
-                }
-                onClick={() => {
-                  setSpecies(s)
-                  setBreed("")
-                  steps.next("name")
-                }}
-                selected={species === s}
-                title={s}
-              />
-            ))}
-          </div>
+          {mobile && (
+            <div className="grid grid-cols-2 gap-3">
+              {(["Chien", "Chat"] as const).map((s) => (
+                <button
+                  aria-pressed={species === s}
+                  className={cn(
+                    "rounded-3xl p-2 text-start transition-transform active:scale-[0.98]",
+                    s === "Chat" ? petTones[1] : petTones[0]
+                  )}
+                  key={s}
+                  onClick={() => {
+                    setSpecies(s)
+                    setBreed("")
+                    steps.next("name")
+                  }}
+                  type="button"
+                >
+                  <Photo
+                    alt=""
+                    className="aspect-3/4 rounded-2xl"
+                    sizes="200px"
+                    src={speciesPhotos[s]}
+                  />
+                  <span className="block px-2 pt-3 pb-1 font-display text-4xl">
+                    {s}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+          {!mobile && (
+            <div className="-mx-3 space-y-1">
+              {(["Chien", "Chat"] as const).map((s) => (
+                <ChoiceRow
+                  key={s}
+                  media={
+                    <FlowMedia
+                      className={s === "Chat" ? petTones[1] : petTones[0]}
+                    >
+                      <HugeiconsIcon icon={speciesIcon(s)} />
+                    </FlowMedia>
+                  }
+                  onClick={() => {
+                    setSpecies(s)
+                    setBreed("")
+                    steps.next("name")
+                  }}
+                  selected={species === s}
+                  title={s}
+                />
+              ))}
+            </div>
+          )}
         </FlowScreen>
       )}
 
@@ -693,14 +744,14 @@ export function NewPetFlow({ next }: { next?: string }) {
                 </Button>
               ) : (
                 <Button
-                  render={<Link href={`/me/pets/${created.id}`} />}
+                  render={<Link href={routes.pet(created.id)} />}
                   size="lg"
                 >
                   Compléter sa fiche
                 </Button>
               )}
               <Button
-                render={<Link href="/me/pets" />}
+                render={<Link href={routes.pets} />}
                 size="lg"
                 variant="secondary"
               >
