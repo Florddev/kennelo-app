@@ -53,21 +53,21 @@ export function ServicesCatalogPage() {
               )
               return (
                 <div
-                  className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3.5"
+                  className="flex min-h-16 flex-wrap items-center gap-x-4 gap-y-2 px-5 py-4"
                   key={service.id}
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium">{service.name}</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="font-semibold">{service.name}</p>
+                    <p className="text-sm text-muted-foreground">
                       {serviceMeta(service)} · {gridSummary(service)}
                     </p>
                     {service.bundle && (
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-sm text-muted-foreground">
                         Contient {service.bundle.map(nameOf).join(" + ")}
                       </p>
                     )}
                     {borrowers.length > 0 && (
-                      <p className="mt-1.5 flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+                      <p className="mt-1.5 flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
                         Reprise par
                         {borrowers.map((a) => (
                           <ActivityTag activity={a} key={a.id} />
@@ -79,7 +79,7 @@ export function ServicesCatalogPage() {
                     <Menu>
                       <MenuTrigger
                         render={
-                          <Button size="xs" variant="ghost">
+                          <Button variant="ghost">
                             <HugeiconsIcon icon={Store01Icon} />
                             Reprendre
                           </Button>
@@ -109,8 +109,7 @@ export function ServicesCatalogPage() {
                     </Menu>
                     <Button
                       render={<Link href={serviceHref(service)} />}
-                      size="xs"
-                      variant="ghost"
+                      variant="secondary"
                     >
                       Gérer
                     </Button>

@@ -30,11 +30,9 @@ import {
   formatAmount,
   Kpi,
 } from "@/components/today/widgets"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { NewStayDialog } from "@/components/pension/new-stay-dialog"
 import { Button } from "@/components/ui/button"
-import { CardFrame } from "@/components/ui/card"
 import {
   Empty,
   EmptyDescription,
@@ -46,14 +44,6 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { Tabs, TabsList, TabsTab } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 
@@ -77,13 +67,6 @@ const sortKey = (s: Stay) =>
     : s.status === "ongoing"
       ? s.departure
       : s.arrival
-
-const initials = (name: string) =>
-  name
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
 
 export function StaysView() {
   const [stays, setStays] = useState(initialStays)
@@ -157,7 +140,7 @@ export function StaysView() {
           onValueChange={(value) => setFilter(value as Filter)}
           value={filter}
         >
-          <TabsList size="sm">
+          <TabsList>
             {filters.map((f) => (
               <TabsTab className="gap-1.5" key={f.value} value={f.value}>
                 {f.label}
@@ -191,118 +174,82 @@ export function StaysView() {
           </EmptyHeader>
         </Empty>
       ) : (
-        <CardFrame className="overflow-x-auto">
-          <Table variant="card">
-            <TableHeader>
-              <TableRow>
-                <TableHead>Animal</TableHead>
-                <TableHead>Propriétaire</TableHead>
-                <TableHead>Hébergement</TableHead>
-                <TableHead>Dates</TableHead>
-                <TableHead className="max-lg:hidden">Avancement</TableHead>
-                <TableHead className="text-end">Montant</TableHead>
-                <TableHead>Paiement</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((s) => {
-                const progress = stayProgress(s)
-                return (
-                  <TableRow
-                    className="cursor-pointer"
-                    key={s.id}
-                    onClick={() => {
-                      setOpenId(s.id)
-                      setSheetOpen(true)
-                    }}
+        <ul className="-mx-3">
+          {rows.map((s) => {
+            const progress = stayProgress(s)
+            return (
+              <li key={s.id}>
+                <button
+                  className="flex w-full items-center gap-4 rounded-2xl p-3 text-start transition-colors hover:bg-accent"
+                  onClick={() => {
+                    setOpenId(s.id)
+                    setSheetOpen(true)
+                  }}
+                  type="button"
+                >
+                  <span
+                    className={cn(
+                      "flex size-12 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold",
+                      s.status === "ongoing" &&
+                        "bg-pension text-pension-foreground"
+                    )}
                   >
-                    <TableCell>
-                      <div className="flex items-center gap-2.5">
-                        <Avatar className="size-8">
-                          <AvatarFallback
-                            className={cn(
-                              "text-xs",
-                              s.status === "ongoing" &&
-                                "bg-pension text-pension-foreground"
-                            )}
-                          >
-                            {s.pet.slice(0, 2)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium">{s.pet}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {s.breed}
-                          </p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Avatar className="size-6">
-                          <AvatarFallback className="text-[0.625rem]">
-                            {initials(s.owner)}
-                          </AvatarFallback>
-                        </Avatar>
-                        {s.owner}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {s.kennelId ? (
-                        kennelLabel(s.kennelId)
-                      ) : (
-                        <Badge variant="warning">À placer</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <p>
-                        {shortDate(s.arrival)} → {shortDate(s.departure)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {progress.nights} nuits
-                        {s.options.length > 0 && ` · ${s.options.join(", ")}`}
-                      </p>
-                    </TableCell>
-                    <TableCell className="w-40 max-lg:hidden">
-                      {s.status === "ongoing" ? (
-                        <div className="space-y-1">
-                          <Bar
-                            className="bg-pension-strong"
-                            label={`Séjour de ${s.pet}`}
-                            value={(progress.elapsed / progress.nights) * 100}
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            {progress.label}
-                          </p>
-                        </div>
-                      ) : (
-                        <Badge variant={stayStatusMeta[s.status].variant}>
-                          {s.status === "upcoming"
-                            ? progress.label
-                            : stayStatusMeta[s.status].label}
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-end font-medium tabular-nums">
-                      {formatAmount(stayAmount(s))}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        <span
-                          className={cn(
-                            "size-1.5 rounded-full",
-                            paymentMeta[s.payment].dot
-                          )}
+                    {s.pet.slice(0, 2)}
+                  </span>
+                  <span className="min-w-0 flex-1 space-y-1">
+                    <span className="block truncate font-semibold">
+                      {s.pet}
+                      <span className="font-normal text-muted-foreground">
+                        {" "}
+                        · {s.owner}
+                      </span>
+                    </span>
+                    <span className="block truncate text-sm text-muted-foreground">
+                      {shortDate(s.arrival)} → {shortDate(s.departure)} ·{" "}
+                      {progress.nights} nuits ·{" "}
+                      {s.kennelId ? kennelLabel(s.kennelId) : "À placer"}
+                    </span>
+                    {s.status === "ongoing" && (
+                      <span className="block max-w-56">
+                        <Bar
+                          className="bg-pension-strong"
+                          label={`Séjour de ${s.pet}`}
+                          value={(progress.elapsed / progress.nights) * 100}
                         />
-                        {paymentMeta[s.payment].label}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
-        </CardFrame>
+                      </span>
+                    )}
+                  </span>
+                  <span className="shrink-0 space-y-1 text-end">
+                    <span className="block font-semibold tabular-nums">
+                      {formatAmount(stayAmount(s))}
+                    </span>
+                    <span className="flex items-center justify-end gap-1.5 text-sm text-muted-foreground">
+                      <span
+                        className={cn(
+                          "size-2 rounded-full",
+                          paymentMeta[s.payment].dot
+                        )}
+                      />
+                      {paymentMeta[s.payment].label}
+                    </span>
+                  </span>
+                  <Badge
+                    className="max-sm:hidden"
+                    variant={
+                      s.kennelId ? stayStatusMeta[s.status].variant : "warning"
+                    }
+                  >
+                    {!s.kennelId
+                      ? "À placer"
+                      : s.status === "upcoming" || s.status === "ongoing"
+                        ? progress.label
+                        : stayStatusMeta[s.status].label}
+                  </Badge>
+                </button>
+              </li>
+            )
+          })}
+        </ul>
       )}
 
       <StaySheet

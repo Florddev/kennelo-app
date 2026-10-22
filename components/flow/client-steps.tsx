@@ -57,7 +57,7 @@ export function ClientStep({
   title?: string
   onBack?: () => void
   onSelect: (client: Client) => void
-  onCreate: (query: string) => void
+  onCreate?: (query: string) => void
 }) {
   const [query, setQuery] = useState("")
   const q = query.trim().toLowerCase()
@@ -88,7 +88,7 @@ export function ClientStep({
             if (e.key !== "Enter") return
             e.preventDefault()
             if (matches[0]) onSelect(matches[0])
-            else if (q) onCreate(query)
+            else if (q) onCreate?.(query)
           }}
           placeholder="Rechercher"
           size="lg"
@@ -110,20 +110,22 @@ export function ClientStep({
             Aucun client ne correspond.
           </p>
         )}
-        <ChoiceRow
-          description={
-            q && matches.length === 0
-              ? `Créer « ${query.trim()} »`
-              : "Il vient pour la première fois"
-          }
-          media={
-            <FlowMedia className="bg-primary text-primary-foreground">
-              <HugeiconsIcon icon={UserAdd01Icon} />
-            </FlowMedia>
-          }
-          onClick={() => onCreate(query)}
-          title="Nouveau client"
-        />
+        {onCreate && (
+          <ChoiceRow
+            description={
+              q && matches.length === 0
+                ? `Créer « ${query.trim()} »`
+                : "Il vient pour la première fois"
+            }
+            media={
+              <FlowMedia className="bg-primary text-primary-foreground">
+                <HugeiconsIcon icon={UserAdd01Icon} />
+              </FlowMedia>
+            }
+            onClick={() => onCreate(query)}
+            title="Nouveau client"
+          />
+        )}
       </div>
     </FlowScreen>
   )

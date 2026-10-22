@@ -15,7 +15,9 @@ import {
   Key01Icon,
   Mail01Icon,
   Message01Icon,
+  MoreHorizontalIcon,
   PlusSignIcon,
+  Search01Icon,
   ShieldUserIcon,
   Tag01Icon,
   UserAdd01Icon,
@@ -38,11 +40,15 @@ import {
 import {
   IconTile,
   LinkRow,
+  notify,
   options,
   SettingsGroups,
+  SettingsHero,
   SettingsPage,
   SettingsRow,
   SettingsSection,
+  SwitchRow,
+  ValueRow,
 } from "@/components/settings/settings-ui"
 import { formatAmount } from "@/components/today/widgets"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -52,7 +58,6 @@ import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
-  InputGroupText,
 } from "@/components/ui/input-group"
 import {
   Menu,
@@ -68,7 +73,7 @@ import {
   MeterTrack,
   MeterValue,
 } from "@/components/ui/meter"
-import { Tabs, TabsList, TabsTab } from "@/components/ui/tabs"
+import { Switch } from "@/components/ui/switch"
 import { cn } from "@/lib/utils"
 
 export function OrganizationPage() {
@@ -77,21 +82,17 @@ export function OrganizationPage() {
       description="Informations affichées sur vos factures et votre portail client"
       title="Établissement"
     >
-      <SettingsSection>
-        <SettingsRow
-          description="Utilisé sur les factures, e-mails et le portail client"
-          media={
-            <span className="flex size-10 items-center justify-center rounded-lg bg-pension text-pension-foreground text-sm font-semibold">
-              LC
-            </span>
-          }
-          title="Logo"
-        >
-          <Button size="sm" variant="outline">
-            Changer
-          </Button>
-        </SettingsRow>
-      </SettingsSection>
+      <SettingsHero
+        actions={<Button>Changer le logo</Button>}
+        description="12 chemin des Coteaux, Libourne · 3 activités"
+        eyebrow="Votre établissement"
+        media={
+          <span className="flex size-16 shrink-0 items-center justify-center rounded-full bg-pension text-xl font-semibold text-pension-foreground">
+            LC
+          </span>
+        }
+        title="Les Coteaux"
+      />
       <SettingsGroups
         groups={[
           {
@@ -164,9 +165,7 @@ export function OrganizationPage() {
                 control: (
                   <div className="flex items-center gap-3">
                     <Badge variant="success">Valide jusqu&apos;au 31/12</Badge>
-                    <Button size="sm" variant="outline">
-                      Mettre à jour
-                    </Button>
+                    <Button variant="secondary">Mettre à jour</Button>
                   </div>
                 ),
                 description: "Responsabilité civile professionnelle",
@@ -189,7 +188,7 @@ export function OrganizationPage() {
             media={
               <ActivityMark
                 activity={activity.name}
-                className="size-8 text-xs"
+                className="size-10 text-sm"
               />
             }
             title={activity.name}
@@ -261,13 +260,6 @@ const roles: { role: Role; description: string }[] = [
   },
 ]
 
-const roleVariant = (role: Role) =>
-  role === "Propriétaire"
-    ? "info"
-    : role === "Administrateur"
-      ? "secondary"
-      : "outline"
-
 export function MembersPage() {
   const [filter, setFilter] = useState("all")
   const [query, setQuery] = useState("")
@@ -277,10 +269,14 @@ export function MembersPage() {
       (filter === "all" || m.activities.includes(filter as never)) &&
       (!q || `${m.name} ${m.email}`.toLowerCase().includes(q))
   )
+  const chips = [
+    { label: "Tous", value: "all" },
+    ...activityNames.map((name) => ({ label: name, value: name })),
+  ]
   return (
     <SettingsPage
       action={
-        <Button size="sm">
+        <Button>
           <HugeiconsIcon icon={UserAdd01Icon} />
           Inviter
         </Button>
@@ -288,109 +284,125 @@ export function MembersPage() {
       description={`${members.length} membres · ${invitations.length} invitation en attente`}
       title="Membres"
     >
-      <div className="-mb-6 flex flex-wrap items-center gap-3">
-        <Tabs
-          onValueChange={(value) => setFilter(String(value))}
-          value={filter}
-        >
-          <TabsList size="sm">
-            <TabsTab value="all">Tous</TabsTab>
-            {activityNames.map((name) => (
-              <TabsTab key={name} value={name}>
-                {name}
-              </TabsTab>
-            ))}
-          </TabsList>
-        </Tabs>
-        <InputGroup className="ms-auto w-full sm:w-56">
+      <div className="space-y-4">
+        <InputGroup className="rounded-full">
+          <InputGroupAddon>
+            <HugeiconsIcon icon={Search01Icon} />
+          </InputGroupAddon>
           <InputGroupInput
             aria-label="Rechercher un membre"
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Nom ou e-mail…"
-            size="sm"
+            placeholder="Nom ou e-mail"
             value={query}
           />
         </InputGroup>
-      </div>
-      <SettingsSection>
-        {rows.map((member) => (
-          <SettingsRow
-            description={`${member.job} · ${member.email}`}
-            key={member.email}
-            media={
-              <Avatar className="size-8">
-                <AvatarFallback className="text-xs">
-                  {member.initials}
-                </AvatarFallback>
-              </Avatar>
-            }
-            title={
-              <span className="flex items-center gap-2">
-                {member.name}
-                {member.lastSeen === "En ligne" && (
-                  <span className="size-1.5 rounded-full bg-success" />
-                )}
-              </span>
-            }
-          >
-            <div className="flex items-center gap-1">
-              {member.activities.map((activity) => (
-                <ActivityMark activity={activity} key={activity} />
-              ))}
-            </div>
-            <Badge
-              className="w-28 justify-center"
-              variant={roleVariant(member.role)}
+        <div className="-mx-4 flex gap-2 overflow-x-auto px-4">
+          {chips.map((chip) => (
+            <button
+              aria-pressed={filter === chip.value}
+              className={cn(
+                "flex h-9 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-semibold transition-colors",
+                filter === chip.value
+                  ? "bg-control text-control-foreground"
+                  : "bg-secondary text-secondary-foreground hover:bg-neutral-hover"
+              )}
+              key={chip.value}
+              onClick={() => setFilter(chip.value)}
+              type="button"
             >
-              {member.role}
-            </Badge>
-            <Menu>
-              <MenuTrigger
-                render={
-                  <Button aria-label="Actions" size="icon-sm" variant="ghost" />
-                }
-              >
-                ···
-              </MenuTrigger>
-              <MenuPopup align="end">
-                <MenuItem>Modifier le rôle</MenuItem>
-                <MenuItem>Gérer les activités</MenuItem>
-                <MenuSeparator />
-                <MenuItem
-                  disabled={member.role === "Propriétaire"}
-                  variant="destructive"
+              {chip.label}
+            </button>
+          ))}
+        </div>
+        <SettingsSection>
+          {rows.length === 0 && (
+            <p className="px-5 py-8 text-center text-muted-foreground">
+              Aucun membre ne correspond.
+            </p>
+          )}
+          {rows.map((member) => (
+            <SettingsRow
+              description={`${member.role} · ${member.job}`}
+              key={member.email}
+              media={
+                <span className="relative shrink-0">
+                  <Avatar className="size-12">
+                    <AvatarFallback className="font-semibold">
+                      {member.initials}
+                    </AvatarFallback>
+                  </Avatar>
+                  {member.lastSeen === "En ligne" && (
+                    <span className="absolute inset-e-0 bottom-0 size-3.5 rounded-full border-2 border-card bg-success" />
+                  )}
+                </span>
+              }
+              title={member.name}
+            >
+              <div className="flex items-center gap-1 max-sm:hidden">
+                {member.activities.map((activity) => (
+                  <ActivityMark
+                    activity={activity}
+                    className="size-7 text-xs"
+                    key={activity}
+                  />
+                ))}
+              </div>
+              <Menu>
+                <MenuTrigger
+                  render={
+                    <Button
+                      aria-label={`Actions pour ${member.name}`}
+                      size="icon"
+                      variant="ghost"
+                    />
+                  }
                 >
-                  Retirer de l&apos;organisation
-                </MenuItem>
-              </MenuPopup>
-            </Menu>
-          </SettingsRow>
-        ))}
-      </SettingsSection>
+                  <HugeiconsIcon icon={MoreHorizontalIcon} />
+                </MenuTrigger>
+                <MenuPopup align="end">
+                  <MenuItem>Modifier le rôle</MenuItem>
+                  <MenuItem>Gérer les activités</MenuItem>
+                  <MenuSeparator />
+                  <MenuItem
+                    disabled={member.role === "Propriétaire"}
+                    variant="destructive"
+                  >
+                    Retirer de l&apos;organisation
+                  </MenuItem>
+                </MenuPopup>
+              </Menu>
+            </SettingsRow>
+          ))}
+        </SettingsSection>
+      </div>
       <SettingsSection title="Invitations en attente">
         {invitations.map((invite) => (
           <SettingsRow
-            description={`${invite.role} · ${invite.activities.join(", ")} · Envoyée ${invite.sent.toLowerCase()}`}
+            description={`${invite.role} · ${invite.activities.join(", ")} · envoyée ${invite.sent.toLowerCase()}`}
             key={invite.email}
             media={<IconTile icon={Mail01Icon} />}
             title={invite.email}
           >
             <div className="flex gap-2">
-              <Button size="sm" variant="ghost">
-                Annuler
-              </Button>
-              <Button size="sm" variant="outline">
+              <Button variant="ghost">Annuler</Button>
+              <Button
+                onClick={() => notify("Invitation renvoyée")}
+                variant="secondary"
+              >
                 Renvoyer
               </Button>
             </div>
           </SettingsRow>
         ))}
       </SettingsSection>
-      <SettingsSection title="Rôles">
+      <SettingsSection
+        description="Ce que chacun peut faire dans Kennelo"
+        title="Rôles"
+      >
         {roles.map(({ role, description }) => (
           <SettingsRow description={description} key={role} title={role}>
-            <span className="text-xs text-muted-foreground">
-              {members.filter((m) => m.role === role).length} membre(s)
+            <span className="rounded-full bg-muted px-3 py-1 text-sm font-semibold">
+              {members.filter((m) => m.role === role).length}
             </span>
           </SettingsRow>
         ))}
@@ -421,9 +433,9 @@ export function ActivitiesPage() {
           const count = (catalog.offers[activity.id] ?? []).length
           const content = (
             <>
-              <ActivityDot activity={activity} />
+              <ActivityDot activity={activity} className="size-10 text-sm" />
               <div className="min-w-0 flex-1">
-                <p className="flex items-center gap-2 text-sm font-medium">
+                <p className="flex items-center gap-2 font-semibold">
                   {activity.name}
                   {!settings && (
                     <Badge size="sm" variant="success">
@@ -431,7 +443,7 @@ export function ActivitiesPage() {
                     </Badge>
                   )}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   {metierOf(activity.metier).label}
                   {activity.hours && ` · ${activity.hours}`}
                   {settings &&
@@ -439,18 +451,18 @@ export function ActivitiesPage() {
                     ` · ${settings.hours.label} · ${settings.hours.from.replace(":00", "h")} – ${settings.hours.to.replace(":00", "h")}`}
                 </p>
               </div>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-sm text-muted-foreground max-sm:hidden">
                 {count} prestations · {team.length} membres
               </span>
               <HugeiconsIcon
-                className="size-4 text-muted-foreground"
+                className="size-5 text-muted-foreground"
                 icon={ArrowRight01Icon}
               />
             </>
           )
           return (
             <Link
-              className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-accent/60"
+              className="flex min-h-16 items-center gap-4 px-5 py-4 transition-colors hover:bg-accent"
               href={`/settings/activities/${activity.id}`}
               key={activity.id}
             >
@@ -508,87 +520,99 @@ export function ActivitiesPage() {
 }
 
 export function BookingPage() {
+  const [online, setOnline] = useState(true)
   return (
     <SettingsPage
-      description="Permettez à vos clients de réserver et payer en ligne"
+      description="Ce que vos clients peuvent réserver eux-mêmes, à toute heure"
       title="Réservation en ligne"
     >
-      <SettingsGroups
-        groups={[
-          {
-            settings: [
-              {
-                defaultChecked: true,
-                description:
-                  "Votre page de réservation est accessible publiquement",
-                title: "Portail client",
-                type: "switch",
-              },
-              {
-                control: (
-                  <InputGroup className="w-full sm:w-72">
-                    <InputGroupAddon>
-                      <InputGroupText>kennelo.app/</InputGroupText>
-                    </InputGroupAddon>
-                    <InputGroupInput
-                      aria-label="Adresse du portail"
-                      defaultValue="les-coteaux"
-                      size="sm"
-                    />
-                    <InputGroupAddon align="inline-end">
-                      <Button
-                        aria-label="Copier le lien"
-                        size="icon-xs"
-                        variant="ghost"
-                      >
-                        <HugeiconsIcon icon={Copy01Icon} />
-                      </Button>
-                    </InputGroupAddon>
-                  </InputGroup>
-                ),
-                title: "Adresse du portail",
-                type: "custom",
-              },
-              {
-                defaultValue: "Vert des Coteaux",
-                items: options("Vert des Coteaux", "Violet", "Bleu", "Noir"),
-                title: "Couleur principale",
-                type: "select",
-              },
-            ],
-            title: "Portail",
-          },
-        ]}
+      <SettingsHero
+        actions={
+          <>
+            <Button
+              onClick={() => {
+                navigator.clipboard?.writeText(
+                  "https://kennelo.app/les-coteaux"
+                )
+                notify("Lien copié")
+              }}
+            >
+              <HugeiconsIcon icon={Copy01Icon} />
+              Copier le lien
+            </Button>
+            <Button render={<a href="#" />} variant="secondary">
+              Voir le portail
+            </Button>
+          </>
+        }
+        description={
+          online
+            ? "Vos clients réservent 24 h/24 depuis ce lien"
+            : "Portail fermé : personne ne peut réserver en ligne"
+        }
+        eyebrow={online ? "Votre portail est en ligne" : "Portail hors ligne"}
+        media={
+          <span
+            className={cn(
+              "flex size-14 shrink-0 items-center justify-center rounded-full",
+              online
+                ? "bg-primary text-primary-foreground"
+                : "bg-background text-muted-foreground"
+            )}
+          >
+            <HugeiconsIcon className="size-7" icon={Globe02Icon} />
+          </span>
+        }
+        title="kennelo.app/les-coteaux"
       />
+      <SettingsSection title="Portail">
+        <SwitchRow
+          checked={online}
+          description="Éteignez-le pour fermer les réservations quelques jours"
+          onCheckedChange={(on) => {
+            setOnline(on)
+            notify(on ? "Portail ouvert" : "Portail fermé")
+          }}
+          title="Portail ouvert"
+        />
+        <ValueRow
+          setting={{
+            defaultValue: "les-coteaux",
+            description: "La fin du lien : kennelo.app/…",
+            title: "Adresse du portail",
+            type: "input",
+          }}
+        />
+        <ValueRow
+          setting={{
+            defaultValue: "Vert des Coteaux",
+            items: options("Vert des Coteaux", "Violet", "Bleu", "Noir"),
+            title: "Couleur principale",
+            type: "select",
+          }}
+        />
+      </SettingsSection>
       <SettingsSection
-        description="Activités réservables depuis le portail"
+        description="Les activités que vos clients voient sur le portail"
         title="Activités en ligne"
       >
         {activitySettings.map((activity) => (
-          <SettingsRow
+          <SwitchRow
+            defaultChecked
             description={
               activity.name === "Pension"
-                ? "Demande validée par l'équipe"
-                : "Confirmation immédiate selon les disponibilités"
+                ? "Chaque demande est validée par l'équipe"
+                : "Confirmé tout de suite si le créneau est libre"
             }
             key={activity.slug}
             media={
               <ActivityMark
                 activity={activity.name}
-                className="size-8 text-xs"
+                className="size-10 text-sm"
               />
             }
             title={activity.name}
-          >
-            <Button
-              render={<Link href={`/settings/activities/${activity.slug}`} />}
-              size="sm"
-              variant="ghost"
-            >
-              Règles
-            </Button>
-            <SwitchCell defaultChecked label={`${activity.name} en ligne`} />
-          </SettingsRow>
+          />
         ))}
       </SettingsSection>
       <SettingsGroups
@@ -710,7 +734,7 @@ export function CommunicationPage() {
       />
       <SettingsSection
         action={
-          <Button size="sm" variant="ghost">
+          <Button variant="ghost">
             <HugeiconsIcon icon={PlusSignIcon} />
             Nouveau modèle
           </Button>
@@ -725,7 +749,7 @@ export function CommunicationPage() {
                 <>
                   {template.channel} · envoi réglé dans{" "}
                   <Link
-                    className="font-medium underline"
+                    className="font-semibold underline"
                     href={template.owner.href}
                   >
                     {template.owner.label}
@@ -743,12 +767,13 @@ export function CommunicationPage() {
             }
             title={template.title}
           >
+            <Button variant="secondary">Modifier</Button>
             {!template.owner && (
-              <SwitchCell defaultChecked={index !== 5} label={template.title} />
+              <Switch
+                aria-label={`${template.title} envoyé automatiquement`}
+                defaultChecked={index !== 5}
+              />
             )}
-            <Button size="sm" variant="outline">
-              Modifier le texte
-            </Button>
           </SettingsRow>
         ))}
       </SettingsSection>
@@ -778,55 +803,24 @@ export function CommunicationPage() {
   )
 }
 
-function SwitchCell({
-  label,
-  defaultChecked,
-}: {
-  label: string
-  defaultChecked?: boolean
-}) {
-  const [on, setOn] = useState(defaultChecked ?? false)
-  return (
-    <button
-      aria-pressed={on}
-      className="text-xs"
-      onClick={() => setOn((value) => !value)}
-      type="button"
-    >
-      <Badge variant={on ? "success" : "outline"}>
-        {on ? "Actif" : "Inactif"}
-      </Badge>
-      <span className="sr-only">{label}</span>
-    </button>
-  )
-}
-
 export function PaymentsPage() {
   return (
     <SettingsPage
       description="Encaissement, factures et relances"
       title="Paiements & factures"
     >
-      <SettingsSection title="Encaissement">
-        <SettingsRow
-          description="Paiement des acomptes et factures par carte"
-          media={
-            <IconTile
-              className="bg-grooming text-grooming-foreground"
-              icon={CreditCardIcon}
-            />
-          }
-          title="Stripe"
-        >
-          <Badge variant="success">
-            <HugeiconsIcon icon={CheckmarkCircle02Icon} />
-            Connecté
-          </Badge>
-          <Button size="sm" variant="outline">
-            Tableau de bord
-          </Button>
-        </SettingsRow>
-      </SettingsSection>
+      <SettingsHero
+        actions={<Button variant="secondary">Ouvrir Stripe</Button>}
+        description="Acomptes et factures payés par carte, versés sous 2 jours"
+        eyebrow="Encaissement en ligne"
+        media={
+          <IconTile
+            className="size-14 bg-wise-purple text-wise-pink [&_svg]:size-7"
+            icon={CreditCardIcon}
+          />
+        }
+        title="Stripe est connecté"
+      />
       <SettingsGroups
         groups={[
           {
@@ -856,12 +850,12 @@ export function PaymentsPage() {
             media={
               <ActivityMark
                 activity={activity.name}
-                className="size-8 text-xs"
+                className="size-10 text-sm"
               />
             }
             title={activity.name}
           >
-            <span className="font-mono text-sm text-muted-foreground">
+            <span className="rounded-full bg-muted px-3 py-1 font-mono text-sm font-semibold">
               {["F", "T", "E"][index]}-2026-{["0156", "0148", "0096"][index]}
             </span>
           </SettingsRow>
@@ -933,51 +927,51 @@ type Integration = {
 
 const integrations: Integration[] = [
   {
-    color: "bg-grooming-strong",
+    color: "bg-wise-purple text-wise-pink",
     connected: true,
     description: "Paiements en ligne et terminal",
     icon: CreditCardIcon,
     name: "Stripe",
   },
   {
-    color: "bg-blue-600",
+    color: "bg-wise-blue text-wise-charcoal",
     connected: true,
     description: "Synchronisation des agendas",
     icon: Calendar03Icon,
     name: "Google Agenda",
   },
   {
-    color: "bg-success",
+    color: "bg-wise-green text-wise-forest",
     description: "Conversations avec vos clients",
     icon: WhatsappIcon,
     name: "WhatsApp Business",
   },
   {
-    color: "bg-pink-600",
+    color: "bg-wise-pink text-wise-purple",
     description: "Publier les nouvelles des pensionnaires",
     icon: InstagramIcon,
     name: "Instagram",
   },
   {
-    color: "bg-amber-600",
+    color: "bg-wise-yellow text-wise-gold",
     description: "Export comptable automatique",
     icon: Invoice01Icon,
     name: "Pennylane",
   },
   {
-    color: "bg-sky-700",
+    color: "bg-wise-charcoal text-wise-blue",
     description: "Vérification des numéros d'identification",
     icon: ShieldUserIcon,
     name: "I-CAD",
   },
   {
-    color: "bg-zinc-700",
+    color: "bg-muted text-foreground",
     description: "Campagnes e-mail et newsletters",
     icon: Mail01Icon,
     name: "Brevo",
   },
   {
-    color: "bg-orange-600",
+    color: "bg-wise-orange text-wise-maroon",
     description: "Automatisations avec 6 000 applications",
     icon: WebhookIcon,
     name: "Zapier",
@@ -998,19 +992,19 @@ export function IntegrationsPage() {
           const isOn = connected.includes(integration.name)
           return (
             <div
-              className="flex flex-col gap-3 rounded-xl border bg-card p-4"
+              className="flex flex-col gap-4 rounded-2xl border bg-card p-5"
               key={integration.name}
             >
               <div className="flex items-start justify-between gap-2">
                 <IconTile
-                  className={cn("text-white", integration.color)}
+                  className={cn("size-12", integration.color)}
                   icon={integration.icon}
                 />
                 {isOn && <Badge variant="success">Connecté</Badge>}
               </div>
               <div>
-                <p className="text-sm font-medium">{integration.name}</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="font-semibold">{integration.name}</p>
+                <p className="text-sm text-muted-foreground">
                   {integration.description}
                 </p>
               </div>
@@ -1023,8 +1017,7 @@ export function IntegrationsPage() {
                       : [...list, integration.name]
                   )
                 }
-                size="sm"
-                variant={isOn ? "ghost" : "outline"}
+                variant={isOn ? "secondary" : "default"}
               >
                 {isOn ? "Déconnecter" : "Connecter"}
               </Button>
@@ -1068,7 +1061,7 @@ export function ApiPage() {
   return (
     <SettingsPage
       action={
-        <Button render={<a href="#" />} size="sm" variant="outline">
+        <Button render={<a href="#" />} variant="secondary">
           Documentation
         </Button>
       }
@@ -1077,7 +1070,7 @@ export function ApiPage() {
     >
       <SettingsSection
         action={
-          <Button size="sm" variant="ghost">
+          <Button variant="ghost">
             <HugeiconsIcon icon={PlusSignIcon} />
             Nouvelle clé
           </Button>
@@ -1092,18 +1085,16 @@ export function ApiPage() {
             media={<IconTile icon={Key01Icon} />}
             title={apiKey.name}
           >
-            <code className="rounded-md bg-muted px-2 py-1 font-mono text-xs">
+            <code className="rounded-full bg-muted px-3 py-1 font-mono text-sm">
               {apiKey.key}
             </code>
-            <Button size="sm" variant="destructive-outline">
-              Révoquer
-            </Button>
+            <Button variant="destructive-outline">Révoquer</Button>
           </SettingsRow>
         ))}
       </SettingsSection>
       <SettingsSection
         action={
-          <Button size="sm" variant="ghost">
+          <Button variant="ghost">
             <HugeiconsIcon icon={PlusSignIcon} />
             Nouveau webhook
           </Button>
@@ -1116,7 +1107,7 @@ export function ApiPage() {
             description={hook.events}
             key={hook.url}
             media={<IconTile icon={WebhookIcon} />}
-            title={<span className="font-mono text-xs">{hook.url}</span>}
+            title={<span className="font-mono text-sm">{hook.url}</span>}
           >
             <Badge variant={hook.status === "Actif" ? "success" : "error"}>
               {hook.status}
@@ -1125,7 +1116,7 @@ export function ApiPage() {
         ))}
       </SettingsSection>
       <SettingsSection title="Utilisation ce mois-ci">
-        <div className="p-4">
+        <div className="p-5">
           <Meter max={10000} value={3420}>
             <div className="flex items-center justify-between gap-2">
               <MeterLabel>Requêtes</MeterLabel>
@@ -1225,20 +1216,27 @@ export function OrganizationSecurityPage() {
         ]}
       />
       <SettingsSection
-        action={
-          <Button size="sm" variant="ghost">
-            Tout voir
-          </Button>
-        }
+        action={<Button variant="ghost">Tout voir</Button>}
         title="Journal d'activité"
       >
         {audit.map((entry) => (
           <SettingsRow
             description={entry.time}
             key={entry.time}
+            media={
+              <Avatar className="size-10">
+                <AvatarFallback className="font-semibold">
+                  {entry.who
+                    .split(" ")
+                    .map((part) => part[0])
+                    .join("")}
+                </AvatarFallback>
+              </Avatar>
+            }
             title={
               <span className="font-normal">
-                <span className="font-medium">{entry.who}</span> {entry.action}
+                <span className="font-semibold">{entry.who}</span>{" "}
+                {entry.action}
               </span>
             }
           />
@@ -1295,18 +1293,24 @@ const purchases = [
 ]
 
 export function BillingPage() {
+  const current = plans.find((plan) => plan.current)!
+  const upgrades = plans.filter((plan) => !plan.current)
   return (
     <SettingsPage
-      description="Offre, utilisation et paiements"
+      description="Votre offre, ce que vous utilisez et vos paiements"
       title="Abonnement"
     >
-      <SettingsSection title="Utilisation">
-        <div className="grid gap-5 p-4 sm:grid-cols-2">
+      <SettingsHero
+        description={`${current.price} € par mois · ${current.features.join(" · ")}`}
+        eyebrow="Votre offre"
+        title={<span className="font-display text-5xl">{current.name}</span>}
+      >
+        <div className="grid gap-5 rounded-2xl bg-card p-5 sm:grid-cols-2">
           {usage.map((item) => (
             <Meter key={item.label} max={item.max} value={item.value}>
               <div className="flex items-center justify-between gap-2">
                 <MeterLabel>{item.label}</MeterLabel>
-                <MeterValue>
+                <MeterValue className="font-semibold">
                   {() =>
                     `${String(item.value).replace(".", ",")} / ${item.max}${item.unit ?? ""}`
                   }
@@ -1314,93 +1318,105 @@ export function BillingPage() {
               </div>
               <MeterTrack>
                 <MeterIndicator
-                  className={cn(
-                    item.value / item.max >= 0.8 && "bg-orange-500"
-                  )}
+                  className={cn(item.value / item.max >= 0.8 && "bg-warning")}
                 />
               </MeterTrack>
             </Meter>
           ))}
         </div>
-      </SettingsSection>
-      <div className="grid gap-3 md:grid-cols-3">
-        {plans.map((plan) => (
-          <div
-            className={cn(
-              "flex flex-col gap-4 rounded-xl border bg-card p-4",
-              plan.name === "Pro" &&
-                "border-pension-strong/40 ring-1 ring-pension-strong/20"
-            )}
-            key={plan.name}
-          >
-            <div className="flex items-center justify-between">
-              <p className="font-medium">{plan.name}</p>
-              {plan.current && (
-                <Badge variant="secondary">Offre actuelle</Badge>
-              )}
-              {plan.name === "Pro" && (
-                <Badge variant="success">Recommandé</Badge>
-              )}
-            </div>
-            <p>
-              <span className="text-2xl font-semibold">{plan.price} €</span>
-              <span className="text-sm text-muted-foreground"> / mois</span>
-            </p>
-            <ul className="space-y-1.5 text-sm">
-              {plan.features.map((feature) => (
-                <li className="flex items-center gap-2" key={feature}>
-                  <HugeiconsIcon
-                    className="size-4 text-pension-strong"
-                    icon={CheckmarkCircle02Icon}
-                  />
-                  {feature}
-                </li>
-              ))}
-            </ul>
-            <Button
-              className="mt-auto"
-              disabled={plan.current}
-              size="sm"
-              variant={plan.name === "Pro" ? "default" : "outline"}
-            >
-              {plan.current ? "Offre actuelle" : `Passer à ${plan.name}`}
-            </Button>
-          </div>
-        ))}
-      </div>
-      <SettingsSection title="Facturation">
+      </SettingsHero>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold">
+          Passer à l&apos;offre supérieure
+        </h2>
+        <div className="grid gap-3 md:grid-cols-2">
+          {upgrades.map((plan) => {
+            const pro = plan.name === "Pro"
+            return (
+              <div
+                className={cn(
+                  "flex flex-col gap-5 rounded-3xl p-6",
+                  pro ? "bg-primary text-primary-foreground" : "border bg-card"
+                )}
+                key={plan.name}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <p className="font-display text-4xl">{plan.name}</p>
+                  {pro && (
+                    <span className="rounded-full bg-wise-forest px-3 py-1 text-sm font-semibold text-wise-green">
+                      Recommandé
+                    </span>
+                  )}
+                </div>
+                <p>
+                  <span className="text-3xl font-semibold">{plan.price} €</span>
+                  <span
+                    className={pro ? "opacity-80" : "text-muted-foreground"}
+                  >
+                    {" "}
+                    / mois
+                  </span>
+                </p>
+                <ul className="space-y-2">
+                  {plan.features.map((feature) => (
+                    <li className="flex items-center gap-2" key={feature}>
+                      <HugeiconsIcon
+                        className="size-5 shrink-0"
+                        icon={CheckmarkCircle02Icon}
+                      />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  className={cn(
+                    "mt-auto",
+                    pro &&
+                      "bg-wise-forest text-wise-green hover:bg-wise-forest/90"
+                  )}
+                  size="lg"
+                  variant={pro ? "default" : "secondary"}
+                >
+                  Passer à {plan.name}
+                </Button>
+              </div>
+            )
+          })}
+        </div>
+      </section>
+
+      <SettingsSection title="Paiement de l'abonnement">
         <SettingsRow
           description="Expire le 09/2028"
           media={<IconTile icon={CreditCardIcon} />}
           title="Visa •••• 4242"
         >
-          <Button size="sm" variant="outline">
-            Modifier
-          </Button>
+          <Button variant="secondary">Modifier</Button>
         </SettingsRow>
         <SettingsRow
-          description="Adresse de facturation"
+          description="12 chemin des Coteaux, 33500 Libourne"
+          media={<IconTile icon={Invoice01Icon} />}
           title="SARL Les Coteaux"
         >
-          <Button size="sm" variant="ghost">
-            Modifier
-          </Button>
+          <Button variant="secondary">Modifier</Button>
         </SettingsRow>
       </SettingsSection>
-      <SettingsSection title="Historique">
+      <SettingsSection title="Vos achats">
         {purchases.map((purchase) => (
           <SettingsRow
             description={purchase.date}
             key={purchase.date}
+            media={<IconTile icon={Message01Icon} />}
             title={purchase.label}
           >
-            <span className="text-sm tabular-nums">
+            <span className="font-semibold tabular-nums">
               {formatAmount(purchase.amount)}
             </span>
             <Button
               aria-label="Télécharger la facture"
-              size="icon-sm"
-              variant="ghost"
+              size="icon"
+              variant="secondary"
             >
               <HugeiconsIcon icon={Download04Icon} />
             </Button>
@@ -1435,18 +1451,14 @@ export function ImportExportPage() {
           media={<IconTile icon={FileImportIcon} />}
           title="Clients & animaux"
         >
-          <Button size="sm" variant="outline">
-            Importer un fichier
-          </Button>
+          <Button variant="secondary">Importer un fichier</Button>
         </SettingsRow>
         <SettingsRow
           description="Planning et réservations à venir"
           media={<IconTile icon={Globe02Icon} />}
           title="Depuis un autre logiciel"
         >
-          <Button size="sm" variant="outline">
-            Choisir
-          </Button>
+          <Button variant="secondary">Choisir</Button>
         </SettingsRow>
       </SettingsSection>
       <SettingsSection
@@ -1460,7 +1472,7 @@ export function ImportExportPage() {
             media={<IconTile icon={Database01Icon} />}
             title={item.title}
           >
-            <Button size="sm" variant="outline">
+            <Button variant="secondary">
               <HugeiconsIcon icon={Download04Icon} />
               Exporter
             </Button>

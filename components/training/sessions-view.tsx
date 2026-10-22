@@ -1,6 +1,12 @@
 "use client"
 
 import {
+  AgendaToolbar,
+  type AgendaView,
+  TimeGrid,
+} from "@/components/agenda/agenda"
+import { NewSessionDialog } from "@/components/training/new-session-dialog"
+import {
   Calendar03Icon,
   CalendarAdd01Icon,
   Clock01Icon,
@@ -13,7 +19,7 @@ import {
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { useState } from "react"
-import { longDate, relativeDate, TODAY } from "@/components/calendar"
+import { dateOf, longDate, relativeDate, TODAY } from "@/components/calendar"
 import { NOW } from "@/components/today/data"
 import {
   ActivityPage,
@@ -52,8 +58,8 @@ const kindMeta: Record<
   { icon: typeof UserGroupIcon; bar: string }
 > = {
   Collectif: { bar: "bg-training-strong", icon: UserGroupIcon },
-  Individuel: { bar: "bg-sky-500", icon: Target02Icon },
-  "À domicile": { bar: "bg-indigo-400", icon: Home01Icon },
+  Individuel: { bar: "bg-training-strong", icon: Target02Icon },
+  "À domicile": { bar: "bg-wise-blue", icon: Home01Icon },
 }
 
 type State = "done" | "live" | "upcoming" | "cancelled"
@@ -107,8 +113,8 @@ function SessionRow({
   return (
     <button
       className={cn(
-        "flex w-full items-stretch gap-3 rounded-lg border bg-card p-3 text-start transition-colors hover:bg-muted/40",
-        state === "live" && "border-orange-500/60 bg-orange-500/5",
+        "flex w-full items-stretch gap-3 rounded-xl border bg-card p-3 text-start transition-colors hover:bg-muted/40",
+        state === "live" && "border-control bg-accent",
         (state === "done" || state === "cancelled") && "opacity-60"
       )}
       onClick={onOpen}
@@ -118,7 +124,7 @@ function SessionRow({
         className={cn("w-1 shrink-0 rounded-full", kindMeta[session.kind].bar)}
       />
       <span className="w-24 shrink-0 text-sm tabular-nums">
-        <span className="block font-medium">{formatHour(session.start)}</span>
+        <span className="block font-semibold">{formatHour(session.start)}</span>
         <span className="block text-xs text-muted-foreground">
           {formatHour(session.end)}
         </span>
@@ -126,7 +132,7 @@ function SessionRow({
       <span className="min-w-0 flex-1 space-y-1">
         <span
           className={cn(
-            "flex items-center gap-2 text-sm font-medium",
+            "flex items-center gap-2 text-sm font-semibold",
             state === "cancelled" && "line-through"
           )}
         >
@@ -167,7 +173,7 @@ function SessionRow({
           {stateMeta[state].label}
         </Badge>
         {state === "done" && !session.report && (
-          <span className="text-[0.6875rem] text-amber-600 dark:text-amber-400">
+          <span className="text-[0.6875rem] text-warning-foreground">
             Compte-rendu à faire
           </span>
         )}
@@ -248,7 +254,7 @@ function SessionSheet({
 
               {programme && (
                 <section className="space-y-3">
-                  <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                  <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                     Progression de {programme.dog}
                   </h3>
                   <p className="flex items-start gap-1.5 rounded-lg bg-muted/60 p-2 text-sm">
@@ -266,7 +272,7 @@ function SessionSheet({
 
               {group && (
                 <section className="space-y-2">
-                  <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                  <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                     Participants
                   </h3>
                   <div className="flex flex-wrap gap-1.5">
@@ -281,11 +287,11 @@ function SessionSheet({
 
               {state === "done" && (
                 <section className="space-y-2">
-                  <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                  <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                     Compte-rendu
                   </h3>
                   {session.report ? (
-                    <p className="rounded-lg border p-3 text-sm">
+                    <p className="rounded-xl border p-3 text-sm">
                       {session.report}
                     </p>
                   ) : (
@@ -347,13 +353,13 @@ function Agenda({
           <section className="space-y-2" key={day}>
             <h3
               className={cn(
-                "flex items-center gap-2 text-sm font-medium",
-                day === TODAY && "text-orange-600 dark:text-orange-400"
+                "flex items-center gap-2 text-sm font-semibold",
+                day === TODAY && "text-link"
               )}
             >
               {relativeDate(day)}
               {day === TODAY && (
-                <span className="size-1.5 rounded-full bg-orange-500" />
+                <span className="size-1.5 rounded-full bg-control" />
               )}
               <span className="font-normal text-muted-foreground">
                 ·{" "}
@@ -396,7 +402,7 @@ function Programmes() {
               <div className="space-y-1.5">
                 <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">{p.name}</span>
-                  <span className="font-medium tabular-nums">
+                  <span className="font-semibold tabular-nums">
                     {p.done}/{p.total} séances
                   </span>
                 </div>
@@ -433,7 +439,7 @@ function Programmes() {
                   Prochaine : {p.next}
                 </span>
                 {ending && (
-                  <Button size="xs" variant="outline">
+                  <Button size="sm" variant="outline">
                     Proposer la suite
                   </Button>
                 )}
@@ -470,16 +476,16 @@ function Groups() {
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div className="rounded-lg bg-muted/60 p-2.5">
                   <p className="text-xs text-muted-foreground">Créneaux</p>
-                  <p className="font-medium">{g.schedule}</p>
+                  <p className="font-semibold">{g.schedule}</p>
                 </div>
                 <div className="rounded-lg bg-muted/60 p-2.5">
                   <p className="text-xs text-muted-foreground">Tarif</p>
-                  <p className="font-medium">{g.price}</p>
+                  <p className="font-semibold">{g.price}</p>
                 </div>
               </div>
               <div className="space-y-1.5">
                 <Bar
-                  className={fill >= 0.85 ? "bg-amber-500" : "bg-training-strong"}
+                  className={fill >= 0.85 ? "bg-warning" : "bg-training-strong"}
                   label={`Remplissage ${g.name}`}
                   value={fill * 100}
                 />
@@ -493,14 +499,14 @@ function Groups() {
               <div className="flex items-center gap-3">
                 <AvatarGroup>
                   {g.members.slice(0, 6).map((member) => (
-                    <Avatar className="size-7" key={member} title={member}>
-                      <AvatarFallback className="bg-training text-training-foreground text-[0.625rem]">
+                    <Avatar className="size-10" key={member} title={member}>
+                      <AvatarFallback className="bg-training text-[0.625rem] text-training-foreground">
                         {member.slice(0, 2)}
                       </AvatarFallback>
                     </Avatar>
                   ))}
                 </AvatarGroup>
-                <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+                <p className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
                   {roster.join(", ")}
                 </p>
               </div>
@@ -512,9 +518,27 @@ function Groups() {
   )
 }
 
+const OPEN = 9
+const CLOSE = 20
+const WEEK = Array.from({ length: 7 }, (_, i) => i)
+
+const blockOf = (s: WeekSession) => {
+  const state = stateOf(s)
+  return state === "cancelled"
+    ? "border border-dashed text-muted-foreground line-through"
+    : state === "done"
+      ? "bg-muted text-muted-foreground"
+      : state === "live"
+        ? "bg-control text-control-foreground"
+        : "bg-training text-training-foreground"
+}
+
 export function SessionsView() {
   const [sessions, setSessions] = useState(weekSessions)
   const [tab, setTab] = useState("agenda")
+  const [view, setView] = useState<AgendaView>("week")
+  const [focus, setFocus] = useState(TODAY)
+  const [slot, setSlot] = useState<{ day: number; start: number } | null>(null)
   const [openId, setOpenId] = useState<string | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
 
@@ -522,23 +546,70 @@ export function SessionsView() {
   const hours = active.reduce((sum, s) => sum + s.end - s.start, 0)
   const dogs =
     programmes.length + groups.reduce((sum, g) => sum + g.members.length, 0)
-  const missingReports = sessions.filter(
-    (s) => stateOf(s) === "done" && !s.report
-  ).length
+  const toReport = sessions.filter((s) => stateOf(s) === "done" && !s.report)
   const openSession = sessions.find((s) => s.id === openId) ?? null
+  const open = (id: string) => {
+    setOpenId(id)
+    setSheetOpen(true)
+  }
+  const add = (session: WeekSession) =>
+    setSessions((list) => [...list, session])
 
   return (
     <ActivityPage
       actions={
-        <Button size="sm">
-          <HugeiconsIcon icon={CalendarAdd01Icon} />
-          Planifier une séance
-        </Button>
+        <NewSessionDialog
+          onCreate={add}
+          trigger={
+            <Button>
+              <HugeiconsIcon icon={CalendarAdd01Icon} />
+              Planifier une séance
+            </Button>
+          }
+        />
       }
       activity="Éducation"
+      className="max-w-7xl"
       title="Séances"
     >
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {toReport.length > 0 && (
+        <Widget
+          description="Envoyés aux propriétaires après chaque séance"
+          title={`${toReport.length} compte${toReport.length > 1 ? "s" : ""}-rendu${toReport.length > 1 ? "s" : ""} à rédiger`}
+        >
+          <ul className="-mx-2 -my-2">
+            {toReport.map((s) => (
+              <li
+                className="flex items-center gap-4 rounded-2xl p-2"
+                key={s.id}
+              >
+                <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-training text-sm font-semibold text-training-foreground">
+                  {s.title.slice(0, 2)}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-semibold">
+                    {s.title}
+                    {s.owner && (
+                      <span className="font-normal text-muted-foreground">
+                        {" "}
+                        · {s.owner}
+                      </span>
+                    )}
+                  </span>
+                  <span className="block truncate text-sm text-muted-foreground">
+                    {relativeDate(s.day)} · {range(s)} · {s.place}
+                  </span>
+                </span>
+                <Button onClick={() => open(s.id)} variant="secondary">
+                  Rédiger
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </Widget>
+      )}
+
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Kpi icon={Calendar03Icon} label="Cette semaine" value={active.length}>
           {active.filter((s) => stateOf(s) === "done").length} terminées ·{" "}
           {sessions.length - active.length} annulée
@@ -553,32 +624,90 @@ export function SessionsView() {
         >
           Inès · du lundi au dimanche
         </Kpi>
-        <Kpi icon={Tick02Icon} label="Comptes-rendus" value={missingReports}>
-          {missingReports > 0
+        <Kpi icon={Tick02Icon} label="Comptes-rendus" value={toReport.length}>
+          {toReport.length > 0
             ? "À rédiger pour les séances passées"
             : "Tous envoyés"}
         </Kpi>
       </div>
 
       <Tabs onValueChange={(value) => setTab(String(value))} value={tab}>
-        <TabsList size="sm">
-          <TabsTab value="agenda">Agenda de la semaine</TabsTab>
+        <TabsList>
+          <TabsTab value="agenda">Agenda</TabsTab>
           <TabsTab value="programmes">Programmes individuels</TabsTab>
           <TabsTab value="groups">Cours collectifs</TabsTab>
         </TabsList>
       </Tabs>
 
       {tab === "agenda" && (
-        <Agenda
-          onOpen={(id) => {
-            setOpenId(id)
-            setSheetOpen(true)
-          }}
-          sessions={sessions}
-        />
+        <section className="space-y-4">
+          <AgendaToolbar
+            atToday={view === "day" ? focus === TODAY : true}
+            label={
+              view === "day"
+                ? longDate(focus)
+                : `Semaine du ${dateOf(WEEK[0]).day} au ${dateOf(WEEK[6]).day} ${dateOf(WEEK[6]).month}`
+            }
+            nextDisabled={view !== "day" || focus >= WEEK[6]}
+            onNext={() => setFocus(focus + 1)}
+            onPrev={() => setFocus(focus - 1)}
+            onToday={() => setFocus(TODAY)}
+            onView={setView}
+            prevDisabled={view !== "day" || focus <= WEEK[0]}
+            view={view}
+          />
+          {view === "list" ? (
+            <Agenda onOpen={open} sessions={sessions} />
+          ) : (
+            <>
+              <TimeGrid
+                close={CLOSE}
+                days={view === "day" ? [focus] : WEEK}
+                events={sessions.map((s) => ({
+                  className: blockOf(s),
+                  day: s.day,
+                  end: s.end,
+                  icon: kindMeta[s.kind].icon,
+                  id: s.id,
+                  start: s.start,
+                  subtitle: [
+                    s.owner ??
+                      (s.group &&
+                        `${s.group.enrolled}/${s.group.capacity} inscrits`),
+                    s.place,
+                  ]
+                    .filter(Boolean)
+                    .join(" · "),
+                  title: s.title,
+                }))}
+                onDay={(day) => {
+                  setFocus(day)
+                  setView("day")
+                }}
+                onOpen={open}
+                onSlot={(day, start) => setSlot({ day, start })}
+                open={OPEN}
+              />
+              <p className="text-sm text-muted-foreground">
+                Touchez un créneau libre pour planifier une séance, ou un jour
+                pour le voir en grand.
+              </p>
+            </>
+          )}
+        </section>
       )}
       {tab === "programmes" && <Programmes />}
       {tab === "groups" && <Groups />}
+
+      {slot && (
+        <NewSessionDialog
+          defaultOpen
+          initial={slot}
+          key={`${slot.day}-${slot.start}`}
+          onCreate={add}
+          onOpenChange={(next) => !next && setSlot(null)}
+        />
+      )}
 
       <SessionSheet
         onOpenChange={setSheetOpen}

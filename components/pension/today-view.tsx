@@ -1,18 +1,24 @@
 "use client"
 
 import {
+  hourOf,
+  NowCard,
+  Timeline,
+  type TimelineItem,
+} from "@/components/agenda/agenda"
+import {
   Alert02Icon,
   ArrowRight01Icon,
   BedDoubleIcon,
   Call02Icon,
   Camera01Icon,
+  CleaningBucketIcon,
   CalendarAdd01Icon,
   Login03Icon,
   Logout03Icon,
   MedicineBottle01Icon,
   PrinterIcon,
   Restaurant01Icon,
-  SunCloud01Icon,
   Tick02Icon,
   WalkingIcon,
 } from "@hugeicons/core-free-icons"
@@ -32,20 +38,14 @@ import {
   stayProgress,
 } from "@/components/pension/data"
 import { careTasks, NOW } from "@/components/today/data"
+import { formatHour } from "@/components/today/widgets"
 import {
   ActivityDayPage,
   Bar,
-  ChecklistWidget,
   formatAmount,
   Kpi,
   Widget,
 } from "@/components/today/widgets"
-import {
-  Alert,
-  AlertAction,
-  AlertDescription,
-  AlertTitle,
-} from "@/components/ui/alert"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { CheckFlow } from "@/components/pension/check-flow"
@@ -61,10 +61,13 @@ const kennelStyles: Record<KennelStatus, { label: string; className: string }> =
       label: "Arrivée prévue",
     },
     cleaning: {
-      className: "bg-sky-500/15 text-sky-700 dark:text-sky-400",
+      className: "bg-wise-blue/70 text-wise-charcoal",
       label: "Nettoyage",
     },
-    departing: { className: "bg-amber-500 text-white", label: "Départ prévu" },
+    departing: {
+      className: "bg-warning text-warning-foreground",
+      label: "Départ prévu",
+    },
     free: { className: "bg-muted text-muted-foreground", label: "Libre" },
     occupied: {
       className: "bg-pension text-pension-foreground",
@@ -101,7 +104,7 @@ function KennelTile({
       type="button"
     >
       <span className="flex items-center justify-between gap-1 opacity-80">
-        <span className="font-medium tabular-nums">{kennel.label}</span>
+        <span className="font-semibold tabular-nums">{kennel.label}</span>
         <span className="flex gap-0.5">
           {kennel.meds && (
             <HugeiconsIcon className="size-3" icon={MedicineBottle01Icon} />
@@ -138,7 +141,7 @@ function KennelDetail({ kennel }: { kennel: Kennel }) {
   return (
     <div className="flex flex-wrap items-start gap-4">
       <div className="min-w-48 flex-1 space-y-1">
-        <p className="font-medium">
+        <p className="font-semibold">
           {kennel.pet}{" "}
           <span className="font-normal text-muted-foreground">
             · {kennel.breed}
@@ -199,7 +202,7 @@ function KennelMap({
       action={
         <Button
           render={<Link href="/pension/planning" />}
-          size="xs"
+          size="sm"
           variant="ghost"
         >
           Planning des box
@@ -213,7 +216,7 @@ function KennelMap({
       <div className="space-y-4">
         {(["Chenil", "Chatterie"] as const).map((area) => (
           <div key={area}>
-            <p className="mb-2 text-xs font-medium text-muted-foreground">
+            <p className="mb-2 text-xs font-semibold text-muted-foreground">
               {area}
             </p>
             <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-5">
@@ -242,250 +245,16 @@ function KennelMap({
               <span className="text-muted-foreground">
                 {kennelStyles[status].label}
               </span>
-              <span className="font-medium tabular-nums">
+              <span className="font-semibold tabular-nums">
                 {countOf(status)}
               </span>
             </li>
           ))}
         </ul>
-        <div className="rounded-lg border bg-muted/40 p-3">
+        <div className="rounded-xl border bg-muted/40 p-3">
           <KennelDetail kennel={selected} />
         </div>
       </div>
-    </Widget>
-  )
-}
-
-function MovementsCard({
-  movements,
-  onComplete,
-}: {
-  movements: StayMovement[]
-  onComplete: (movement: StayMovement) => void
-}) {
-  const done = movements.filter((m) => m.status === "done").length
-  return (
-    <Widget
-      description={`${done} sur ${movements.length} effectués`}
-      title="Arrivées & départs"
-    >
-      <ol className="relative space-y-4 before:absolute before:inset-y-1 before:start-3.5 before:w-px before:bg-border">
-        {movements.map((m) => {
-          const arrival = m.type === "arrival"
-          return (
-            <li className="relative flex gap-3" key={m.id}>
-              <span
-                className={cn(
-                  "z-10 flex size-7 shrink-0 items-center justify-center rounded-full border bg-background",
-                  m.status === "done" &&
-                    "border-pension-strong bg-pension text-pension-foreground",
-                  m.status === "late" && "border-destructive text-destructive"
-                )}
-              >
-                <HugeiconsIcon
-                  className="size-3.5"
-                  icon={
-                    m.status === "done"
-                      ? Tick02Icon
-                      : arrival
-                        ? Login03Icon
-                        : Logout03Icon
-                  }
-                />
-              </span>
-              <div className="min-w-0 flex-1 space-y-1.5">
-                <div className="flex flex-wrap items-baseline gap-x-2">
-                  <span className="text-sm font-medium">{m.pet}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {m.time} · {arrival ? "Arrivée" : "Départ"} · {m.kennel}
-                  </span>
-                  {m.status === "late" && (
-                    <Badge size="sm" variant="error">
-                      En retard
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground">{m.owner}</p>
-                {m.status !== "done" && (
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {arrival ? (
-                      m.checks?.map((check) => (
-                        <Badge key={check} size="sm" variant="outline">
-                          {check}
-                        </Badge>
-                      ))
-                    ) : (
-                      <Badge size="sm" variant="secondary">
-                        Solde {formatAmount(m.balance ?? 0)}
-                      </Badge>
-                    )}
-                    <Button
-                      className="ms-auto"
-                      onClick={() => onComplete(m)}
-                      size="xs"
-                      variant="outline"
-                    >
-                      {arrival
-                        ? "Enregistrer l'arrivée"
-                        : "Encaisser & valider"}
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </li>
-          )
-        })}
-      </ol>
-    </Widget>
-  )
-}
-
-function MealsCard({ kennels }: { kennels: Kennel[] }) {
-  const [meals, setMeals] = useState(initialMeals)
-  const next = meals.find((meal) => meal.served < meal.total)
-  const diets = kennels.filter((k) => k.diet && k.status !== "free")
-  return (
-    <Widget description="3 services par jour" title="Repas">
-      <ul className="space-y-3">
-        {meals.map((meal) => {
-          const complete = meal.served === meal.total
-          return (
-            <li className="space-y-1.5" key={meal.id}>
-              <div className="flex items-center gap-2 text-sm">
-                <span className="font-medium">{meal.label}</span>
-                <span className="text-xs text-muted-foreground">
-                  {meal.time}
-                </span>
-                <span className="ms-auto text-xs text-muted-foreground tabular-nums">
-                  {meal.served} / {meal.total}
-                </span>
-                {complete ? (
-                  <Badge size="sm" variant="success">
-                    Servi
-                  </Badge>
-                ) : meal.id === next?.id ? (
-                  <Button
-                    onClick={() =>
-                      setMeals((list) =>
-                        list.map((m) =>
-                          m.id === meal.id ? { ...m, served: m.total } : m
-                        )
-                      )
-                    }
-                    size="xs"
-                    variant="outline"
-                  >
-                    Valider
-                  </Button>
-                ) : (
-                  <Badge size="sm" variant="outline">
-                    À venir
-                  </Badge>
-                )}
-              </div>
-              <Bar
-                className="bg-pension-strong"
-                label={`Repas du ${meal.label.toLowerCase()}`}
-                value={(meal.served / meal.total) * 100}
-              />
-            </li>
-          )
-        })}
-      </ul>
-      <div className="mt-4 border-t pt-4">
-        <p className="mb-2 text-xs font-medium text-muted-foreground">
-          Régimes particuliers
-        </p>
-        <ul className="space-y-2">
-          {diets.map((k) => (
-            <li className="flex items-start gap-2 text-sm" key={k.id}>
-              <HugeiconsIcon
-                className="mt-0.5 size-4 shrink-0 text-muted-foreground"
-                icon={Restaurant01Icon}
-              />
-              <span>
-                <span className="font-medium">{k.pet}</span>
-                <span className="text-muted-foreground">
-                  {" "}
-                  · {k.area} {k.label}
-                </span>
-                <span className="block text-xs text-muted-foreground">
-                  {k.diet}
-                </span>
-              </span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </Widget>
-  )
-}
-
-function OutingsCard() {
-  return (
-    <Widget
-      action={
-        <Badge variant="outline">
-          <HugeiconsIcon className="text-amber-500" icon={SunCloud01Icon} />
-          16 °C · sec
-        </Badge>
-      }
-      description="Groupes constitués selon les affinités"
-      title="Sorties & promenades"
-    >
-      <ol className="space-y-3">
-        {outings.map((outing) => {
-          const past = outing.end <= NOW
-          const live = outing.start <= NOW && NOW < outing.end
-          return (
-            <li
-              className={cn("flex gap-3", past && "opacity-50")}
-              key={outing.id}
-            >
-              <span className="w-11 shrink-0 pt-0.5 text-xs text-muted-foreground tabular-nums">
-                {outing.time}
-              </span>
-              <div
-                className={cn(
-                  "min-w-0 flex-1 rounded-lg border p-2.5",
-                  live && "border-orange-500/60 bg-orange-500/5"
-                )}
-              >
-                <div className="flex items-center gap-2">
-                  <HugeiconsIcon
-                    className="size-4 shrink-0 text-muted-foreground"
-                    icon={WalkingIcon}
-                  />
-                  <span className="truncate text-sm font-medium">
-                    {outing.label}
-                  </span>
-                  {live && (
-                    <Badge className="ms-auto" size="sm" variant="warning">
-                      En cours
-                    </Badge>
-                  )}
-                  {past && (
-                    <HugeiconsIcon
-                      className="ms-auto size-4 text-pension-strong"
-                      icon={Tick02Icon}
-                    />
-                  )}
-                </div>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {outing.place}
-                </p>
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {outing.pets.map((pet) => (
-                    <Badge key={pet} size="sm" variant="secondary">
-                      {pet}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </li>
-          )
-        })}
-      </ol>
     </Widget>
   )
 }
@@ -504,15 +273,15 @@ function NewsCard() {
             className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0"
             key={n.id}
           >
-            <Avatar className="size-8">
+            <Avatar className="size-10">
               <AvatarFallback className="text-xs">{n.initials}</AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm">
-                <span className="font-medium">{n.pet}</span>
+                <span className="font-semibold">{n.pet}</span>
                 <span className="text-muted-foreground"> · {n.owner}</span>
               </p>
-              <p className="truncate text-xs text-muted-foreground">
+              <p className="truncate text-sm text-muted-foreground">
                 « {n.note} »
               </p>
             </div>
@@ -528,7 +297,7 @@ function NewsCard() {
                     list.map((i) => (i.id === n.id ? { ...i, sent: true } : i))
                   )
                 }
-                size="xs"
+                size="sm"
                 variant="outline"
               >
                 <HugeiconsIcon icon={Camera01Icon} />
@@ -542,9 +311,59 @@ function NewsCard() {
   )
 }
 
+const cleaning = [
+  {
+    detail: "Après le départ de Caramel",
+    done: false,
+    id: "b5",
+    label: "Désinfecter le box 5",
+    time: 8.5,
+  },
+  {
+    detail: "Après le départ de Pixel",
+    done: false,
+    id: "b14",
+    label: "Désinfecter le box 14",
+    time: 10.5,
+  },
+  {
+    detail: "Couverture et gamelles, avant l'arrivée de Gaïa",
+    done: true,
+    id: "b9",
+    label: "Préparer le box 9",
+    time: 11,
+  },
+  {
+    detail: "Avant l'arrivée de Tango",
+    done: false,
+    id: "b12",
+    label: "Préparer le box 12",
+    time: 13.5,
+  },
+  {
+    detail: "Litière neuve avant l'arrivée de Mochi",
+    done: false,
+    id: "c3",
+    label: "Préparer la chatterie 3",
+    time: 17,
+  },
+]
+
+const filters = [
+  { label: "Arrivées & départs", value: "moves" },
+  { label: "Soins", value: "care" },
+  { label: "Repas", value: "meals" },
+  { label: "Sorties", value: "outings" },
+  { label: "Ménage", value: "cleaning" },
+]
+
 export function PensionTodayView() {
   const [kennels, setKennels] = useState(initialKennels)
   const [movements, setMovements] = useState(stayMovements)
+  const [meals, setMeals] = useState(initialMeals)
+  const [done, setDone] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries([...careTasks, ...cleaning].map((t) => [t.id, t.done]))
+  )
   const [flowId, setFlowId] = useState<string | null>(null)
   const [flowOpen, setFlowOpen] = useState(false)
   const present = kennels.filter(isPresent).length
@@ -553,8 +372,13 @@ export function PensionTodayView() {
   const doneOf = (type: StayMovement["type"]) =>
     count(type).filter((m) => m.status === "done").length
   const late = movements.filter((m) => m.status === "late").length
-  const nextMove = movements.find((m) => m.status !== "done")
-  const pendingCare = careTasks.filter((t) => !t.done)
+  const pendingCare = careTasks.filter((t) => !done[t.id])
+  const diets = kennels.filter((k) => k.diet && k.status !== "free")
+  const toggle = (id: string) => setDone((d) => ({ ...d, [id]: true }))
+  const openFlow = (m: StayMovement) => {
+    setFlowId(m.id)
+    setFlowOpen(true)
+  }
 
   const complete = (movement: StayMovement) => {
     const status: KennelStatus =
@@ -563,23 +387,100 @@ export function PensionTodayView() {
     setMovements((list) =>
       list.map((m) => (m.id === movement.id ? { ...m, status: "done" } : m))
     )
-    setKennels((list) =>
-      list.map((k) =>
-        k.id === id
-          ? {
-              ...k,
-              status,
-            }
-          : k
-      )
-    )
+    setKennels((list) => list.map((k) => (k.id === id ? { ...k, status } : k)))
   }
+
+  const items: TimelineItem[] = [
+    ...movements.map((m) => {
+      const arrival = m.type === "arrival"
+      return {
+        action: {
+          label: arrival ? "Enregistrer l'arrivée" : "Valider le départ",
+          onClick: () => openFlow(m),
+        },
+        detail: [
+          m.kennel,
+          m.owner,
+          arrival
+            ? m.checks?.join(", ")
+            : m.balance
+              ? `reste ${formatAmount(m.balance)} à régler`
+              : undefined,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+        done: m.status === "done",
+        icon: arrival ? Login03Icon : Logout03Icon,
+        id: m.id,
+        kind: "moves",
+        late: m.status === "late",
+        time: hourOf(m.time),
+        title: `${arrival ? "Arrivée" : "Départ"} de ${m.pet}`,
+        tone: "bg-pension text-pension-foreground",
+      }
+    }),
+    ...careTasks.map((t) => ({
+      action: { label: "C'est fait", onClick: () => toggle(t.id) },
+      detail: `${t.task} · ${t.box}`,
+      done: done[t.id],
+      icon: MedicineBottle01Icon,
+      id: t.id,
+      kind: "care",
+      time: hourOf(t.time),
+      title: `Soin de ${t.pet}`,
+      tone: "bg-wise-pink text-wise-purple",
+    })),
+    ...meals.map((meal) => ({
+      action: {
+        label: "Repas servi",
+        onClick: () =>
+          setMeals((list) =>
+            list.map((m) => (m.id === meal.id ? { ...m, served: m.total } : m))
+          ),
+      },
+      detail: `${meal.total} gamelles${diets.length ? ` · régimes : ${diets.map((k) => k.pet).join(", ")}` : ""}`,
+      done: meal.served === meal.total,
+      icon: Restaurant01Icon,
+      id: meal.id,
+      kind: "meals",
+      time: meal.start,
+      title: `Repas du ${meal.label.toLowerCase()}`,
+      tone: "bg-wise-yellow text-wise-gold",
+    })),
+    ...outings.map((o) => ({
+      detail: `${o.place} · ${o.pets.join(", ")}`,
+      done: o.end <= NOW,
+      icon: WalkingIcon,
+      id: o.id,
+      kind: "outings",
+      time: o.start,
+      title: o.label,
+      tone: "bg-wise-green text-wise-forest",
+    })),
+    ...cleaning.map((c) => ({
+      action: { label: "C'est fait", onClick: () => toggle(c.id) },
+      detail: c.detail,
+      done: done[c.id],
+      icon: CleaningBucketIcon,
+      id: c.id,
+      kind: "cleaning",
+      time: c.time,
+      title: c.label,
+      tone: "bg-wise-blue text-wise-charcoal",
+    })),
+  ]
+  const now = items
+    .filter((i) => !i.done && i.action)
+    .sort(
+      (a, b) => Number(b.late ?? 0) - Number(a.late ?? 0) || a.time - b.time
+    )[0]
+  const nowMove = movements.find((m) => m.id === now?.id)
 
   return (
     <ActivityDayPage
       actions={
         <>
-          <Button className="max-sm:hidden" size="sm" variant="outline">
+          <Button className="max-sm:hidden" variant="outline">
             <HugeiconsIcon icon={PrinterIcon} />
             Feuille de soins
           </Button>
@@ -595,40 +496,61 @@ export function PensionTodayView() {
       }
       activity="Pension"
       aside={
-        <div className="flex items-center gap-2 rounded-full border py-1 ps-1 pe-3 text-sm">
-          <Avatar className="size-6">
-            <AvatarFallback className="text-[0.625rem]">CL</AvatarFallback>
+        <div className="flex h-10 items-center gap-2 rounded-full bg-muted ps-1 pe-4 text-sm font-semibold">
+          <Avatar className="size-8">
+            <AvatarFallback className="bg-background text-xs">
+              CL
+            </AvatarFallback>
           </Avatar>
           Claire
-          <span className="text-muted-foreground">· de garde 7h – 15h</span>
+          <span className="font-normal text-muted-foreground">
+            · de garde 7h – 15h
+          </span>
         </div>
       }
       summary={
         <>
           {present} pensionnaires, {count("arrival").length} arrivées et{" "}
           {count("departure").length} départs prévus.
-          {nextMove &&
-            ` Prochain mouvement : ${nextMove.pet} à ${nextMove.time.replace(":", "h")}.`}
         </>
       }
     >
-      <Alert variant="warning">
-        <HugeiconsIcon icon={Alert02Icon} />
-        <AlertTitle>Pixel attend toujours sa propriétaire</AlertTitle>
-        <AlertDescription>
-          Départ prévu à 10h, Nina Robert n&apos;a pas donné de nouvelles. Gaïa
-          arrive à 11h30 pour son premier séjour : pensez à vérifier son carnet
-          de vaccination.
-        </AlertDescription>
-        <AlertAction>
-          <Button size="xs" variant="outline">
-            <HugeiconsIcon icon={Call02Icon} />
-            Appeler Nina
-          </Button>
-        </AlertAction>
-      </Alert>
+      {now && (
+        <NowCard
+          actions={
+            <>
+              {nowMove?.status === "late" && (
+                <Button size="lg" variant="secondary">
+                  <HugeiconsIcon icon={Call02Icon} />
+                  Appeler {nowMove.owner.split(" ")[0]}
+                </Button>
+              )}
+              <Button onClick={now.action?.onClick} size="lg">
+                {now.action?.label}
+              </Button>
+            </>
+          }
+          detail={now.detail}
+          eyebrow={
+            now.late
+              ? `En retard · prévu à ${formatHour(now.time)}`
+              : `À faire maintenant · ${formatHour(now.time)}`
+          }
+          media={
+            <span
+              className={cn(
+                "flex size-14 shrink-0 items-center justify-center rounded-full",
+                now.late ? "bg-destructive-soft text-destructive" : now.tone
+              )}
+            >
+              <HugeiconsIcon className="size-7" icon={now.icon} />
+            </span>
+          }
+          title={now.title}
+        />
+      )}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Kpi
           icon={BedDoubleIcon}
           label="Pensionnaires"
@@ -676,86 +598,32 @@ export function PensionTodayView() {
           label="Soins à faire"
           value={pendingCare.length}
         >
-          Prochain à {pendingCare[0]?.time.replace(":", "h")} ·{" "}
-          {pendingCare[0]?.pet}
+          {pendingCare[0]
+            ? `Prochain à ${pendingCare[0].time.replace(":", "h")} · ${pendingCare[0].pet}`
+            : "Tous faits"}
         </Kpi>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <KennelMap className="lg:col-span-2" kennels={kennels} />
-        <MovementsCard
-          movements={movements}
-          onComplete={(m) => {
-            setFlowId(m.id)
-            setFlowOpen(true)
-          }}
-        />
-        <CheckFlow
-          movement={movements.find((m) => m.id === flowId) ?? null}
-          onComplete={complete}
-          onOpenChange={setFlowOpen}
-          open={flowOpen}
-        />
+      <div className="grid items-start gap-6 lg:grid-cols-3">
+        <Widget
+          className="lg:col-span-2"
+          description="Tout ce qui est prévu aujourd'hui, dans l'ordre"
+          title="Programme de la journée"
+        >
+          <Timeline filters={filters} items={items} />
+        </Widget>
+        <div className="space-y-6">
+          <KennelMap kennels={kennels} />
+          <NewsCard />
+        </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <MealsCard kennels={kennels} />
-        <ChecklistWidget
-          barClassName="bg-pension-strong"
-          items={careTasks.map((t) => ({
-            detail: `${t.time} · ${t.box}`,
-            done: t.done,
-            id: t.id,
-            label: (
-              <>
-                <span className="font-medium">{t.pet}</span> · {t.task}
-              </>
-            ),
-          }))}
-          title="Soins & traitements"
-        />
-        <OutingsCard />
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <NewsCard />
-        <ChecklistWidget
-          barClassName="bg-sky-600"
-          items={[
-            {
-              detail: "Après le départ de Caramel",
-              done: false,
-              id: "b5",
-              label: "Désinfecter le box 5",
-            },
-            {
-              detail: "Avant 11h30 · couverture et gamelles",
-              done: true,
-              id: "b9",
-              label: "Préparer le box 9 pour Gaïa",
-            },
-            {
-              detail: "Avant 14h",
-              done: false,
-              id: "b12",
-              label: "Préparer le box 12 pour Tango",
-            },
-            {
-              detail: "Après le départ de Pixel",
-              done: false,
-              id: "b14",
-              label: "Désinfecter le box 14",
-            },
-            {
-              detail: "Litière neuve avant 17h30",
-              done: false,
-              id: "c3",
-              label: "Préparer la chatterie 3 pour Mochi",
-            },
-          ]}
-          title="Ménage des box"
-        />
-      </div>
+      <CheckFlow
+        movement={movements.find((m) => m.id === flowId) ?? null}
+        onComplete={complete}
+        onOpenChange={setFlowOpen}
+        open={flowOpen}
+      />
     </ActivityDayPage>
   )
 }

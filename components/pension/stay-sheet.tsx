@@ -54,7 +54,7 @@ export const stayStatusMeta: Record<
     variant: "success",
   },
   pending: {
-    bar: "border border-dashed border-amber-500 bg-amber-500/15 text-amber-800 dark:text-amber-300",
+    bar: "border border-dashed border-warning bg-warning-soft text-warning-foreground",
     label: "À confirmer",
     variant: "warning",
   },
@@ -67,8 +67,8 @@ export const stayStatusMeta: Record<
 
 export const paymentMeta: Record<StayPayment, { label: string; dot: string }> =
   {
-    deposit: { dot: "bg-sky-500", label: "Acompte versé" },
-    due: { dot: "bg-amber-500", label: "À régler" },
+    deposit: { dot: "bg-info", label: "Acompte versé" },
+    due: { dot: "bg-warning", label: "À régler" },
     paid: { dot: "bg-success", label: "Soldé" },
   }
 
@@ -114,7 +114,7 @@ export function StaySheet({
                 <Badge variant={stayStatusMeta[stay.status].variant}>
                   {stayStatusMeta[stay.status].label}
                 </Badge>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-sm text-muted-foreground">
                   {kennelLabel(stay.kennelId)}
                 </span>
               </div>
@@ -167,7 +167,7 @@ export function StaySheet({
                       </dd>
                     </div>
                   ))}
-                  <div className="flex justify-between gap-4 px-4 py-2 font-medium">
+                  <div className="flex justify-between gap-4 px-4 py-2 font-semibold">
                     <dt>Total</dt>
                     <dd className="tabular-nums">
                       {formatAmount(stayAmount(stay))}
@@ -207,7 +207,7 @@ export function StaySheet({
                       .map((day, i) => (
                         <li className="relative text-sm" key={day}>
                           <span className="absolute start-[calc(-1rem-4.5px)] top-1.5 size-2 rounded-full bg-pension-strong" />
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-sm text-muted-foreground">
                             {relativeDate(day)}
                           </p>
                           <p>
@@ -266,21 +266,21 @@ function StayDates({ stay }: { stay: Stay }) {
     <div className="space-y-3 rounded-xl border p-4">
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
         <div>
-          <p className="flex items-center gap-1 text-xs text-muted-foreground">
+          <p className="flex items-center gap-1 text-sm text-muted-foreground">
             <HugeiconsIcon className="size-3.5" icon={Login03Icon} />
             Arrivée
           </p>
-          <p className="text-sm font-medium">{shortDate(stay.arrival)}</p>
+          <p className="text-sm font-semibold">{shortDate(stay.arrival)}</p>
         </div>
         <Badge variant="outline">
           {nights} nuit{nights > 1 && "s"}
         </Badge>
         <div className="text-end">
-          <p className="flex items-center justify-end gap-1 text-xs text-muted-foreground">
+          <p className="flex items-center justify-end gap-1 text-sm text-muted-foreground">
             Départ
             <HugeiconsIcon className="size-3.5" icon={Logout03Icon} />
           </p>
-          <p className="text-sm font-medium">{shortDate(stay.departure)}</p>
+          <p className="text-sm font-semibold">{shortDate(stay.departure)}</p>
         </div>
       </div>
       {stay.status === "ongoing" && (
@@ -290,7 +290,7 @@ function StayDates({ stay }: { stay: Stay }) {
             label="Avancement du séjour"
             value={(elapsed / nights) * 100}
           />
-          <p className="text-xs text-muted-foreground">{label}</p>
+          <p className="text-sm text-muted-foreground">{label}</p>
         </div>
       )}
       {stay.options.length > 0 && (
@@ -308,7 +308,7 @@ function StayDates({ stay }: { stay: Stay }) {
 
 function SectionTitle({ children }: { children: ReactNode }) {
   return (
-    <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+    <h3 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
       {children}
     </h3>
   )

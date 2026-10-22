@@ -18,7 +18,8 @@ export type Booking = {
   status: BookingStatus
 }
 
-export type BookingEvent = "created" | "confirmed" | "started" | "shared"
+export type BookingEvent =
+  "created" | "confirmed" | "declined" | "started" | "shared"
 
 export type Message = {
   kind: "message"

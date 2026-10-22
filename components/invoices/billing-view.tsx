@@ -35,10 +35,8 @@ import {
   Widget,
 } from "@/components/today/widgets"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { CardFrame } from "@/components/ui/card"
 import {
   Empty,
   EmptyDescription,
@@ -65,15 +63,6 @@ import {
   SheetPopup,
   SheetTitle,
 } from "@/components/ui/sheet"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableFooter,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { Tabs, TabsList, TabsTab } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 
@@ -90,9 +79,9 @@ const statusMeta: Record<
     label: "Brouillon",
     variant: "secondary",
   },
-  overdue: { dot: "bg-red-500", label: "En retard", variant: "error" },
+  overdue: { dot: "bg-destructive", label: "En retard", variant: "error" },
   paid: { dot: "bg-success", label: "Payée", variant: "success" },
-  pending: { dot: "bg-amber-500", label: "À encaisser", variant: "warning" },
+  pending: { dot: "bg-warning", label: "À encaisser", variant: "warning" },
 }
 
 const prefixes: Record<Activity, string> = {
@@ -163,8 +152,8 @@ export function RevenueChart({ activities }: { activities: Activity[] }) {
             </div>
             <span
               className={cn(
-                "text-xs text-muted-foreground",
-                current && "font-medium text-foreground"
+                "text-sm text-muted-foreground",
+                current && "font-semibold text-foreground"
               )}
             >
               {m.label}
@@ -201,7 +190,7 @@ function InvoiceSheet({
                 <Badge variant={statusMeta[invoice.status].variant}>
                   {statusMeta[invoice.status].label}
                 </Badge>
-                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
                   <ActivityMark
                     activity={invoice.activity}
                     className="size-4 text-[0.5rem]"
@@ -231,35 +220,35 @@ function InvoiceSheet({
               <div className="space-y-5 rounded-xl border bg-card p-5 shadow-xs/5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-center gap-2">
-                    <span className="flex size-8 items-center justify-center rounded-md bg-pension text-pension-foreground text-xs font-semibold">
+                    <span className="flex size-8 items-center justify-center rounded-md bg-pension text-sm font-semibold text-pension-foreground">
                       LC
                     </span>
-                    <div className="text-xs">
-                      <p className="font-medium">Les Coteaux</p>
+                    <div className="text-sm">
+                      <p className="font-semibold">Les Coteaux</p>
                       <p className="text-muted-foreground">
                         12 chemin des Coteaux · 33500 Libourne
                       </p>
                     </div>
                   </div>
-                  <div className="text-end text-xs">
-                    <p className="font-medium">{invoice.number}</p>
+                  <div className="text-end text-sm">
+                    <p className="font-semibold">{invoice.number}</p>
                     <p className="text-muted-foreground">
                       Émise le {shortDate(invoice.issued)}
                     </p>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4 text-xs">
+                <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <p className="text-muted-foreground">Facturé à</p>
-                    <p className="font-medium">{invoice.client}</p>
+                    <p className="font-semibold">{invoice.client}</p>
                     <p className="text-muted-foreground">{invoice.detail}</p>
                   </div>
                   <div className="text-end">
                     <p className="text-muted-foreground">Échéance</p>
-                    <p className="font-medium">{shortDate(invoice.due)}</p>
+                    <p className="font-semibold">{shortDate(invoice.due)}</p>
                   </div>
                 </div>
-                <table className="w-full text-xs">
+                <table className="w-full text-sm">
                   <thead className="text-muted-foreground">
                     <tr className="border-b">
                       <th className="pb-2 text-start font-normal">
@@ -283,7 +272,7 @@ function InvoiceSheet({
                     ))}
                   </tbody>
                 </table>
-                <dl className="ms-auto w-48 space-y-1 text-xs">
+                <dl className="ms-auto w-48 space-y-1 text-sm">
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">Total HT</dt>
                     <dd className="tabular-nums">
@@ -302,7 +291,7 @@ function InvoiceSheet({
                   </div>
                 </dl>
                 {invoice.status === "paid" && (
-                  <p className="flex items-center gap-1.5 text-xs text-pension-strong">
+                  <p className="flex items-center gap-1.5 text-sm text-pension-strong">
                     <HugeiconsIcon className="size-3.5" icon={Tick02Icon} />
                     Réglée par{" "}
                     {invoice.method?.toLowerCase() ?? "carte bancaire"}
@@ -475,7 +464,7 @@ export function BillingView() {
           <RevenueChart activities={chartActivities} />
           <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 border-t pt-3">
             {chartActivities.map((name) => (
-              <span className="flex items-center gap-2 text-xs" key={name}>
+              <span className="flex items-center gap-2 text-sm" key={name}>
                 <span
                   className={cn(
                     "size-2 rounded-full",
@@ -483,7 +472,7 @@ export function BillingView() {
                   )}
                 />
                 <span className="text-muted-foreground">{name}</span>
-                <span className="font-medium tabular-nums">
+                <span className="font-semibold tabular-nums">
                   {formatAmount(invoiceBooks[name].months[5].amount)}
                 </span>
               </span>
@@ -498,33 +487,33 @@ export function BillingView() {
           ) : (
             <ul className="space-y-3">
               {of("overdue").map((i) => (
-                <li className="space-y-2 rounded-lg border p-3" key={i.id}>
+                <li className="space-y-2 rounded-xl border p-3" key={i.id}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="flex items-center gap-1.5 truncate text-sm font-medium">
+                      <p className="flex items-center gap-1.5 truncate text-sm font-semibold">
                         <ActivityMark
                           activity={i.activity}
                           className="size-4 text-[0.5rem]"
                         />
                         {i.client}
                       </p>
-                      <p className="truncate text-xs text-muted-foreground">
+                      <p className="truncate text-sm text-muted-foreground">
                         {i.number} · {TODAY - i.due} jours de retard
                       </p>
                     </div>
-                    <span className="text-sm font-medium tabular-nums">
+                    <span className="text-sm font-semibold tabular-nums">
                       {formatAmount(invoiceTotal(i))}
                     </span>
                   </div>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-sm text-muted-foreground">
                       {i.reminders
                         ? `${i.reminders} relance${i.reminders > 1 ? "s" : ""}`
                         : "Jamais relancée"}
                     </span>
                     <Button
                       onClick={() => remind(i.id)}
-                      size="xs"
+                      size="sm"
                       variant="outline"
                     >
                       <HugeiconsIcon icon={MailSend01Icon} />
@@ -577,136 +566,105 @@ export function BillingView() {
           </EmptyHeader>
         </Empty>
       ) : (
-        <CardFrame className="overflow-x-auto">
-          <Table variant="card">
-            <TableHeader>
-              <TableRow>
-                <TableHead>Facture</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead className="max-md:hidden">Activité</TableHead>
-                <TableHead>Échéance</TableHead>
-                <TableHead className="text-end">Montant</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead className="w-10" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((i) => (
-                <TableRow
-                  className="cursor-pointer"
-                  key={i.id}
+        <div className="space-y-2">
+          <ul className="-mx-3">
+            {rows.map((i) => (
+              <li
+                className="flex items-center gap-4 rounded-2xl p-3 transition-colors hover:bg-accent"
+                key={i.id}
+              >
+                <button
+                  className="flex min-w-0 flex-1 items-center gap-4 text-start"
                   onClick={() => {
                     setOpenId(i.id)
                     setSheetOpen(true)
                   }}
+                  type="button"
                 >
-                  <TableCell>
-                    <p className="font-medium">{i.subject}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {i.number} · {shortDate(i.issued)}
-                    </p>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Avatar className="size-7">
-                        <AvatarFallback className="text-[0.625rem]">
-                          {initials(i.client)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p>{i.client}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {i.detail}
-                        </p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="max-md:hidden">
-                    <div className="flex items-center gap-2">
-                      <ActivityMark activity={i.activity} />
-                      <div>
-                        <p>{i.activity}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {i.extra}
-                        </p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell
-                    className={cn(
-                      i.status === "overdue"
-                        ? "text-destructive-foreground"
-                        : "text-muted-foreground"
-                    )}
-                  >
-                    {i.status === "paid" ? "—" : shortDate(i.due)}
-                  </TableCell>
-                  <TableCell className="text-end font-medium tabular-nums">
-                    {formatAmount(invoiceTotal(i))}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">
+                  <span className="relative shrink-0">
+                    <span className="flex size-12 items-center justify-center rounded-full bg-muted text-sm font-semibold">
+                      {initials(i.client)}
+                    </span>
+                    <ActivityMark
+                      activity={i.activity}
+                      className="absolute -end-1 -bottom-1 size-5 text-[0.625rem] ring-2 ring-background"
+                    />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-semibold">
+                      {i.client}
+                    </span>
+                    <span className="block truncate text-sm text-muted-foreground">
+                      {i.subject} · {i.number}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-end">
+                    <span className="block font-semibold tabular-nums">
+                      {formatAmount(invoiceTotal(i))}
+                    </span>
+                    <span
+                      className={cn(
+                        "flex items-center justify-end gap-1.5 text-sm",
+                        i.status === "overdue"
+                          ? "font-semibold text-destructive-foreground"
+                          : "text-muted-foreground"
+                      )}
+                    >
                       <span
                         className={cn(
-                          "size-1.5 rounded-full",
+                          "size-2 rounded-full",
                           statusMeta[i.status].dot
                         )}
                       />
                       {statusMeta[i.status].label}
-                    </Badge>
-                  </TableCell>
-                  <TableCell onClick={(e) => e.stopPropagation()}>
-                    <Menu>
-                      <MenuTrigger
-                        render={
-                          <Button
-                            aria-label="Actions"
-                            size="icon-xs"
-                            variant="ghost"
-                          />
-                        }
-                      >
-                        <HugeiconsIcon icon={MoreHorizontalIcon} />
-                      </MenuTrigger>
-                      <MenuPopup align="end">
-                        <MenuItem>
-                          <HugeiconsIcon icon={Download04Icon} />
-                          Télécharger le PDF
+                      {i.status !== "paid" && ` · ${shortDate(i.due)}`}
+                    </span>
+                  </span>
+                </button>
+                <Menu>
+                  <MenuTrigger
+                    render={
+                      <Button
+                        aria-label="Actions"
+                        size="icon-sm"
+                        variant="ghost"
+                      />
+                    }
+                  >
+                    <HugeiconsIcon icon={MoreHorizontalIcon} />
+                  </MenuTrigger>
+                  <MenuPopup align="end">
+                    <MenuItem>
+                      <HugeiconsIcon icon={Download04Icon} />
+                      Télécharger le PDF
+                    </MenuItem>
+                    {i.status !== "paid" && (
+                      <MenuItem onClick={() => remind(i.id)}>
+                        <HugeiconsIcon icon={MailSend01Icon} />
+                        {i.status === "draft" ? "Émettre" : "Relancer"}
+                      </MenuItem>
+                    )}
+                    {(i.status === "pending" || i.status === "overdue") && (
+                      <>
+                        <MenuSeparator />
+                        <MenuItem onClick={() => markPaid(i.id)}>
+                          <HugeiconsIcon icon={Tick02Icon} />
+                          Marquer payée
                         </MenuItem>
-                        {i.status !== "paid" && (
-                          <MenuItem onClick={() => remind(i.id)}>
-                            <HugeiconsIcon icon={MailSend01Icon} />
-                            {i.status === "draft" ? "Émettre" : "Relancer"}
-                          </MenuItem>
-                        )}
-                        {(i.status === "pending" || i.status === "overdue") && (
-                          <>
-                            <MenuSeparator />
-                            <MenuItem onClick={() => markPaid(i.id)}>
-                              <HugeiconsIcon icon={Tick02Icon} />
-                              Marquer payée
-                            </MenuItem>
-                          </>
-                        )}
-                      </MenuPopup>
-                    </Menu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-            <TableFooter>
-              <TableRow>
-                <TableCell colSpan={4}>
-                  {rows.length} facture{rows.length > 1 && "s"}
-                </TableCell>
-                <TableCell className="text-end tabular-nums">
-                  {formatAmount(sumOf(rows))}
-                </TableCell>
-                <TableCell colSpan={2} />
-              </TableRow>
-            </TableFooter>
-          </Table>
-        </CardFrame>
+                      </>
+                    )}
+                  </MenuPopup>
+                </Menu>
+              </li>
+            ))}
+          </ul>
+          <p className="flex justify-between border-t pt-4 font-semibold">
+            <span>
+              {rows.length} facture{rows.length > 1 && "s"}
+            </span>
+            <span className="tabular-nums">{formatAmount(sumOf(rows))}</span>
+          </p>
+        </div>
       )}
 
       <InvoiceSheet

@@ -56,7 +56,7 @@ export function ActivityTag({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full bg-muted px-1.5 py-0.5 text-xs font-medium text-foreground",
+        "inline-flex items-center gap-1 rounded-full bg-muted px-1.5 py-0.5 text-xs font-semibold text-foreground",
         className
       )}
     >
@@ -331,7 +331,7 @@ export function ServiceForm({
         <div className="divide-y rounded-xl border">
           <Label className="flex items-center gap-3 px-3 py-2.5 font-normal">
             <span className="flex-1">
-              <span className="block text-sm font-medium">
+              <span className="block text-sm font-semibold">
                 Se place dans l&apos;agenda
               </span>
               <span className="text-xs text-muted-foreground">
@@ -343,7 +343,7 @@ export function ServiceForm({
           {forced === undefined && (
             <Label className="flex items-center gap-3 px-3 py-2.5 font-normal">
               <span className="flex-1">
-                <span className="block text-sm font-medium">
+                <span className="block text-sm font-semibold">
                   Prix selon taille, poil et race
                 </span>
                 <span className="text-xs text-muted-foreground">
@@ -355,7 +355,7 @@ export function ServiceForm({
           )}
           <Label className="flex items-center gap-3 px-3 py-2.5 font-normal">
             <span className="flex-1">
-              <span className="block text-sm font-medium">Forfait</span>
+              <span className="block text-sm font-semibold">Forfait</span>
               <span className="text-xs text-muted-foreground">
                 Regroupe plusieurs prestations, avec son propre prix
               </span>
@@ -397,7 +397,7 @@ export function ServiceForm({
         </div>
         <div className="space-y-2">
           <div>
-            <p className="text-sm font-medium">Grille de prix par animal</p>
+            <p className="text-sm font-semibold">Grille de prix par animal</p>
             <p className="text-xs text-muted-foreground">
               La ligne la plus précise l&apos;emporte. Sans ligne pour un
               animal, la prestation ne lui est pas proposée.
@@ -429,17 +429,23 @@ export function ServiceDialog({
   owner,
   detailed,
   onSaved,
+  open: controlled,
+  onOpenChange,
 }: {
-  trigger: ReactElement
+  trigger?: ReactElement
   service?: Service
   owner?: string
   detailed?: boolean
   onSaved?: (service: Service) => void
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }) {
-  const [open, setOpen] = useState(false)
+  const [local, setLocal] = useState(false)
+  const open = controlled ?? local
+  const setOpen = onOpenChange ?? setLocal
   return (
     <Dialog onOpenChange={setOpen} open={open}>
-      <DialogTrigger render={trigger} />
+      {trigger && <DialogTrigger render={trigger} />}
       <DialogPopup className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

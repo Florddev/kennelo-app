@@ -52,7 +52,7 @@ export function CardFrameHeader({
 }: useRender.ComponentProps<"div">): React.ReactElement {
   const defaultProps = {
     className: cn(
-      "relative flex grid auto-rows-min grid-rows-[auto_auto] flex-col items-start gap-x-4 px-6 py-4 has-data-[slot=card-frame-action]:grid-cols-[1fr_auto]",
+      "relative flex grid auto-rows-min grid-rows-[auto_auto] flex-col items-start gap-x-4 px-5 py-4 has-data-[slot=card-frame-action]:grid-cols-[1fr_auto]",
       className,
     ),
     "data-slot": "card-frame-header",
@@ -71,7 +71,7 @@ export function CardFrameTitle({
   ...props
 }: useRender.ComponentProps<"div">): React.ReactElement {
   const defaultProps = {
-    className: cn("self-center font-semibold text-sm", className),
+    className: cn("self-center font-heading font-semibold text-lg", className),
     "data-slot": "card-frame-title",
   };
 

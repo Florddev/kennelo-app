@@ -3,7 +3,7 @@
 import { Delete02Icon, PlusSignIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import Link from "next/link"
-import { useState } from "react"
+import { type ReactNode, useState } from "react"
 import {
   PeriodDialog,
   PeriodDot,
@@ -40,6 +40,7 @@ import {
   SettingsPage,
   SettingsRow,
   SettingsSection,
+  SwitchRow,
 } from "@/components/settings/settings-ui"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
@@ -69,7 +70,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Switch } from "@/components/ui/switch"
 import { cn } from "@/lib/utils"
 
 const unitOf = (activity?: CatalogActivity) =>
@@ -79,7 +79,7 @@ const NewSeason = ({ onSaved }: { onSaved?: (p: Period) => void }) => (
   <PeriodDialog
     onSaved={onSaved}
     trigger={
-      <Button size="sm" variant="ghost">
+      <Button variant="ghost">
         <HugeiconsIcon icon={PlusSignIcon} />
         Nouvelle saison
       </Button>
@@ -131,7 +131,7 @@ export function PlaceTypes({ activityId }: { activityId: string }) {
         <PlaceDialog
           activityId={activityId}
           trigger={
-            <Button size="sm" variant="ghost">
+            <Button variant="ghost">
               <HugeiconsIcon icon={PlusSignIcon} />
               Ajouter
             </Button>
@@ -150,11 +150,7 @@ export function PlaceTypes({ activityId }: { activityId: string }) {
           <PlaceDialog
             activityId={activityId}
             place={place}
-            trigger={
-              <Button size="sm" variant="ghost">
-                Modifier
-              </Button>
-            }
+            trigger={<Button variant="ghost">Modifier</Button>}
           />
         </SettingsRow>
       ))}
@@ -179,15 +175,7 @@ const dayNames = [
   "dimanche",
 ]
 
-const closedText = (closed: number[]) =>
-  closed.length ? `Fermé le ${closed.map((d) => dayNames[d]).join(", ")}` : ""
-
-const percentText = (percent: number) =>
-  percent === 0
-    ? "Mêmes prix que d'habitude"
-    : `${Math.abs(percent)} % ${percent > 0 ? "plus cher" : "moins cher"} que d'habitude`
-
-/** Prix des places : les prix habituels, puis une carte par saison. */
+/** Prix des places : on choisit une période, on voit ses prix, on les modifie. */
 export function PlacePrices({ activityId }: { activityId: string }) {
   const catalog = useCatalog()
   const activity = catalog.activities.find((a) => a.id === activityId)
@@ -200,191 +188,200 @@ export function PlacePrices({ activityId }: { activityId: string }) {
   const rateOf = (p: Period) => rates.find((r) => r.periodId === p.id)
   const base = catalog.periods.find((p) => p.base)!
   const baseRate = rateOf(base)
-  const seasons = catalog.periods.filter((p) => !p.base && rateOf(p))
+  const periods = [base, ...catalog.periods.filter((p) => !p.base && rateOf(p))]
   const available = catalog.periods.filter((p) => !p.base && !rateOf(p))
-  const minStay = (n: number) =>
-    `Séjour minimum : ${n} ${unit}${n > 1 ? "s" : ""}`
+  const [selectedId, setSelectedId] = useState(base.id)
+  const selected = periods.find((p) => p.id === selectedId) ?? base
+  const rate = rateOf(selected)
+  const percent = rate?.percent
+  const units = (n: number) => `${n} ${unit}${n > 1 ? "s" : ""}`
 
-  const addSeason = available.length ? (
-    <Menu>
-      <MenuTrigger
-        render={
-          <Button size="sm" variant="ghost">
-            <HugeiconsIcon icon={PlusSignIcon} />
-            Ajouter une saison
-          </Button>
-        }
-      />
-      <MenuPopup align="end">
-        {available.map((p) => (
-          <MenuItem key={p.id} onClick={() => setEditing(p)}>
-            <PeriodDot period={p} />
-            {p.name}
-            <span className="ms-auto ps-4 text-xs text-muted-foreground">
-              {periodDates(p)}
-            </span>
-          </MenuItem>
-        ))}
-        <MenuSeparator />
-        <MenuItem onClick={() => setCreating(true)}>
-          <HugeiconsIcon icon={PlusSignIcon} />
-          Créer une nouvelle saison
-        </MenuItem>
-      </MenuPopup>
-    </Menu>
-  ) : (
-    <Button onClick={() => setCreating(true)} size="sm" variant="ghost">
+  /** Prix d'une place : saisis pour la période, ou les habituels majorés. */
+  const priceOf = (place: string) => {
+    const source =
+      percent !== undefined ? baseRate?.places[place] : rate?.places[place]
+    if (!source) return null
+    return {
+      detail: [
+        ...Object.entries(source.days).map(
+          ([d, price]) =>
+            `${euros(adjusted(price, percent ?? 0))} le ${dayNames[Number(d)]}`
+        ),
+        source.extra > 0 && `+${euros(source.extra)} par animal en plus`,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      price: adjusted(source.price, percent ?? 0),
+    }
+  }
+
+  const sentence = selected.base
+    ? "Vos prix de tous les jours. Ils s'appliquent toute l'année, sauf pendant vos saisons."
+    : `${periodDates(selected)}. ${
+        percent === undefined
+          ? "Des prix choisis pour cette période."
+          : percent === 0
+            ? "Les mêmes prix que d'habitude."
+            : `Vos prix sont ${Math.abs(percent)} % ${percent > 0 ? "plus chers" : "moins chers"} que d'habitude.`
+      }`
+
+  const chip =
+    "flex h-10 shrink-0 items-center gap-2 rounded-full px-4 font-semibold transition-colors"
+  const addClass = cn(chip, "border-2 border-dashed")
+  const addLabel = (
+    <>
       <HugeiconsIcon icon={PlusSignIcon} />
-      Ajouter une saison
-    </Button>
+      Ajouter une période
+    </>
   )
 
   return (
     <>
       <SettingsSection
-        action={
-          <Button onClick={() => setEditing(base)} size="sm" variant="ghost">
-            Modifier
-          </Button>
-        }
-        description="Toute l'année, quand aucune saison ne s'applique"
-        title="Prix habituels"
+        description="Choisissez une période pour voir ses prix"
+        title={`Vos prix par ${unit}`}
       >
-        {!baseRate?.active && (
-          <div className="px-4 py-3">
+        <div className="space-y-4 px-5 pt-5 pb-4">
+          <div className="-mx-5 flex gap-2 overflow-x-auto px-5">
+            {periods.map((p) => (
+              <button
+                aria-pressed={p.id === selected.id}
+                className={cn(
+                  chip,
+                  p.id === selected.id
+                    ? "bg-control text-control-foreground"
+                    : "bg-secondary text-secondary-foreground hover:bg-neutral-hover"
+                )}
+                key={p.id}
+                onClick={() => setSelectedId(p.id)}
+                type="button"
+              >
+                <PeriodDot className="size-3" period={p} />
+                {p.base ? "Toute l'année" : p.name}
+              </button>
+            ))}
+            {available.length ? (
+              <Menu>
+                <MenuTrigger
+                  render={<Button className={addClass} variant="ghost" />}
+                >
+                  {addLabel}
+                </MenuTrigger>
+                <MenuPopup align="start">
+                  {available.map((p) => (
+                    <MenuItem key={p.id} onClick={() => setEditing(p)}>
+                      <PeriodDot period={p} />
+                      {p.name}
+                      <span className="ms-auto ps-4 text-sm text-muted-foreground">
+                        {periodDates(p)}
+                      </span>
+                    </MenuItem>
+                  ))}
+                  <MenuSeparator />
+                  <MenuItem onClick={() => setCreating(true)}>
+                    <HugeiconsIcon icon={PlusSignIcon} />
+                    Créer une nouvelle période
+                  </MenuItem>
+                </MenuPopup>
+              </Menu>
+            ) : (
+              <Button
+                className={addClass}
+                onClick={() => setCreating(true)}
+                variant="ghost"
+              >
+                {addLabel}
+              </Button>
+            )}
+          </div>
+          <p className="text-muted-foreground">
+            {sentence}
+            {isOver(selected) && " Elle est terminée."}
+            {!selected.base &&
+              !counted.includes(selected) &&
+              " Elle n'est pas comprise dans votre offre."}
+          </p>
+          {selected.base && !baseRate?.active && (
             <Alert variant="warning">
               <AlertTitle>Aucun prix habituel</AlertTitle>
               <AlertDescription>
                 {activity?.name} n&apos;est réservable que pendant ses saisons.
               </AlertDescription>
             </Alert>
-          </div>
-        )}
+          )}
+          {!selected.base && rate && !rate.active && (
+            <Alert variant="warning">
+              <AlertDescription>
+                En pause : vos prix habituels s&apos;appliquent sur ces dates.
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
         {places.map((place) => {
-          const rate = baseRate?.places[place.name]
+          const price = priceOf(place.name)
           return (
-            <SettingsRow
-              description={
-                rate &&
-                [
-                  ...Object.entries(rate.days).map(
-                    ([d, price]) => `${euros(price)} le ${dayNames[Number(d)]}`
-                  ),
-                  rate.extra > 0 && `+${euros(rate.extra)} par animal en plus`,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")
-              }
+            <div
+              className={cn(
+                "flex min-h-16 items-center gap-4 px-5 py-4",
+                rate && !rate.active && "opacity-50"
+              )}
               key={place.name}
-              title={place.name}
             >
-              <span className="text-sm font-medium tabular-nums">
-                {rate ? `${euros(rate.price)} / ${unit}` : "Pas de prix"}
-              </span>
-            </SettingsRow>
-          )
-        })}
-        {baseRate && (
-          <SettingsRow
-            description={closedText(baseRate.closed)}
-            title={minStay(baseRate.minStay)}
-          />
-        )}
-      </SettingsSection>
-
-      <SettingsSection
-        action={addSeason}
-        description="Sur leurs dates, elles remplacent vos prix habituels. Les options du séjour gardent leur prix toute l'année."
-        title="Saisons"
-      >
-        {!seasons.length && (
-          <p className="px-4 py-3.5 text-sm text-muted-foreground">
-            Aucune saison : vos prix habituels s&apos;appliquent toute
-            l&apos;année.
-          </p>
-        )}
-        {seasons.map((p) => {
-          const rate = rateOf(p)!
-          const prices = places
-            .map((place) => {
-              const source =
-                rate.percent !== undefined
-                  ? baseRate?.places[place.name]
-                  : rate.places[place.name]
-              return source
-                ? `${place.name} ${euros(adjusted(source.price, rate.percent ?? 0))}`
-                : null
-            })
-            .filter(Boolean)
-            .join(" · ")
-          return (
-            <div className="px-4 py-3.5" key={p.id}>
-              <div className="flex items-start gap-3">
-                <PeriodDot className="mt-1.5 size-3" period={p} />
-                <div className="min-w-0 flex-1">
-                  <p className="flex flex-wrap items-center gap-1.5 text-sm font-medium">
-                    {p.name}
-                    {isOver(p) && (
-                      <Badge size="sm" variant="outline">
-                        Terminée
-                      </Badge>
-                    )}
-                    {!counted.includes(p) && (
-                      <Badge size="sm" variant="warning">
-                        Hors offre
-                      </Badge>
-                    )}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {periodDates(p)}
-                  </p>
-                </div>
-                <Button onClick={() => setEditing(p)} size="sm" variant="ghost">
-                  Modifier
-                </Button>
-                <Switch
-                  aria-label={`${p.name} active`}
-                  checked={rate.active}
-                  className="mt-1.5"
-                  onCheckedChange={(active) =>
-                    saveRate(activityId, { ...rate, active })
-                  }
-                />
-              </div>
-              <div className="mt-2 space-y-0.5 ps-6 text-sm">
-                {rate.active ? (
-                  <>
-                    {rate.percent !== undefined && (
-                      <p>{percentText(rate.percent)}</p>
-                    )}
-                    <p
-                      className={cn(
-                        rate.percent !== undefined && "text-muted-foreground"
-                      )}
-                    >
-                      {prices || "Aucun prix saisi"}
-                    </p>
-                    <p className="text-muted-foreground">
-                      {[minStay(rate.minStay), closedText(rate.closed)]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </p>
-                  </>
-                ) : (
-                  <p className="text-muted-foreground">
-                    Désactivée : vos prix habituels s&apos;appliquent sur ces
-                    dates.
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold">{place.name}</p>
+                {price?.detail && (
+                  <p className="text-sm text-muted-foreground">
+                    {price.detail}
                   </p>
                 )}
               </div>
+              {price ? (
+                <p className="shrink-0 text-end">
+                  <span className="text-xl font-semibold tabular-nums">
+                    {euros(price.price)}
+                  </span>
+                  <span className="text-muted-foreground"> / {unit}</span>
+                </p>
+              ) : (
+                <span className="text-muted-foreground">Pas de prix</span>
+              )}
             </div>
           )
         })}
+        <SettingsRow title="Séjour minimum">
+          <span className="font-semibold">{units(rate?.minStay ?? 1)}</span>
+        </SettingsRow>
+        {!!rate?.closed.length && (
+          <SettingsRow title="Fermé le">
+            <span className="font-semibold">
+              {rate.closed.map((d) => dayNames[d]).join(", ")}
+            </span>
+          </SettingsRow>
+        )}
+        {!selected.base && rate && (
+          <SwitchRow
+            checked={rate.active}
+            description="Éteignez-la pour garder vos prix habituels sur ces dates"
+            onCheckedChange={(active) =>
+              saveRate(activityId, { ...rate, active })
+            }
+            title="Appliquer cette période"
+          />
+        )}
+        <div className="p-5">
+          <Button
+            className="w-full"
+            onClick={() => setEditing(selected)}
+            size="lg"
+          >
+            Modifier ces prix
+          </Button>
+        </div>
         <LinkRow
           description="Communes à toutes vos activités"
           href="/settings/periods"
-          title="Dates des saisons"
-          value={`${catalog.periods.length - 1} saisons`}
+          title="Dates des périodes"
+          value={`${catalog.periods.length - 1} périodes`}
         />
       </SettingsSection>
 
@@ -396,7 +393,11 @@ export function PlacePrices({ activityId }: { activityId: string }) {
       {editing && (
         <RateDialog
           activityId={activityId}
-          onOpenChange={(open) => !open && setEditing(null)}
+          onOpenChange={(open) => {
+            if (open) return
+            if (rateOf(editing)) setSelectedId(editing.id)
+            setEditing(null)
+          }}
           open
           period={editing}
         />
@@ -439,19 +440,18 @@ export function Exceptions({ activityId }: { activityId: string }) {
                 list.filter((x) => x.date !== e.date)
               )
             }
-            size="icon-sm"
+            size="icon"
             variant="ghost"
           >
             <HugeiconsIcon icon={Delete02Icon} />
           </Button>
         </SettingsRow>
       ))}
-      <div className="flex flex-wrap items-center gap-2 px-4 py-3">
+      <div className="flex flex-wrap items-center gap-2 px-5 py-4">
         <Input
           aria-label="Date"
           className="w-40"
           onChange={(e) => setDraft({ ...draft, date: e.target.value })}
-          size="sm"
           type="date"
           value={draft.date}
         />
@@ -460,7 +460,7 @@ export function Exceptions({ activityId }: { activityId: string }) {
           onValueChange={(v) => setDraft({ ...draft, open: v === "open" })}
           value={draft.open ? "open" : "closed"}
         >
-          <SelectTrigger aria-label="Statut" className="w-28" size="sm">
+          <SelectTrigger aria-label="Statut" className="w-28">
             <SelectValue />
           </SelectTrigger>
           <SelectPopup>
@@ -476,7 +476,6 @@ export function Exceptions({ activityId }: { activityId: string }) {
           className="min-w-32 flex-1"
           onChange={(e) => setDraft({ ...draft, label: e.target.value })}
           placeholder="Motif (travaux, jour férié…)"
-          size="sm"
           value={draft.label}
         />
         <Button
@@ -488,13 +487,21 @@ export function Exceptions({ activityId }: { activityId: string }) {
             ])
             setDraft({ date: "", label: "", open: false })
           }}
-          size="sm"
-          variant="outline"
+          variant="secondary"
         >
           Ajouter
         </Button>
       </div>
     </SettingsSection>
+  )
+}
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <p className="text-sm font-semibold">{label}</p>
+      {children}
+    </div>
   )
 }
 
@@ -521,115 +528,125 @@ export function Simulator({ activityId }: { activityId: string }) {
   if (!places.length) return null
   return (
     <SettingsSection
-      description={`Calculé ${unit} par ${unit}, comme une réservation. Le détail est figé à la réservation : modifier une période ensuite ne change pas les séjours existants.`}
+      description={`Pour vérifier vos prix : calculé ${unit} par ${unit}, comme une vraie réservation.`}
       title="Simuler un séjour"
     >
-      <div className="flex flex-wrap items-center gap-2 px-4 py-3">
-        <Input
-          aria-label="Arrivée"
-          className="w-40"
-          onChange={(e) => setArrival(e.target.value)}
-          size="sm"
-          type="date"
-          value={arrival}
-        />
-        <Unit
-          label="Durée"
-          onChange={(v) => setNights(Math.max(1, v))}
-          unit={`${unit}s`}
-          value={nights}
-        />
-        <Select
-          items={items}
-          onValueChange={(v) => setPlace(v ?? "")}
-          value={place}
-        >
-          <SelectTrigger aria-label="Place" className="w-40" size="sm">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectPopup>
-            {items.map((item) => (
-              <SelectItem key={item.value} value={item.value}>
-                {item.label}
-              </SelectItem>
-            ))}
-          </SelectPopup>
-        </Select>
-        {max > 1 && (
-          <Unit
-            label="Animaux"
-            onChange={(v) => setAnimals(Math.max(1, Math.min(max, v)))}
-            unit="animaux"
-            value={animals}
+      <div className="grid gap-4 px-5 py-5 sm:grid-cols-2">
+        <Field label="Arrivée">
+          <Input
+            aria-label="Arrivée"
+            onChange={(e) => setArrival(e.target.value)}
+            type="date"
+            value={arrival}
           />
-        )}
-      </div>
-      <div className="px-4 py-3">
-        <div className="flex h-6 overflow-hidden rounded-md">
-          {result.nights.map((n) => (
-            <span
-              className={cn(
-                "flex-1 border-e border-background last:border-e-0",
-                n.closed ? "bg-muted" : n.period?.color
-              )}
-              key={n.date}
-              title={`${shortIso(n.date)} · ${n.closed ?? `${n.period?.name} · ${euros(n.price)}`}`}
+        </Field>
+        <Field label="Durée">
+          <Unit
+            className="w-full"
+            label="Durée"
+            onChange={(v) => setNights(Math.max(1, v))}
+            unit={`${unit}s`}
+            value={nights}
+          />
+        </Field>
+        <Field label="Place">
+          <Select
+            items={items}
+            onValueChange={(v) => setPlace(v ?? "")}
+            value={place}
+          >
+            <SelectTrigger aria-label="Place" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectPopup>
+              {items.map((item) => (
+                <SelectItem key={item.value} value={item.value}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectPopup>
+          </Select>
+        </Field>
+        {max > 1 && (
+          <Field label="Animaux">
+            <Unit
+              className="w-full"
+              label="Animaux"
+              onChange={(v) => setAnimals(Math.max(1, Math.min(max, v)))}
+              unit="animaux"
+              value={animals}
             />
-          ))}
-        </div>
-        <div className="mt-1 flex justify-between text-xs text-muted-foreground">
-          <span>{shortIso(arrival || todayIso)}</span>
-          <span>{shortIso(addDays(arrival || todayIso, nights))}</span>
-        </div>
-      </div>
-      <ul className="space-y-1 px-4 py-3 text-sm">
-        {groupNights(result.nights.filter((n) => !n.closed)).map((line, i) => (
-          <li className="flex justify-between gap-2" key={i}>
-            <span className="text-muted-foreground">
-              {line.nights} {unit}
-              {line.nights > 1 && "s"} × {euros(line.price)} · {line.label}
-            </span>
-            <span className="tabular-nums">
-              {euros(line.nights * line.price)}
-            </span>
-          </li>
-        ))}
-        {animals > 1 && result.total > 0 && (
-          <li className="flex justify-between gap-2 text-muted-foreground">
-            <span>Suppléments animaux inclus</span>
-          </li>
+          </Field>
         )}
-        <li className="flex justify-between gap-2 border-t pt-2 font-medium">
-          <span>Total de l&apos;hébergement</span>
-          <span className="tabular-nums">{euros(result.total)}</span>
-        </li>
-      </ul>
-      {(result.short || result.closed.length > 0) && (
-        <div className="space-y-2 px-4 py-3">
-          {result.short && (
-            <Alert variant="warning">
-              <AlertDescription>
-                Séjour minimum de {result.minStay} {unit}s pour une arrivée ce
-                jour-là ({result.nights[0]?.period?.name}).
-              </AlertDescription>
-            </Alert>
-          )}
-          {result.closed.length > 0 && (
-            <Alert variant="error">
-              <AlertDescription>
-                Non réservable :{" "}
-                {result.closed
-                  .slice(0, 3)
-                  .map((n) => `${shortIso(n.date)} (${n.closed})`)
-                  .join(", ")}
-                {result.closed.length > 3 &&
-                  ` et ${result.closed.length - 3} autres`}
-                .
-              </AlertDescription>
-            </Alert>
-          )}
+      </div>
+      <div className="space-y-4 px-5 py-5">
+        <div>
+          <div className="flex h-8 overflow-hidden rounded-xl">
+            {result.nights.map((n) => (
+              <span
+                className={cn(
+                  "flex-1 border-e border-background last:border-e-0",
+                  n.closed ? "bg-muted" : n.period?.color
+                )}
+                key={n.date}
+                title={`${shortIso(n.date)} · ${n.closed ?? `${n.period?.name} · ${euros(n.price)}`}`}
+              />
+            ))}
+          </div>
+          <div className="mt-1.5 flex justify-between text-sm text-muted-foreground">
+            <span>{shortIso(arrival || todayIso)}</span>
+            <span>{shortIso(addDays(arrival || todayIso, nights))}</span>
+          </div>
         </div>
-      )}
+        <ul className="space-y-2">
+          {groupNights(result.nights.filter((n) => !n.closed)).map(
+            (line, i) => (
+              <li className="flex justify-between gap-4" key={i}>
+                <span className="text-muted-foreground">
+                  {line.nights} {unit}
+                  {line.nights > 1 && "s"} × {euros(line.price)} · {line.label}
+                </span>
+                <span className="font-semibold tabular-nums">
+                  {euros(line.nights * line.price)}
+                </span>
+              </li>
+            )
+          )}
+          {animals > 1 && result.total > 0 && (
+            <li className="text-muted-foreground">
+              Suppléments animaux inclus
+            </li>
+          )}
+        </ul>
+        {result.short && (
+          <Alert variant="warning">
+            <AlertDescription>
+              Séjour minimum de {result.minStay} {unit}s pour une arrivée ce
+              jour-là ({result.nights[0]?.period?.name}).
+            </AlertDescription>
+          </Alert>
+        )}
+        {result.closed.length > 0 && (
+          <Alert variant="error">
+            <AlertDescription>
+              Non réservable :{" "}
+              {result.closed
+                .slice(0, 3)
+                .map((n) => `${shortIso(n.date)} (${n.closed})`)
+                .join(", ")}
+              {result.closed.length > 3 &&
+                ` et ${result.closed.length - 3} autres`}
+              .
+            </AlertDescription>
+          </Alert>
+        )}
+      </div>
+      <div className="flex items-baseline justify-between gap-4 bg-muted px-5 py-5">
+        <span className="font-semibold">Total de l&apos;hébergement</span>
+        <span className="text-3xl font-semibold tabular-nums">
+          {euros(result.total)}
+        </span>
+      </div>
     </SettingsSection>
   )
 }
@@ -663,10 +680,10 @@ function YearOverview() {
     return { label: monthNames[m], length, m, year }
   })
   return (
-    <div className="space-y-1 overflow-x-auto px-4 py-4">
+    <div className="space-y-1 overflow-x-auto px-5 py-5">
       {months.map(({ label, length, m, year }) => (
         <div className="flex min-w-[32rem] items-center gap-2" key={label}>
-          <span className="w-14 shrink-0 text-xs text-muted-foreground">
+          <span className="w-14 shrink-0 text-sm text-muted-foreground">
             {label} {m === 0 || m === 9 ? String(year).slice(2) : ""}
           </span>
           <div className="grid flex-1 grid-cols-31 gap-px">
@@ -688,7 +705,7 @@ function YearOverview() {
           </div>
         </div>
       ))}
-      <div className="flex flex-wrap gap-x-4 gap-y-1 pt-2 text-xs text-muted-foreground">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 pt-2 text-sm text-muted-foreground">
         {[base, ...seasons].filter(Boolean).map((p) => (
           <span className="flex items-center gap-1.5" key={p!.id}>
             <PeriodDot
@@ -729,7 +746,7 @@ export function PeriodsPage() {
           <AlertDescription>
             Les saisons en plus restent enregistrées mais ne s&apos;appliquent
             pas aux prix : les plus anciennes sont gardées.{" "}
-            <Link className="font-medium underline" href="/settings/billing">
+            <Link className="font-semibold underline" href="/settings/billing">
               Voir les offres
             </Link>
           </AlertDescription>
@@ -750,16 +767,12 @@ export function PeriodsPage() {
               .map((a) => a.name)
               .join(", ") || "aucune activité"
           }`}
-          media={<PeriodDot className="size-3" period={base} />}
+          media={<PeriodDot className="size-10" period={base} />}
           title={<PeriodTitle period={base} />}
         >
           <PeriodDialog
             period={base}
-            trigger={
-              <Button size="sm" variant="ghost">
-                Modifier
-              </Button>
-            }
+            trigger={<Button variant="ghost">Modifier</Button>}
           />
         </SettingsRow>
       </SettingsSection>
@@ -791,23 +804,19 @@ export function PeriodsPage() {
                 </>
               }
               key={period.id}
-              media={<PeriodDot className="size-3" period={period} />}
+              media={<PeriodDot className="size-10" period={period} />}
               title={<PeriodTitle period={period} />}
             >
               <PeriodDialog
                 period={period}
-                trigger={
-                  <Button size="sm" variant="ghost">
-                    Modifier
-                  </Button>
-                }
+                trigger={<Button variant="ghost">Modifier</Button>}
               />
               <AlertDialog>
                 <AlertDialogTrigger
                   render={
                     <Button
                       aria-label={`Supprimer ${period.name}`}
-                      size="icon-sm"
+                      size="icon"
                       variant="ghost"
                     />
                   }

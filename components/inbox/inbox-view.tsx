@@ -81,27 +81,27 @@ const kindMeta: Record<
   capacity: {
     icon: Home01Icon,
     label: "Capacité",
-    tone: "bg-orange-500/12 text-orange-700 dark:text-orange-400",
+    tone: "bg-wise-orange text-wise-maroon",
   },
   health: {
     icon: InjectionIcon,
     label: "Santé",
-    tone: "bg-rose-500/12 text-rose-700 dark:text-rose-400",
+    tone: "bg-wise-pink text-wise-purple",
   },
   message: {
     icon: Message01Icon,
     label: "Message",
-    tone: "bg-sky-500/12 text-sky-700 dark:text-sky-400",
+    tone: "bg-wise-blue text-wise-charcoal",
   },
   payment: {
     icon: Invoice01Icon,
     label: "Facturation",
-    tone: "bg-amber-500/12 text-amber-700 dark:text-amber-400",
+    tone: "bg-warning-soft text-warning-foreground",
   },
   review: {
     icon: StarIcon,
     label: "Avis client",
-    tone: "bg-yellow-500/12 text-yellow-700 dark:text-yellow-400",
+    tone: "bg-wise-yellow text-wise-gold",
   },
 }
 
@@ -196,12 +196,12 @@ function KindTile({
   return (
     <span
       className={cn(
-        "flex size-8 shrink-0 items-center justify-center rounded-lg",
+        "flex size-12 shrink-0 items-center justify-center rounded-full",
         tone,
         className
       )}
     >
-      <HugeiconsIcon className="size-4" icon={icon} />
+      <HugeiconsIcon className="size-5" icon={icon} />
     </span>
   )
 }
@@ -218,7 +218,7 @@ function Section({
   return (
     <section className="space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+        <h3 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
           {title}
         </h3>
         {aside}
@@ -262,7 +262,7 @@ function StayStop({
     <div className={cn("space-y-0.5", end && "text-end")}>
       <span
         className={cn(
-          "flex items-center gap-1.5 text-xs text-muted-foreground",
+          "flex items-center gap-1.5 text-sm text-muted-foreground",
           end && "justify-end"
         )}
       >
@@ -270,7 +270,7 @@ function StayStop({
         {label}
       </span>
       <p className="font-semibold">{day}</p>
-      <p className="text-xs text-muted-foreground">{time}</p>
+      <p className="text-sm text-muted-foreground">{time}</p>
     </div>
   )
 }
@@ -295,7 +295,7 @@ function BookingDetail({ data }: { data: DataOf<"booking"> }) {
               ))}
               <span className="h-px flex-1 bg-border" />
             </div>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-sm text-muted-foreground">
               {data.nights} nuits
             </span>
           </div>
@@ -311,7 +311,7 @@ function BookingDetail({ data }: { data: DataOf<"booking"> }) {
         <Section title="Hébergement">
           <div className={cn(panel, "space-y-3")}>
             <div className="flex items-center justify-between">
-              <span className="flex items-center gap-2 font-medium">
+              <span className="flex items-center gap-2 font-semibold">
                 <HugeiconsIcon
                   className="size-4 text-muted-foreground"
                   icon={BedDoubleIcon}
@@ -325,7 +325,7 @@ function BookingDetail({ data }: { data: DataOf<"booking"> }) {
                 <MeterIndicator className="bg-pension-strong" />
               </MeterTrack>
             </Meter>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               {occupied}/{total} box occupés sur la période · {total - occupied}{" "}
               restants
             </p>
@@ -374,7 +374,7 @@ function MessageDetail({ data }: { data: DataOf<"message"> }) {
               <p className="max-w-[85%] rounded-2xl rounded-es-sm bg-background px-3 py-2 text-sm shadow-xs ring-1 ring-border">
                 {message.text}
               </p>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-sm text-muted-foreground">
                 {message.time}
               </span>
             </div>
@@ -394,12 +394,12 @@ function AppointmentDetail({ data }: { data: DataOf<"appointment"> }) {
     <>
       <Section title="Créneau demandé">
         <div className={cn(panel, "flex items-center gap-4")}>
-          <div className="w-20 shrink-0 overflow-hidden rounded-lg border text-center">
-            <div className="bg-grooming text-grooming-foreground py-0.5 text-xs font-medium">
+          <div className="w-20 shrink-0 overflow-hidden rounded-xl border text-center">
+            <div className="bg-grooming py-0.5 text-sm font-semibold text-grooming-foreground">
               {data.weekday}
             </div>
             <div className="pt-1 text-2xl font-semibold">{data.day}</div>
-            <div className="pb-1.5 text-xs text-muted-foreground">
+            <div className="pb-1.5 text-sm text-muted-foreground">
               {data.month}
             </div>
           </div>
@@ -407,11 +407,11 @@ function AppointmentDetail({ data }: { data: DataOf<"appointment"> }) {
             {data.slots.map((slot) => (
               <span
                 className={cn(
-                  "rounded-md border py-1.5 text-center text-xs tabular-nums",
+                  "rounded-md border py-1.5 text-center text-sm tabular-nums",
                   slot.status === "busy" &&
                     "bg-muted text-muted-foreground line-through",
                   slot.status === "requested" &&
-                    "border-grooming-strong bg-grooming text-grooming-foreground font-medium"
+                    "border-grooming-strong bg-grooming font-semibold text-grooming-foreground"
                 )}
                 key={slot.time}
               >
@@ -420,13 +420,13 @@ function AppointmentDetail({ data }: { data: DataOf<"appointment"> }) {
             ))}
           </div>
         </div>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Avec {data.groomer} · les créneaux barrés sont déjà réservés
         </p>
       </Section>
       <Section
         aside={
-          <span className="text-xs text-muted-foreground">
+          <span className="text-sm text-muted-foreground">
             {formatDuration(minutes)}
           </span>
         }
@@ -495,8 +495,8 @@ function HealthDetail({ data }: { data: DataOf<"health"> }) {
                   <HugeiconsIcon className="size-4" icon={InjectionIcon} />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">{vaccine.name}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm font-semibold">{vaccine.name}</p>
+                  <p className="text-sm text-muted-foreground">
                     {vaccine.date}
                   </p>
                 </div>
@@ -518,7 +518,7 @@ function PaymentDetail({ data }: { data: DataOf<"payment"> }) {
         className={cn(panel, "flex flex-wrap items-end justify-between gap-4")}
       >
         <div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Facture {data.invoice}
           </p>
           <p className="text-3xl font-semibold tabular-nums">
@@ -529,7 +529,7 @@ function PaymentDetail({ data }: { data: DataOf<"payment"> }) {
           <Badge variant={paid ? "success" : "error"}>
             {paid ? "Payée" : `${data.daysLate} jours de retard`}
           </Badge>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {paid ? data.method : `Échéance le ${data.due}`}
           </p>
         </div>
@@ -548,10 +548,10 @@ function PaymentDetail({ data }: { data: DataOf<"payment"> }) {
                     ? "bg-muted-foreground/40"
                     : paid
                       ? "bg-success"
-                      : "bg-amber-500"
+                      : "bg-warning"
                 )}
               />
-              <span className="font-medium">{step.label}</span>
+              <span className="font-semibold">{step.label}</span>
               <span className="text-muted-foreground"> · {step.date}</span>
             </li>
           ))}
@@ -576,8 +576,8 @@ function CapacityDetail({ data }: { data: DataOf<"capacity"> }) {
               >
                 <span
                   className={cn(
-                    "text-xs font-medium tabular-nums",
-                    full && "text-orange-600 dark:text-orange-400"
+                    "text-sm font-semibold tabular-nums",
+                    full && "text-destructive-foreground"
                   )}
                 >
                   {day.occupied}/{day.total}
@@ -586,12 +586,12 @@ function CapacityDetail({ data }: { data: DataOf<"capacity"> }) {
                   <div
                     className={cn(
                       "absolute inset-x-0 bottom-0 rounded-lg",
-                      full ? "bg-orange-500" : "bg-pension-strong"
+                      full ? "bg-destructive" : "bg-pension-strong"
                     )}
                     style={{ height: `${ratio * 100}%` }}
                   />
                 </div>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-sm text-muted-foreground">
                   {day.label}
                 </span>
               </div>
@@ -619,7 +619,7 @@ function ReviewDetail({ data }: { data: DataOf<"review"> }) {
       <div className="flex items-center justify-between">
         <div
           aria-label={`${data.rating} sur 5`}
-          className="text-2xl tracking-widest text-amber-400"
+          className="text-2xl tracking-widest text-warning"
           role="img"
         >
           {"★".repeat(data.rating)}
@@ -696,7 +696,7 @@ function DetailPane({
           <HugeiconsIcon icon={MailOpen01Icon} />
           Marquer non lu
         </Button>
-        <span className="ms-auto hidden pe-2 text-xs text-muted-foreground sm:block">
+        <span className="ms-auto hidden pe-2 text-sm text-muted-foreground sm:block">
           {item.group} · {item.time}
         </span>
       </div>
@@ -704,9 +704,9 @@ function DetailPane({
       <div className="flex-1 overflow-y-auto">
         <article className="mx-auto max-w-2xl space-y-6 p-4 md:p-8">
           <header className="space-y-3">
-            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
               <KindTile
-                className="size-6 rounded-md [&_svg]:size-3.5"
+                className="size-7 [&_svg]:size-4"
                 kind={item.kind}
               />
               {meta.label}
@@ -728,14 +728,14 @@ function DetailPane({
                   <AvatarFallback>{item.client.initials}</AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-2 text-sm font-medium">
+                  <p className="flex items-center gap-2 text-sm font-semibold">
                     {item.client.name}
                     {item.kind === "booking" && item.data.newClient && (
                       <Badge variant="info">Nouveau client</Badge>
                     )}
                   </p>
                   {item.pet && (
-                    <p className="text-xs text-muted-foreground">{item.pet}</p>
+                    <p className="text-sm text-muted-foreground">{item.pet}</p>
                   )}
                 </div>
                 <Button aria-label="Appeler" size="icon-sm" variant="outline">
@@ -750,7 +750,7 @@ function DetailPane({
               <HugeiconsIcon icon={CheckmarkCircle02Icon} />
               <AlertTitle>{resolution}</AlertTitle>
               <AlertAction>
-                <Button onClick={onUndo} size="xs" variant="ghost">
+                <Button onClick={onUndo} size="sm" variant="ghost">
                   Annuler
                 </Button>
               </AlertAction>
@@ -803,7 +803,7 @@ function InboxRow({
     <button
       aria-current={active ? "true" : undefined}
       className={cn(
-        "flex w-full gap-3 rounded-lg p-2.5 text-start hover:bg-accent",
+        "flex w-full gap-4 rounded-2xl p-3 text-start transition-colors hover:bg-accent",
         active && "bg-accent"
       )}
       onClick={onSelect}
@@ -814,29 +814,29 @@ function InboxRow({
         <div className="flex items-center gap-2">
           <span
             className={cn(
-              "truncate text-sm",
-              item.unread ? "font-semibold" : "font-medium"
+              "truncate",
+              item.unread ? "font-semibold" : "font-normal"
             )}
           >
             {item.title}
           </span>
-          <span className="ms-auto shrink-0 text-xs text-muted-foreground">
+          <span className="ms-auto shrink-0 text-sm text-muted-foreground">
             {item.time}
           </span>
         </div>
         <p
           className={cn(
-            "truncate text-xs",
+            "truncate text-sm",
             item.unread ? "text-foreground" : "text-muted-foreground"
           )}
         >
           {item.preview}
         </p>
-        <div className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+        <div className="mt-1.5 flex items-center gap-1.5 text-sm text-muted-foreground">
           {item.activity && (
             <ActivityMark
               activity={item.activity}
-              className="size-3.5 rounded-sm text-[0.5rem]"
+              className="size-4 text-[0.5rem]"
             />
           )}
           <span className="truncate">{item.client?.name ?? item.activity}</span>
@@ -846,7 +846,7 @@ function InboxRow({
             </Badge>
           )}
           {item.unread && (
-            <span className="ms-auto size-2 shrink-0 rounded-full bg-success">
+            <span className="ms-auto size-2.5 shrink-0 rounded-full bg-primary-active">
               <span className="sr-only">Non lu</span>
             </span>
           )}
@@ -906,7 +906,9 @@ export function InboxView() {
     <>
       <header className="flex h-16 shrink-0 items-center gap-3 border-b px-4 md:px-6">
         <SidebarTrigger className="md:hidden" />
-        <h1 className="font-heading text-xl font-semibold">Boîte de réception</h1>
+        <h1 className="font-heading text-xl font-semibold">
+          Boîte de réception
+        </h1>
         <Button
           className="ms-auto"
           disabled={unreadCount === 0}
@@ -939,13 +941,13 @@ export function InboxView() {
                 </TabsTab>
                 <TabsTab className="flex-1 gap-1.5" value="unread">
                   Non lus
-                  <span className="text-xs text-muted-foreground tabular-nums">
+                  <span className="text-sm text-muted-foreground tabular-nums">
                     {unreadCount}
                   </span>
                 </TabsTab>
                 <TabsTab className="flex-1 gap-1.5" value="todo">
                   À traiter
-                  <span className="text-xs text-muted-foreground tabular-nums">
+                  <span className="text-sm text-muted-foreground tabular-nums">
                     {todoCount}
                   </span>
                 </TabsTab>
@@ -966,7 +968,7 @@ export function InboxView() {
               if (list.length === 0) return null
               return (
                 <div className="mb-2" key={group}>
-                  <h2 className="px-2.5 py-1.5 text-xs font-medium text-muted-foreground">
+                  <h2 className="px-2.5 py-1.5 text-sm font-semibold text-muted-foreground">
                     {group}
                   </h2>
                   <div className="space-y-0.5">

@@ -7,11 +7,14 @@ import {
   Attachment01Icon,
   Calendar03Icon,
   Call02Icon,
-  PlusSignIcon,
+  InformationCircleIcon,
+  Mail01Icon,
+  PencilEdit02Icon,
   Search01Icon,
   UserIcon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
+import Link from "next/link"
 import { useId, useState } from "react"
 import { type Activity, ActivityMark } from "@/components/activity-mark"
 import { ChatConversation } from "@/components/chat/chat-conversation"
@@ -24,6 +27,9 @@ import { ChatReactionPicker } from "@/components/chat/chat-reaction-picker"
 import { ChatTypingIndicator } from "@/components/chat/chat-typing-indicator"
 import { ChatUnreadDivider } from "@/components/chat/chat-unread-divider"
 import { useChatScroll } from "@/components/chat/hooks/use-chat-scroll"
+import { type Client, clients } from "@/components/clients/data"
+import { ClientStep } from "@/components/flow/client-steps"
+import { FlowDialog } from "@/components/flow/flow"
 import {
   type Booking,
   type BookingEntry,
@@ -36,6 +42,8 @@ import {
   quickReplies,
   reactionOptions,
 } from "@/components/messages/data"
+import { petHref } from "@/components/pets/data"
+import { formatAmount } from "@/components/today/widgets"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -63,14 +71,11 @@ import {
   SheetPopup,
   SheetTitle,
 } from "@/components/ui/sheet"
-import { SidebarTrigger } from "@/components/ui/sidebar"
-import { Tabs, TabsList, TabsTab } from "@/components/ui/tabs"
-import { useMediaQuery } from "@/hooks/use-media-query"
 import { cn } from "@/lib/utils"
 
-type Filter = "all" | "unread" | "ongoing"
+type Filter = "all" | "reply" | "unread" | "ongoing"
 
-const statusLabels = {
+const deliveryLabels = {
   delivered: "Distribué",
   failed: "Échec de l'envoi",
   read: "Lu",
@@ -79,16 +84,39 @@ const statusLabels = {
 } as const
 
 const bookingStatus = {
-  cancelled: { label: "Annulée", variant: "error" },
-  done: { label: "Terminée", variant: "secondary" },
-  ongoing: { label: "En cours", variant: "success" },
-  pending: { label: "À confirmer", variant: "warning" },
-  upcoming: { label: "À venir", variant: "info" },
-} as const satisfies Record<BookingStatus, { label: string; variant: string }>
+  cancelled: {
+    label: "Annulée",
+    text: "text-destructive-foreground",
+    variant: "error",
+  },
+  done: {
+    label: "Terminée",
+    text: "text-muted-foreground",
+    variant: "secondary",
+  },
+  ongoing: {
+    label: "En cours",
+    text: "text-success-foreground",
+    variant: "success",
+  },
+  pending: {
+    label: "À confirmer",
+    text: "text-warning-foreground",
+    variant: "warning",
+  },
+  upcoming: {
+    label: "À venir",
+    text: "text-muted-foreground",
+    variant: "info",
+  },
+} as const satisfies Record<
+  BookingStatus,
+  { label: string; text: string; variant: string }
+>
 
 const statusOrder: BookingStatus[] = [
-  "ongoing",
   "pending",
+  "ongoing",
   "upcoming",
   "done",
   "cancelled",
@@ -108,7 +136,19 @@ const activeActivities = (bookings: Booking[]) => [
   ...new Set(sortBookings(bookings.filter(isActive)).map((b) => b.activity)),
 ]
 
-const formatEuro = (amount: number) => `${amount} €`
+const lastEntry = (c: Conversation) => c.entries[c.entries.length - 1]
+
+/** Le client attend une réponse : dernier message de sa part ou demande en attente. */
+const needsReply = (c: Conversation) => {
+  const last = lastEntry(c)
+  return (
+    c.bookings.some((b) => b.status === "pending") ||
+    (last?.kind === "message" && last.side === "incoming")
+  )
+}
+
+const hasOngoing = (c: Conversation) =>
+  c.bookings.some((b) => b.status === "ongoing")
 
 const nowTime = () =>
   new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
@@ -130,9 +170,11 @@ const bookingEntry = (
 function eventLabel(event: BookingEvent, booking: Booking) {
   switch (event) {
     case "created":
-      return "Nouvelle demande de réservation"
+      return "Nouvelle demande"
     case "confirmed":
       return "Réservation confirmée"
+    case "declined":
+      return "Demande refusée"
     case "started":
       return booking.activity === "Pension"
         ? "Arrivée enregistrée"
@@ -152,18 +194,16 @@ function groupByDay(entries: ChatEntry[]) {
   return days
 }
 
-function ClientAvatar({
-  initials,
-  className,
-}: {
-  initials: string
-  className?: string
-}) {
-  return (
-    <Avatar aria-hidden="true" className={cn("size-7 text-xs", className)}>
-      <AvatarFallback>{initials}</AvatarFallback>
-    </Avatar>
-  )
+function lastPreview(c: Conversation) {
+  if (c.typing) return "En train d'écrire…"
+  const last = lastEntry(c)
+  if (!last) return "Nouvelle conversation"
+  if (last.kind === "message")
+    return last.side === "outgoing" ? `Vous : ${last.text}` : last.text
+  const booking = c.bookings.find((b) => b.id === last.bookingId)
+  return booking
+    ? `${eventLabel(last.event, booking)} · ${booking.title}`
+    : "Réservation"
 }
 
 function toggleReaction(message: Message, emoji: string): Message {
@@ -186,190 +226,424 @@ function toggleReaction(message: Message, emoji: string): Message {
   }
 }
 
-function BookingSummary({
+function ClientAvatar({
+  initials,
+  activity,
+  className,
+}: {
+  initials: string
+  activity?: Activity
+  className?: string
+}) {
+  return (
+    <span aria-hidden="true" className="relative shrink-0">
+      <Avatar className={cn("size-12", className)}>
+        <AvatarFallback className="font-semibold">{initials}</AvatarFallback>
+      </Avatar>
+      {activity && (
+        <ActivityMark
+          activity={activity}
+          className="absolute -inset-e-0.5 -bottom-0.5 size-5 ring-2 ring-background"
+        />
+      )}
+    </span>
+  )
+}
+
+/** Une réservation, présentée comme une ligne de transaction Wise. */
+function BookingRow({
   booking,
+  eyebrow,
   onClick,
-  footer,
 }: {
   booking: Booking
+  eyebrow?: string
   onClick: () => void
-  footer?: boolean
 }) {
   const status = bookingStatus[booking.status]
   return (
     <button
-      className="w-full rounded-xl border bg-card p-3 text-start shadow-xs/5 transition-colors hover:bg-accent/50"
+      className="flex w-full items-center gap-3 rounded-2xl p-3 text-start transition-colors hover:bg-accent"
       onClick={onClick}
       type="button"
     >
-      <div className="flex items-center gap-3">
-        <ActivityMark
-          activity={booking.activity}
-          className="size-8 rounded-lg text-xs"
-        />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-2">
-            <p className="truncate text-sm font-medium">{booking.title}</p>
-            <Badge variant={status.variant}>{status.label}</Badge>
-          </div>
-          <p className="truncate text-xs text-muted-foreground">
-            {booking.pet} · {booking.dates}
-          </p>
-        </div>
-      </div>
-      {footer && (
-        <div className="mt-3 flex items-center justify-between border-t pt-2.5 text-xs">
-          <span className="text-muted-foreground">
-            {booking.activity} · {formatEuro(booking.amount)}
+      <ActivityMark activity={booking.activity} className="size-10 text-sm" />
+      <span className="min-w-0 flex-1">
+        {eyebrow && (
+          <span className="block truncate text-sm text-muted-foreground">
+            {eyebrow}
           </span>
-          <span className="flex items-center gap-1 font-medium">
-            Voir la réservation
-            <HugeiconsIcon className="size-3.5" icon={ArrowRight01Icon} />
-          </span>
-        </div>
-      )}
+        )}
+        <span className="block truncate font-semibold">{booking.title}</span>
+        <span className="block truncate text-sm text-muted-foreground">
+          {booking.pet} · {booking.dates}
+        </span>
+      </span>
+      <span className="shrink-0 text-end">
+        <span className="block font-semibold tabular-nums">
+          {formatAmount(booking.amount)}
+        </span>
+        <span className={cn("block text-sm font-semibold", status.text)}>
+          {status.label}
+        </span>
+      </span>
     </button>
   )
 }
 
-function BookingCard({
-  booking,
-  entry,
-  onOpen,
+function ConversationRow({
+  conversation: c,
+  active,
+  onClick,
 }: {
-  booking: Booking
-  entry: BookingEntry
-  onOpen: () => void
+  conversation: Conversation
+  active: boolean
+  onClick: () => void
 }) {
+  const last = lastEntry(c)
+  const strong = c.unread > 0
   return (
-    <div className="mx-auto w-full max-w-sm space-y-1.5">
-      <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-        <HugeiconsIcon className="size-3.5" icon={Calendar03Icon} />
-        {eventLabel(entry.event, booking)} · {entry.time}
-      </p>
-      <BookingSummary booking={booking} footer onClick={onOpen} />
-    </div>
+    <button
+      aria-current={active ? "true" : undefined}
+      className={cn(
+        "flex w-full items-center gap-3 rounded-2xl p-3 text-start transition-colors hover:bg-accent",
+        active && "bg-accent"
+      )}
+      onClick={onClick}
+      type="button"
+    >
+      <ClientAvatar
+        activity={activeActivities(c.bookings)[0]}
+        initials={c.initials}
+      />
+      <span className="min-w-0 flex-1">
+        <span className="flex items-baseline justify-between gap-2">
+          <span className="truncate font-semibold">
+            {c.client}
+            <span className="font-normal text-muted-foreground">
+              {" "}
+              · {c.pets.map((pet) => pet.split(" · ")[0]).join(", ")}
+            </span>
+          </span>
+          {last && (
+            <span
+              className={cn(
+                "shrink-0 text-sm",
+                strong ? "font-semibold" : "text-muted-foreground"
+              )}
+            >
+              {last.day === "Aujourd'hui" ? last.time : last.day}
+            </span>
+          )}
+        </span>
+        <span className="mt-0.5 flex items-center gap-2">
+          <span
+            className={cn(
+              "min-w-0 flex-1 truncate text-sm",
+              c.typing
+                ? "font-semibold text-link"
+                : strong
+                  ? "font-semibold"
+                  : "text-muted-foreground"
+            )}
+          >
+            {lastPreview(c)}
+          </span>
+          {strong && (
+            <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground tabular-nums">
+              {c.unread}
+            </span>
+          )}
+        </span>
+      </span>
+    </button>
   )
 }
 
-function ActiveBookingsBar({
+function NewMessageDialog({
+  onSelect,
+}: {
+  onSelect: (client: Client) => void
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <FlowDialog
+      onOpenChange={setOpen}
+      open={open}
+      trigger={
+        <Button>
+          <HugeiconsIcon icon={PencilEdit02Icon} />
+          Nouveau
+        </Button>
+      }
+    >
+      <ClientStep
+        onSelect={(client) => {
+          onSelect(client)
+          setOpen(false)
+        }}
+        title="À qui voulez-vous écrire ?"
+      />
+    </FlowDialog>
+  )
+}
+
+/** Bandeau au-dessus de la conversation : la demande à traiter, sinon la prestation en cours. */
+function ContextBanner({
   bookings,
   onOpen,
-  onShowAll,
+  onConfirm,
+  onDecline,
 }: {
   bookings: Booking[]
   onOpen: (id: string) => void
-  onShowAll: () => void
+  onConfirm: (id: string) => void
+  onDecline: (id: string) => void
 }) {
-  const active = sortBookings(bookings.filter(isActive))
-  return (
-    <div className="flex shrink-0 items-center gap-2 overflow-x-auto border-y bg-muted/40 px-4 py-2">
-      {active.length === 0 && (
-        <span className="text-xs text-muted-foreground">
-          Aucune réservation en cours ou à venir
-        </span>
-      )}
-      {active.map((booking) => (
+  const pending = bookings.find((b) => b.status === "pending")
+  const ongoing = bookings.find((b) => b.status === "ongoing")
+  if (pending)
+    return (
+      <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-warning-soft p-3 ps-4">
         <button
-          className="flex shrink-0 items-center gap-2 rounded-lg border bg-background py-1.5 ps-1.5 pe-2.5 text-start hover:bg-accent"
-          key={booking.id}
-          onClick={() => onOpen(booking.id)}
+          className="flex min-w-0 flex-1 items-center gap-3 text-start"
+          onClick={() => onOpen(pending.id)}
           type="button"
         >
-          <ActivityMark activity={booking.activity} className="size-6" />
-          <span className="leading-tight">
-            <span className="flex items-center gap-1.5 text-xs font-medium">
-              {booking.status === "ongoing" && (
-                <span className="size-1.5 animate-pulse rounded-full bg-success" />
-              )}
-              {booking.title}
+          <ActivityMark
+            activity={pending.activity}
+            className="size-10 text-sm"
+          />
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold text-warning-foreground">
+              Demande à confirmer
             </span>
-            <span className="block text-[0.6875rem] text-muted-foreground">
-              {bookingStatus[booking.status].label} · {booking.dates}
+            <span className="block truncate font-semibold">
+              {pending.title} · {pending.pet}
+            </span>
+            <span className="block truncate text-sm text-muted-foreground">
+              {pending.dates} · {formatAmount(pending.amount)}
             </span>
           </span>
         </button>
-      ))}
-      <Button
-        className="ms-auto shrink-0"
-        onClick={onShowAll}
-        size="xs"
-        variant="ghost"
+        <div className="flex gap-2 max-sm:w-full">
+          <Button
+            className="max-sm:flex-1"
+            onClick={() => onDecline(pending.id)}
+            variant="secondary"
+          >
+            Refuser
+          </Button>
+          <Button
+            className="max-sm:flex-1"
+            onClick={() => onConfirm(pending.id)}
+          >
+            Confirmer
+          </Button>
+        </div>
+      </div>
+    )
+  if (ongoing)
+    return (
+      <button
+        className="flex w-full items-center gap-3 rounded-2xl bg-muted p-3 ps-4 text-start transition-colors hover:bg-neutral-hover"
+        onClick={() => onOpen(ongoing.id)}
+        type="button"
       >
-        <HugeiconsIcon icon={Calendar03Icon} />
-        Toutes ({bookings.length})
-      </Button>
+        <ActivityMark activity={ongoing.activity} className="size-10 text-sm" />
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold text-success-foreground">
+            En cours · {ongoing.activity}
+          </span>
+          <span className="block truncate font-semibold">
+            {ongoing.title} · {ongoing.pet}
+          </span>
+        </span>
+        <span className="shrink-0 text-sm text-muted-foreground max-sm:hidden">
+          {ongoing.dates}
+        </span>
+        <HugeiconsIcon
+          className="size-5 shrink-0 text-muted-foreground"
+          icon={ArrowRight01Icon}
+        />
+      </button>
+    )
+  return null
+}
+
+function RoundAction({
+  icon,
+  label,
+  href,
+}: {
+  icon: typeof UserIcon
+  label: string
+  href: string
+}) {
+  return (
+    <Link
+      className="flex flex-col items-center gap-2 text-sm font-semibold"
+      href={href}
+    >
+      <span className="flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/88">
+        <HugeiconsIcon className="size-5" icon={icon} />
+      </span>
+      {label}
+    </Link>
+  )
+}
+
+/** Le client, ses animaux et toutes ses réservations, à côté de la conversation. */
+function ClientPanel({
+  conversation,
+  client,
+  onOpenBooking,
+}: {
+  conversation: Conversation
+  client?: Client
+  onOpenBooking: (id: string) => void
+}) {
+  const sorted = sortBookings(conversation.bookings)
+  const sections = [
+    { bookings: sorted.filter(isActive), label: "En cours et à venir" },
+    { bookings: sorted.filter((b) => !isActive(b)), label: "Passées" },
+  ]
+  return (
+    <div className="space-y-8">
+      <div className="flex flex-col items-center text-center">
+        <Avatar className="size-20">
+          <AvatarFallback className="text-2xl font-semibold">
+            {conversation.initials}
+          </AvatarFallback>
+        </Avatar>
+        <p className="mt-3 text-xl font-semibold">{conversation.client}</p>
+        {client && (
+          <p className="text-sm text-muted-foreground">
+            {client.city} · client depuis {client.since}
+          </p>
+        )}
+      </div>
+
+      <div className="flex justify-center gap-6">
+        {client && (
+          <>
+            <RoundAction
+              href={`tel:${client.phone.replaceAll(" ", "")}`}
+              icon={Call02Icon}
+              label="Appeler"
+            />
+            <RoundAction
+              href={`mailto:${client.email}`}
+              icon={Mail01Icon}
+              label="E-mail"
+            />
+          </>
+        )}
+        <RoundAction href="/clients" icon={UserIcon} label="Fiche" />
+      </div>
+
+      <section className="space-y-1">
+        <h3 className="px-3 text-sm font-semibold text-muted-foreground">
+          Animaux
+        </h3>
+        {conversation.pets.map((pet) => {
+          const [name, breed] = pet.split(" · ")
+          return (
+            <Link
+              className="flex items-center gap-3 rounded-2xl p-3 transition-colors hover:bg-accent"
+              href={petHref(name, conversation.client)}
+              key={pet}
+            >
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted font-semibold">
+                {name[0]}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-semibold">{name}</span>
+                <span className="block truncate text-sm text-muted-foreground">
+                  {breed}
+                </span>
+              </span>
+              <HugeiconsIcon
+                className="size-5 text-muted-foreground"
+                icon={ArrowRight01Icon}
+              />
+            </Link>
+          )
+        })}
+      </section>
+
+      {sections.map(
+        (section) =>
+          section.bookings.length > 0 && (
+            <section className="space-y-1" key={section.label}>
+              <h3 className="px-3 text-sm font-semibold text-muted-foreground">
+                {section.label}
+              </h3>
+              {section.bookings.map((booking) => (
+                <BookingRow
+                  booking={booking}
+                  key={booking.id}
+                  onClick={() => onOpenBooking(booking.id)}
+                />
+              ))}
+            </section>
+          )
+      )}
     </div>
   )
 }
 
 function BookingSheet({
   conversation,
-  bookingId,
+  booking,
   open,
   onOpenChange,
-  onSelect,
   onShare,
   onConfirm,
+  onDecline,
 }: {
   conversation: Conversation
-  bookingId: string | null
+  booking?: Booking
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSelect: (id: string | null) => void
   onShare: (id: string) => void
   onConfirm: (id: string) => void
+  onDecline: (id: string) => void
 }) {
-  const booking = conversation.bookings.find((b) => b.id === bookingId)
-  const sorted = sortBookings(conversation.bookings)
-  const sections = [
-    { bookings: sorted.filter(isActive), label: "En cours et à venir" },
-    { bookings: sorted.filter((b) => !isActive(b)), label: "Passées" },
-  ]
-
+  const history = conversation.entries.filter(
+    (e): e is BookingEntry =>
+      e.kind === "booking" && e.bookingId === booking?.id
+  )
   return (
     <Sheet onOpenChange={onOpenChange} open={open}>
       <SheetPopup variant="inset">
-        {booking ? (
+        {booking && (
           <>
             <SheetHeader>
-              <Button
-                className="-ms-2 w-fit"
-                onClick={() => onSelect(null)}
-                size="xs"
-                variant="ghost"
-              >
-                <HugeiconsIcon icon={ArrowLeft01Icon} />
-                Toutes les réservations
-              </Button>
-              <span className="flex items-center gap-2 text-xs text-muted-foreground">
-                <ActivityMark
-                  activity={booking.activity}
-                  className="size-4 rounded text-[0.5rem]"
-                />
-                {booking.activity} · {booking.reference}
-              </span>
+              <ActivityMark
+                activity={booking.activity}
+                className="mb-2 size-12 text-base"
+              />
               <SheetTitle>{booking.title}</SheetTitle>
               <SheetDescription>
-                {booking.pet} · {booking.dates}
+                {booking.activity} · {booking.reference}
               </SheetDescription>
             </SheetHeader>
             <SheetPanel className="space-y-6">
-              <div className="flex items-center justify-between rounded-xl border p-4">
-                <div>
-                  <p className="text-xs text-muted-foreground">Montant</p>
-                  <p className="text-2xl font-semibold tabular-nums">
-                    {formatEuro(booking.amount)}
-                  </p>
-                </div>
+              <div className="rounded-2xl bg-muted p-5">
+                <p className="text-sm text-muted-foreground">Montant</p>
+                <p className="text-3xl font-semibold tabular-nums">
+                  {formatAmount(booking.amount)}
+                </p>
                 <Badge
+                  className="mt-3"
                   size="lg"
                   variant={bookingStatus[booking.status].variant}
                 >
                   {bookingStatus[booking.status].label}
                 </Badge>
               </div>
-              <dl className="divide-y rounded-xl border text-sm">
+              <dl className="divide-y">
                 {[
                   ["Client", conversation.client],
                   ["Animal", booking.pet],
@@ -379,344 +653,57 @@ function BookingSheet({
                     detail,
                   ]),
                 ].map(([label, value]) => (
-                  <div className="flex gap-4 px-4 py-2.5" key={value}>
-                    <dt className="w-20 shrink-0 text-muted-foreground">
+                  <div className="flex gap-4 py-3" key={value}>
+                    <dt className="w-24 shrink-0 text-muted-foreground">
                       {label}
                     </dt>
-                    <dd>{value}</dd>
+                    <dd className="font-semibold">{value}</dd>
                   </div>
                 ))}
               </dl>
-              <section className="space-y-2">
-                <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                  Dans la conversation
-                </h3>
-                {conversation.entries.some(
-                  (e) => e.kind === "booking" && e.bookingId === booking.id
-                ) ? (
-                  <ol className="ms-1 space-y-2 border-s ps-4">
-                    {conversation.entries.map(
-                      (entry) =>
-                        entry.kind === "booking" &&
-                        entry.bookingId === booking.id && (
-                          <li className="relative text-sm" key={entry.id}>
-                            <span className="absolute start-[calc(-1rem-4.5px)] top-1.5 size-2 rounded-full bg-muted-foreground/40" />
-                            {eventLabel(entry.event, booking)}
-                            <span className="text-muted-foreground">
-                              {" "}
-                              · {entry.day} à {entry.time}
-                            </span>
-                          </li>
-                        )
-                    )}
+              {history.length > 0 && (
+                <section className="space-y-3">
+                  <h3 className="text-sm font-semibold text-muted-foreground">
+                    Historique
+                  </h3>
+                  <ol className="ms-1.5 space-y-3 border-s-2 ps-5">
+                    {history.map((entry) => (
+                      <li className="relative" key={entry.id}>
+                        <span className="absolute -inset-s-6.75 top-1.5 size-3 rounded-full border-2 border-background bg-control" />
+                        <span className="font-semibold">
+                          {eventLabel(entry.event, booking)}
+                        </span>
+                        <span className="block text-sm text-muted-foreground">
+                          {entry.day} à {entry.time}
+                        </span>
+                      </li>
+                    ))}
                   </ol>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Pas encore mentionnée dans la conversation.
-                  </p>
-                )}
-              </section>
+                </section>
+              )}
             </SheetPanel>
             <SheetFooter>
-              <Button onClick={() => onShare(booking.id)} variant="outline">
+              <Button onClick={() => onShare(booking.id)} variant="secondary">
                 Partager dans la conversation
               </Button>
               {booking.status === "pending" && (
-                <Button onClick={() => onConfirm(booking.id)}>
-                  Confirmer la réservation
-                </Button>
+                <>
+                  <Button
+                    onClick={() => onDecline(booking.id)}
+                    variant="secondary"
+                  >
+                    Refuser
+                  </Button>
+                  <Button onClick={() => onConfirm(booking.id)}>
+                    Confirmer
+                  </Button>
+                </>
               )}
             </SheetFooter>
-          </>
-        ) : (
-          <>
-            <SheetHeader>
-              <SheetTitle>Réservations de {conversation.client}</SheetTitle>
-              <SheetDescription>
-                {conversation.bookings.length} réservations · toutes activités
-                confondues
-              </SheetDescription>
-            </SheetHeader>
-            <SheetPanel className="space-y-6">
-              {sections.map(
-                (section) =>
-                  section.bookings.length > 0 && (
-                    <section className="space-y-2" key={section.label}>
-                      <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                        {section.label}
-                      </h3>
-                      {section.bookings.map((b) => (
-                        <BookingSummary
-                          booking={b}
-                          key={b.id}
-                          onClick={() => onSelect(b.id)}
-                        />
-                      ))}
-                    </section>
-                  )
-              )}
-            </SheetPanel>
           </>
         )}
       </SheetPopup>
     </Sheet>
-  )
-}
-
-function ConversationPane({
-  conversation,
-  onChange,
-}: {
-  conversation: Conversation
-  onChange: (update: (conversation: Conversation) => Conversation) => void
-}) {
-  const [draft, setDraft] = useState<ComposerValue>([])
-  const [sheetOpen, setSheetOpen] = useState(false)
-  const [sheetBookingId, setSheetBookingId] = useState<string | null>(null)
-  const hintId = useId()
-  const touchInput = useMediaQuery({ pointer: "coarse" })
-  const { entries, bookings } = conversation
-  const firstName = conversation.client.split(" ")[0]
-  const scroll = useChatScroll({
-    itemCount: entries.length,
-    layoutKey: conversation.typing ? "typing" : "idle",
-  })
-
-  const replies = activeActivities(bookings).flatMap((activity) => {
-    const pet = sortBookings(bookings).find((b) => b.activity === activity)?.pet
-    return quickReplies[activity].map((reply) => ({
-      ...reply,
-      activity,
-      text: reply.text.replaceAll("{pet}", pet ?? ""),
-    }))
-  })
-
-  const { atBottomRef } = scroll
-
-  const addEntry = (entry: ChatEntry) => {
-    atBottomRef.current = true
-    onChange((c) => ({ ...c, entries: [...c.entries, entry] }))
-  }
-
-  const openBooking = (id: string | null) => {
-    setSheetBookingId(id)
-    setSheetOpen(true)
-  }
-
-  const share = (id: string) => {
-    addEntry(bookingEntry(id, "shared"))
-    setSheetOpen(false)
-  }
-
-  const confirm = (id: string) => {
-    atBottomRef.current = true
-    onChange((c) => ({
-      ...c,
-      bookings: c.bookings.map((b) =>
-        b.id === id ? { ...b, status: "upcoming" } : b
-      ),
-      entries: [...c.entries, bookingEntry(id, "confirmed")],
-    }))
-  }
-
-  const react = (id: string, emoji: string) =>
-    onChange((c) => ({
-      ...c,
-      entries: c.entries.map((e) =>
-        e.kind === "message" && e.id === id ? toggleReaction(e, emoji) : e
-      ),
-    }))
-
-  return (
-    <section className="flex min-w-0 flex-1 flex-col">
-      <div className="flex h-14 shrink-0 items-center gap-3 px-4">
-        <ClientAvatar className="size-8" initials={conversation.initials} />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium">{conversation.client}</p>
-          <p className="truncate text-xs text-muted-foreground">
-            {conversation.pets.join(" · ")}
-          </p>
-        </div>
-        <Button aria-label="Appeler" size="icon-sm" variant="ghost">
-          <HugeiconsIcon icon={Call02Icon} />
-        </Button>
-        <Button size="sm" variant="outline">
-          <HugeiconsIcon icon={UserIcon} />
-          Fiche client
-        </Button>
-      </div>
-
-      <ActiveBookingsBar
-        bookings={bookings}
-        onOpen={openBooking}
-        onShowAll={() => openBooking(null)}
-      />
-
-      <ChatConversation
-        jumpLabel="Derniers messages"
-        label={`Conversation avec ${conversation.client}`}
-        scroll={scroll}
-      >
-        <div className="space-y-4 py-4">
-          {groupByDay(entries).map((group) => (
-            <section className="space-y-4" key={group.day}>
-              <ChatDatePill>{group.day}</ChatDatePill>
-              {group.entries.map((entry, index) => {
-                const previous = group.entries[index - 1]
-                return (
-                  <div className="space-y-4" key={entry.id}>
-                    {entry.id === conversation.unreadFromId && (
-                      <ChatUnreadDivider>Nouveaux messages</ChatUnreadDivider>
-                    )}
-                    {entry.kind === "booking" ? (
-                      <BookingCard
-                        booking={
-                          bookings.find((b) => b.id === entry.bookingId) ??
-                          bookings[0]
-                        }
-                        entry={entry}
-                        onOpen={() => openBooking(entry.bookingId)}
-                      />
-                    ) : (
-                      <MessageBubble
-                        conversation={conversation}
-                        grouped={
-                          previous?.kind === "message" &&
-                          previous.side === entry.side
-                        }
-                        message={entry}
-                        onReact={(emoji) => react(entry.id, emoji)}
-                      />
-                    )}
-                  </div>
-                )
-              })}
-            </section>
-          ))}
-          <ChatTypingIndicator
-            label={`${firstName} est en train d'écrire…`}
-            visible={!!conversation.typing}
-          />
-        </div>
-      </ChatConversation>
-
-      <div className="flex shrink-0 flex-col gap-2.5 px-4 pb-4">
-        {replies.length > 0 && (
-          <div
-            aria-label="Réponses rapides"
-            className="flex gap-1.5 overflow-x-auto"
-            role="group"
-          >
-            {replies.map((reply) => (
-              <Button
-                className="shrink-0 rounded-full"
-                key={reply.label}
-                onClick={() => setDraft([{ text: reply.text, type: "text" }])}
-                size="xs"
-                variant="outline"
-              >
-                <ActivityMark
-                  activity={reply.activity}
-                  className="size-3.5 rounded-full text-[0.5rem]"
-                />
-                {reply.label}
-              </Button>
-            ))}
-          </div>
-        )}
-        <Composer
-          onSubmit={(value: ComposerValue) => {
-            const text = getComposerText(value).trim()
-            if (!text) return
-            addEntry({
-              day: "Aujourd'hui",
-              id: newId(),
-              kind: "message",
-              side: "outgoing",
-              status: "sent",
-              text,
-              time: nowTime(),
-            })
-            setDraft([])
-          }}
-          onValueChange={setDraft}
-          submitOnEnter="desktop"
-          value={draft}
-        >
-          <ComposerInput
-            aria-describedby={touchInput ? undefined : hintId}
-            aria-label={`Message à ${conversation.client}`}
-            placeholder={`Écrire à ${firstName}…`}
-            render={<textarea />}
-          />
-          <ComposerActions>
-            <ComposerActionGroup>
-              <Button
-                aria-label="Joindre un fichier"
-                size="icon"
-                variant="ghost"
-              >
-                <HugeiconsIcon icon={Attachment01Icon} />
-              </Button>
-              <Menu>
-                <MenuTrigger
-                  render={
-                    <Button
-                      aria-label="Partager une réservation"
-                      size="icon"
-                      variant="ghost"
-                    />
-                  }
-                >
-                  <HugeiconsIcon icon={Calendar03Icon} />
-                </MenuTrigger>
-                <MenuPopup align="start" side="top">
-                  {sortBookings(bookings).map((booking) => (
-                    <MenuItem
-                      key={booking.id}
-                      onClick={() => share(booking.id)}
-                    >
-                      <ActivityMark
-                        activity={booking.activity}
-                        className="size-4 rounded text-[0.5rem]"
-                      />
-                      {booking.title}
-                      <span className="ms-auto ps-4 text-xs text-muted-foreground">
-                        {booking.dates}
-                      </span>
-                    </MenuItem>
-                  ))}
-                </MenuPopup>
-              </Menu>
-            </ComposerActionGroup>
-            <ComposerActionGroup align="end">
-              <ComposerSubmit
-                render={
-                  <Button aria-label="Envoyer" size="icon">
-                    <HugeiconsIcon aria-hidden="true" icon={ArrowUpIcon} />
-                  </Button>
-                }
-              />
-            </ComposerActionGroup>
-          </ComposerActions>
-        </Composer>
-        {!touchInput && (
-          <p className="text-end text-xs text-muted-foreground" id={hintId}>
-            Entrée pour envoyer · Maj + Entrée pour un saut de ligne
-          </p>
-        )}
-      </div>
-
-      <BookingSheet
-        bookingId={sheetBookingId}
-        conversation={conversation}
-        onConfirm={confirm}
-        onOpenChange={setSheetOpen}
-        onSelect={setSheetBookingId}
-        onShare={share}
-        open={sheetOpen}
-      />
-    </section>
   )
 }
 
@@ -769,16 +756,24 @@ function MessageBubble({
         />
       }
       animateEntrance={message.id.startsWith("new-")}
-      author={incoming ? conversation.client.split(" ")[0] : undefined}
       avatar={
-        incoming ? <ClientAvatar initials={conversation.initials} /> : undefined
+        incoming ? (
+          <ClientAvatar className="size-8" initials={conversation.initials} />
+        ) : undefined
       }
+      bubbleProps={{
+        className: cn(
+          "rounded-3xl px-4 py-2.5 text-[0.9375rem]",
+          !grouped && (incoming ? "rounded-ss-md" : "rounded-se-md"),
+          incoming ? "bg-muted" : "bg-primary text-primary-foreground"
+        ),
+      }}
       footer={
         <span className="flex items-center gap-1">
           {message.time}
           {message.status && (
             <ChatDeliveryIndicator
-              label={statusLabels[message.status]}
+              label={deliveryLabels[message.status]}
               status={message.status}
             />
           )}
@@ -808,171 +803,540 @@ function MessageBubble({
   )
 }
 
-function lastPreview(conversation: Conversation) {
-  if (conversation.typing) return "En train d'écrire…"
-  const last = conversation.entries[conversation.entries.length - 1]
-  if (last.kind === "message") return last.text
-  const booking = conversation.bookings.find((b) => b.id === last.bookingId)
-  return booking
-    ? `${eventLabel(last.event, booking)} · ${booking.title}`
-    : "Réservation"
+function ConversationPane({
+  conversation,
+  className,
+  panelOpen,
+  onTogglePanel,
+  onBack,
+  onChange,
+}: {
+  conversation: Conversation
+  className?: string
+  panelOpen: boolean
+  onTogglePanel: () => void
+  onBack: () => void
+  onChange: (update: (conversation: Conversation) => Conversation) => void
+}) {
+  const [draft, setDraft] = useState<ComposerValue>([])
+  const [bookingId, setBookingId] = useState<string | null>(null)
+  const [bookingOpen, setBookingOpen] = useState(false)
+  const [infoOpen, setInfoOpen] = useState(false)
+  const hintId = useId()
+  const { entries, bookings } = conversation
+  const client = clients.find((c) => c.name === conversation.client)
+  const firstName = conversation.client.split(" ")[0]
+  const scroll = useChatScroll({
+    itemCount: entries.length,
+    layoutKey: conversation.typing ? "typing" : "idle",
+  })
+  const { atBottomRef } = scroll
+
+  const replies = activeActivities(bookings).flatMap((activity) => {
+    const pet = sortBookings(bookings).find((b) => b.activity === activity)?.pet
+    return quickReplies[activity].map((reply) => ({
+      ...reply,
+      activity,
+      text: reply.text.replaceAll("{pet}", pet ?? ""),
+    }))
+  })
+
+  const addEntry = (entry: ChatEntry) => {
+    atBottomRef.current = true
+    onChange((c) => ({ ...c, entries: [...c.entries, entry] }))
+  }
+
+  const openBooking = (id: string) => {
+    setInfoOpen(false)
+    setBookingId(id)
+    setBookingOpen(true)
+  }
+
+  const share = (id: string) => {
+    addEntry(bookingEntry(id, "shared"))
+    setBookingOpen(false)
+  }
+
+  const answer = (id: string, confirmed: boolean) => {
+    atBottomRef.current = true
+    setBookingOpen(false)
+    onChange((c) => ({
+      ...c,
+      bookings: c.bookings.map((b) =>
+        b.id === id ? { ...b, status: confirmed ? "upcoming" : "cancelled" } : b
+      ),
+      entries: [
+        ...c.entries,
+        bookingEntry(id, confirmed ? "confirmed" : "declined"),
+      ],
+    }))
+  }
+
+  const react = (id: string, emoji: string) =>
+    onChange((c) => ({
+      ...c,
+      entries: c.entries.map((e) =>
+        e.kind === "message" && e.id === id ? toggleReaction(e, emoji) : e
+      ),
+    }))
+
+  const panel = (
+    <ClientPanel
+      client={client}
+      conversation={conversation}
+      onOpenBooking={openBooking}
+    />
+  )
+
+  return (
+    <div className={cn("flex min-w-0 flex-1", className)}>
+      <section className="flex min-w-0 flex-1 flex-col">
+        <header className="flex h-18 shrink-0 items-center gap-3 border-b px-3 md:px-5">
+          <Button
+            aria-label="Retour aux conversations"
+            className="md:hidden"
+            onClick={onBack}
+            size="icon"
+            variant="ghost"
+          >
+            <HugeiconsIcon icon={ArrowLeft01Icon} />
+          </Button>
+          <ClientAvatar className="size-10" initials={conversation.initials} />
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-semibold">{conversation.client}</p>
+            <p
+              className={cn(
+                "truncate text-sm",
+                conversation.typing
+                  ? "font-semibold text-link"
+                  : "text-muted-foreground"
+              )}
+            >
+              {conversation.typing
+                ? "En train d'écrire…"
+                : conversation.pets.join(" · ")}
+            </p>
+          </div>
+          {client && (
+            <Button
+              aria-label={`Appeler ${firstName}`}
+              render={<a href={`tel:${client.phone.replaceAll(" ", "")}`} />}
+              size="icon"
+              variant="secondary"
+            >
+              <HugeiconsIcon icon={Call02Icon} />
+            </Button>
+          )}
+          <Button
+            aria-label="Infos du client"
+            className="xl:hidden"
+            onClick={() => setInfoOpen(true)}
+            size="icon"
+            variant="secondary"
+          >
+            <HugeiconsIcon icon={InformationCircleIcon} />
+          </Button>
+          <Button
+            aria-label={panelOpen ? "Masquer les infos" : "Afficher les infos"}
+            aria-pressed={panelOpen}
+            className="max-xl:hidden"
+            onClick={onTogglePanel}
+            size="icon"
+            variant={panelOpen ? "secondary" : "ghost"}
+          >
+            <HugeiconsIcon icon={InformationCircleIcon} />
+          </Button>
+        </header>
+
+        {bookings.some(
+          (b) => b.status === "pending" || b.status === "ongoing"
+        ) && (
+          <div className="shrink-0 px-3 pt-3 md:px-5">
+            <div className="mx-auto max-w-3xl">
+              <ContextBanner
+                bookings={bookings}
+                onConfirm={(id) => answer(id, true)}
+                onDecline={(id) => answer(id, false)}
+                onOpen={openBooking}
+              />
+            </div>
+          </div>
+        )}
+
+        {entries.length === 0 ? (
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
+            <ClientAvatar
+              className="size-20"
+              initials={conversation.initials}
+            />
+            <p className="text-xl font-semibold">Écrivez à {firstName}</p>
+            <p className="max-w-xs text-muted-foreground">
+              Vos messages et ses réservations s&apos;afficheront ici, dans
+              l&apos;ordre.
+            </p>
+          </div>
+        ) : (
+          <ChatConversation
+            contentClassName="px-3 md:px-5"
+            jumpLabel="Derniers messages"
+            label={`Conversation avec ${conversation.client}`}
+            scroll={scroll}
+          >
+            <div className="mx-auto max-w-3xl space-y-4 py-5">
+              {groupByDay(entries).map((group) => (
+                <section className="space-y-3" key={group.day}>
+                  <ChatDatePill className="h-7 border-0 bg-muted px-3 text-sm font-semibold">
+                    {group.day}
+                  </ChatDatePill>
+                  {group.entries.map((entry, index) => {
+                    const previous = group.entries[index - 1]
+                    const booking =
+                      entry.kind === "booking"
+                        ? bookings.find((b) => b.id === entry.bookingId)
+                        : undefined
+                    return (
+                      <div className="space-y-3" key={entry.id}>
+                        {entry.id === conversation.unreadFromId && (
+                          <ChatUnreadDivider className="font-semibold text-link">
+                            Nouveaux messages
+                          </ChatUnreadDivider>
+                        )}
+                        {entry.kind === "booking" ? (
+                          booking && (
+                            <div className="mx-auto w-full max-w-md rounded-2xl border bg-card">
+                              <BookingRow
+                                booking={booking}
+                                eyebrow={`${eventLabel(entry.event, booking)} · ${entry.time}`}
+                                onClick={() => openBooking(booking.id)}
+                              />
+                            </div>
+                          )
+                        ) : (
+                          <MessageBubble
+                            conversation={conversation}
+                            grouped={
+                              previous?.kind === "message" &&
+                              previous.side === entry.side
+                            }
+                            message={entry}
+                            onReact={(emoji) => react(entry.id, emoji)}
+                          />
+                        )}
+                      </div>
+                    )
+                  })}
+                </section>
+              ))}
+              <ChatTypingIndicator
+                label={`${firstName} est en train d'écrire…`}
+                visible={!!conversation.typing}
+              />
+            </div>
+          </ChatConversation>
+        )}
+
+        <div className="shrink-0 px-3 pb-3 md:px-5 md:pb-5">
+          <div className="mx-auto max-w-3xl space-y-3">
+            {replies.length > 0 && (
+              <div
+                aria-label="Réponses rapides"
+                className="-mx-3 flex gap-2 overflow-x-auto px-3 md:mx-0 md:px-0"
+                role="group"
+              >
+                {replies.map((reply) => (
+                  <button
+                    className="flex h-9 shrink-0 items-center gap-2 rounded-full bg-secondary ps-1.5 pe-4 text-sm font-semibold text-secondary-foreground transition-colors hover:bg-neutral-hover"
+                    key={reply.label}
+                    onClick={() =>
+                      setDraft([{ text: reply.text, type: "text" }])
+                    }
+                    type="button"
+                  >
+                    <ActivityMark
+                      activity={reply.activity}
+                      className="size-6"
+                    />
+                    {reply.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            <Composer
+              className="[--composer-radius:var(--radius-2xl)]"
+              layout="adaptive"
+              onSubmit={(value: ComposerValue) => {
+                const text = getComposerText(value).trim()
+                if (!text) return
+                addEntry({
+                  day: "Aujourd'hui",
+                  id: newId(),
+                  kind: "message",
+                  side: "outgoing",
+                  status: "sent",
+                  text,
+                  time: nowTime(),
+                })
+                setDraft([])
+              }}
+              onValueChange={setDraft}
+              submitOnEnter="desktop"
+              value={draft}
+            >
+              <ComposerInput
+                aria-describedby={hintId}
+                aria-label={`Message à ${conversation.client}`}
+                placeholder={`Écrire à ${firstName}…`}
+                render={<textarea />}
+              />
+              <ComposerActions>
+                <ComposerActionGroup>
+                  <Button
+                    aria-label="Joindre une photo ou un fichier"
+                    size="icon"
+                    variant="ghost"
+                  >
+                    <HugeiconsIcon icon={Attachment01Icon} />
+                  </Button>
+                  {bookings.length > 0 && (
+                    <Menu>
+                      <MenuTrigger
+                        render={
+                          <Button
+                            aria-label="Partager une réservation"
+                            size="icon"
+                            variant="ghost"
+                          />
+                        }
+                      >
+                        <HugeiconsIcon icon={Calendar03Icon} />
+                      </MenuTrigger>
+                      <MenuPopup align="start" side="top">
+                        {sortBookings(bookings).map((booking) => (
+                          <MenuItem
+                            key={booking.id}
+                            onClick={() => share(booking.id)}
+                          >
+                            <ActivityMark activity={booking.activity} />
+                            {booking.title}
+                            <span className="ms-auto ps-4 text-sm text-muted-foreground">
+                              {booking.dates}
+                            </span>
+                          </MenuItem>
+                        ))}
+                      </MenuPopup>
+                    </Menu>
+                  )}
+                </ComposerActionGroup>
+                <ComposerActionGroup align="end">
+                  <ComposerSubmit
+                    render={
+                      <Button aria-label="Envoyer" size="icon">
+                        <HugeiconsIcon aria-hidden="true" icon={ArrowUpIcon} />
+                      </Button>
+                    }
+                  />
+                </ComposerActionGroup>
+              </ComposerActions>
+            </Composer>
+            <p className="sr-only" id={hintId}>
+              Entrée pour envoyer, Maj + Entrée pour un saut de ligne
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {panelOpen && (
+        <aside
+          aria-label={`Infos sur ${conversation.client}`}
+          className="w-80 shrink-0 overflow-y-auto border-s px-3 py-8 max-xl:hidden"
+        >
+          {panel}
+        </aside>
+      )}
+
+      <Sheet onOpenChange={setInfoOpen} open={infoOpen}>
+        <SheetPopup variant="inset">
+          <SheetTitle className="sr-only">
+            Infos sur {conversation.client}
+          </SheetTitle>
+          <SheetPanel className="px-3 py-8">{panel}</SheetPanel>
+        </SheetPopup>
+      </Sheet>
+
+      <BookingSheet
+        booking={bookings.find((b) => b.id === bookingId)}
+        conversation={conversation}
+        onConfirm={(id) => answer(id, true)}
+        onDecline={(id) => answer(id, false)}
+        onOpenChange={setBookingOpen}
+        onShare={share}
+        open={bookingOpen}
+      />
+    </div>
+  )
 }
 
 export function MessagesView() {
   const [conversations, setConversations] = useState(initialConversations)
   const [activeId, setActiveId] = useState(initialConversations[0].id)
+  const [view, setView] = useState<"list" | "chat">("list")
+  const [panelOpen, setPanelOpen] = useState(true)
   const [filter, setFilter] = useState<Filter>("all")
   const [query, setQuery] = useState("")
   const active =
     conversations.find((c) => c.id === activeId) ?? conversations[0]
-  const hasOngoing = (c: Conversation) =>
-    c.bookings.some((b) => b.status === "ongoing")
-  const counts = {
-    ongoing: conversations.filter(hasOngoing).length,
-    unread: conversations.filter((c) => c.unread > 0).length,
+
+  const tests: Record<Filter, (c: Conversation) => boolean> = {
+    all: () => true,
+    ongoing: hasOngoing,
+    reply: needsReply,
+    unread: (c) => c.unread > 0,
   }
-  const filtered = conversations.filter(
+  const filters: { label: string; value: Filter }[] = [
+    { label: "Toutes", value: "all" },
+    { label: "À répondre", value: "reply" },
+    { label: "Non lues", value: "unread" },
+    { label: "En cours", value: "ongoing" },
+  ]
+  const q = query.trim().toLowerCase()
+  const shown = conversations.filter(
     (c) =>
-      (filter === "all" ||
-        (filter === "unread" ? c.unread > 0 : hasOngoing(c))) &&
-      `${c.client} ${c.pets.join(" ")}`
-        .toLowerCase()
-        .includes(query.toLowerCase())
+      tests[filter](c) &&
+      `${c.client} ${c.pets.join(" ")}`.toLowerCase().includes(q)
   )
+  // Sans filtre, ce qui attend une réponse passe en premier.
+  const sections =
+    filter === "all"
+      ? [
+          { items: shown.filter(needsReply), label: "À répondre" },
+          { items: shown.filter((c) => !needsReply(c)), label: "Récentes" },
+        ]
+      : [{ items: shown, label: "" }]
 
   const select = (id: string) => {
     setActiveId(id)
+    setView("chat")
     setConversations((list) =>
       list.map((c) => (c.id === id ? { ...c, unread: 0 } : c))
     )
   }
 
+  const startWith = (client: Client) => {
+    const existing = conversations.find((c) => c.client === client.name)
+    if (existing) return select(existing.id)
+    const id = `new-${client.name}`
+    setConversations((list) => [
+      {
+        bookings: [],
+        client: client.name,
+        entries: [],
+        id,
+        initials: client.initials,
+        pets: client.pets.map((p) => `${p.name} · ${p.breed}`),
+        unread: 0,
+      },
+      ...list,
+    ])
+    setActiveId(id)
+    setView("chat")
+  }
+
   return (
-    <>
-      <header className="flex h-16 shrink-0 items-center gap-3 border-b px-4 md:px-6">
-        <SidebarTrigger className="md:hidden" />
-        <h1 className="font-heading text-xl font-semibold">Messages</h1>
-        <Button className="ms-auto rounded-full" size="sm" variant="outline">
-          <HugeiconsIcon icon={PlusSignIcon} />
-          Nouveau message
-        </Button>
-      </header>
-
-      <div className="flex min-h-0 flex-1">
-        <aside className="hidden w-80 shrink-0 flex-col border-e md:flex">
-          <div className="space-y-2 p-3">
-            <InputGroup>
-              <InputGroupAddon>
-                <HugeiconsIcon icon={Search01Icon} />
-              </InputGroupAddon>
-              <InputGroupInput
-                aria-label="Rechercher une conversation"
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Client ou animal…"
-                value={query}
-              />
-            </InputGroup>
-            <Tabs
-              onValueChange={(value) => setFilter(value as Filter)}
-              value={filter}
-            >
-              <TabsList className="w-full" size="sm">
-                <TabsTab className="flex-1" value="all">
-                  Toutes
-                </TabsTab>
-                <TabsTab className="flex-1 gap-1.5" value="unread">
-                  Non lues
-                  <span className="text-muted-foreground">{counts.unread}</span>
-                </TabsTab>
-                <TabsTab className="flex-1 gap-1.5" value="ongoing">
-                  En cours
-                  <span className="text-muted-foreground">
-                    {counts.ongoing}
-                  </span>
-                </TabsTab>
-              </TabsList>
-            </Tabs>
+    <div className="flex min-h-0 flex-1">
+      <aside
+        className={cn(
+          "flex w-full flex-col md:w-96 md:shrink-0 md:border-e",
+          view === "chat" && "max-md:hidden"
+        )}
+      >
+        <div className="space-y-4 px-4 pt-6 pb-2 md:px-5">
+          <div className="flex items-center justify-between gap-3">
+            <h1 className="font-heading text-3xl font-semibold">Messages</h1>
+            <NewMessageDialog onSelect={startWith} />
           </div>
-          <nav
-            aria-label="Conversations"
-            className="flex-1 space-y-0.5 overflow-y-auto px-2 pb-2"
-          >
-            {filtered.length === 0 && (
-              <p className="p-4 text-center text-sm text-muted-foreground">
-                Aucune conversation
-              </p>
-            )}
-            {filtered.map((c) => {
-              const last = c.entries[c.entries.length - 1]
-              return (
-                <button
-                  aria-current={c.id === active.id ? "true" : undefined}
-                  className={cn(
-                    "flex w-full gap-3 rounded-lg p-2.5 text-start hover:bg-accent",
-                    c.id === active.id && "bg-accent"
-                  )}
-                  key={c.id}
-                  onClick={() => select(c.id)}
-                  type="button"
-                >
-                  <ClientAvatar className="size-9" initials={c.initials} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span className="truncate text-sm font-medium">
-                        {c.client}
-                      </span>
-                      <span className="shrink-0 text-xs text-muted-foreground">
-                        {last.day === "Aujourd'hui" ? last.time : last.day}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-                        {c.pets.map((pet) => pet.split(" · ")[0]).join(", ")}
-                      </p>
-                      <span className="flex shrink-0 gap-0.5">
-                        {activeActivities(c.bookings).map(
-                          (activity: Activity) => (
-                            <ActivityMark
-                              activity={activity}
-                              className="size-3.5 rounded-sm text-[0.5rem]"
-                              key={activity}
-                            />
-                          )
-                        )}
-                      </span>
-                    </div>
-                    <div className="mt-0.5 flex items-center justify-between gap-2">
-                      <span
-                        className={cn(
-                          "truncate text-xs",
-                          c.unread ? "font-medium" : "text-muted-foreground"
-                        )}
-                      >
-                        {lastPreview(c)}
-                      </span>
-                      {c.unread > 0 && (
-                        <span className="shrink-0 rounded-full bg-pension text-pension-foreground px-1.5 text-xs">
-                          {c.unread}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </button>
-              )
-            })}
-          </nav>
-        </aside>
+          <InputGroup className="rounded-full">
+            <InputGroupAddon>
+              <HugeiconsIcon icon={Search01Icon} />
+            </InputGroupAddon>
+            <InputGroupInput
+              aria-label="Rechercher une conversation"
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Client ou animal"
+              value={query}
+            />
+          </InputGroup>
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 md:-mx-5 md:px-5">
+            {filters.map((f) => (
+              <button
+                aria-pressed={filter === f.value}
+                className={cn(
+                  "flex h-9 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-semibold transition-colors",
+                  filter === f.value
+                    ? "bg-control text-control-foreground"
+                    : "bg-secondary text-secondary-foreground hover:bg-neutral-hover"
+                )}
+                key={f.value}
+                onClick={() => setFilter(f.value)}
+                type="button"
+              >
+                {f.label}
+                {f.value !== "all" && (
+                  <span className="tabular-nums opacity-70">
+                    {conversations.filter(tests[f.value]).length}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
 
-        <ConversationPane
-          conversation={active}
-          key={active.id}
-          onChange={(update) =>
-            setConversations((list) =>
-              list.map((c) => (c.id === active.id ? update(c) : c))
-            )
-          }
-        />
-      </div>
-    </>
+        <nav
+          aria-label="Conversations"
+          className="flex-1 overflow-y-auto px-1 pb-4 md:px-2"
+        >
+          {shown.length === 0 && (
+            <p className="p-6 text-center text-muted-foreground">
+              {filter === "reply"
+                ? "Vous avez répondu à tout le monde 🎉"
+                : "Aucune conversation"}
+            </p>
+          )}
+          {sections.map(
+            (section) =>
+              section.items.length > 0 && (
+                <section key={section.label}>
+                  {section.label && (
+                    <h2 className="px-3 pt-4 pb-1 text-sm font-semibold text-muted-foreground">
+                      {section.label}
+                    </h2>
+                  )}
+                  {section.items.map((c) => (
+                    <ConversationRow
+                      active={c.id === active.id}
+                      conversation={c}
+                      key={c.id}
+                      onClick={() => select(c.id)}
+                    />
+                  ))}
+                </section>
+              )
+          )}
+        </nav>
+      </aside>
+
+      <ConversationPane
+        className={cn(view === "list" && "max-md:hidden")}
+        conversation={active}
+        key={active.id}
+        onBack={() => setView("list")}
+        onChange={(update) =>
+          setConversations((list) =>
+            list.map((c) => (c.id === active.id ? update(c) : c))
+          )
+        }
+        onTogglePanel={() => setPanelOpen((open) => !open)}
+        panelOpen={panelOpen}
+      />
+    </div>
   )
 }

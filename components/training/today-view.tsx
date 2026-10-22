@@ -1,5 +1,7 @@
 "use client"
 
+import { NowCard, Timeline } from "@/components/agenda/agenda"
+import { NewSessionDialog } from "@/components/training/new-session-dialog"
 import {
   Alert02Icon,
   Calendar03Icon,
@@ -8,7 +10,6 @@ import {
   Clock01Icon,
   FileEditIcon,
   Home01Icon,
-  Location01Icon,
   Sun01Icon,
   SunCloud01Icon,
   Target02Icon,
@@ -41,7 +42,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Meter, MeterIndicator, MeterTrack } from "@/components/ui/meter"
 import { cn } from "@/lib/utils"
 
 const kindIcons: Record<SessionKind, typeof UserGroupIcon> = {
@@ -118,7 +118,7 @@ function LiveSession({
 
       <div className="grid gap-6 md:grid-cols-2">
         <div>
-          <p className="mb-3 text-xs font-medium text-muted-foreground">
+          <p className="mb-3 text-xs font-semibold text-muted-foreground">
             Déroulé de la séance
           </p>
           <ol className="relative space-y-3 before:absolute before:inset-y-1 before:start-2.5 before:w-px before:bg-border">
@@ -130,21 +130,21 @@ function LiveSession({
                     exercise.state === "done" &&
                       "border-training-strong bg-training text-training-foreground",
                     exercise.state === "live" &&
-                      "border-orange-500 ring-4 ring-orange-500/20"
+                      "border-control ring-4 ring-control/15"
                   )}
                 >
                   {exercise.state === "done" && (
                     <HugeiconsIcon className="size-3" icon={Tick02Icon} />
                   )}
                   {exercise.state === "live" && (
-                    <span className="size-1.5 rounded-full bg-orange-500" />
+                    <span className="size-1.5 rounded-full bg-control" />
                   )}
                 </span>
                 <div className="min-w-0 flex-1">
                   <p
                     className={cn(
                       "text-sm",
-                      exercise.state === "live" && "font-medium",
+                      exercise.state === "live" && "font-semibold",
                       exercise.state === "done" && "text-muted-foreground"
                     )}
                   >
@@ -162,7 +162,7 @@ function LiveSession({
 
         <div>
           <div className="mb-3 flex items-center justify-between">
-            <p className="text-xs font-medium text-muted-foreground">Appel</p>
+            <p className="text-xs font-semibold text-muted-foreground">Appel</p>
             <span className="text-xs text-muted-foreground tabular-nums">
               {present} / {puppies.length} présents
             </span>
@@ -172,7 +172,7 @@ function LiveSession({
               <li key={puppy.id}>
                 <button
                   className={cn(
-                    "flex w-full items-center gap-2 rounded-lg border p-2 text-start transition-colors",
+                    "flex w-full items-center gap-2 rounded-xl border p-2 text-start transition-colors",
                     puppy.present
                       ? "border-training-strong/40 bg-training/60"
                       : "border-dashed opacity-60"
@@ -181,7 +181,7 @@ function LiveSession({
                   title={`${puppy.owner} · cliquer pour changer`}
                   type="button"
                 >
-                  <Avatar className="size-7">
+                  <Avatar className="size-10">
                     <AvatarFallback
                       className={cn(
                         "text-[0.625rem]",
@@ -192,7 +192,7 @@ function LiveSession({
                     </AvatarFallback>
                   </Avatar>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">
+                    <span className="block truncate text-sm font-semibold">
                       {puppy.name}
                     </span>
                     <span className="block truncate text-[0.6875rem] text-muted-foreground">
@@ -223,7 +223,7 @@ function WeatherCard() {
             <div
               className={cn(
                 "flex flex-col items-center gap-1 rounded-lg py-2",
-                f.sky === "rain" && "bg-sky-500/10"
+                f.sky === "rain" && "bg-wise-blue/30"
               )}
               key={f.hour}
             >
@@ -233,11 +233,11 @@ function WeatherCard() {
               <HugeiconsIcon
                 className={cn(
                   "size-5",
-                  f.sky === "rain" ? "text-sky-600" : "text-amber-500"
+                  f.sky === "rain" ? "text-training-strong" : "text-warning"
                 )}
                 icon={skyIcons[f.sky]}
               />
-              <span className="text-xs font-medium tabular-nums">
+              <span className="text-xs font-semibold tabular-nums">
                 {f.temp}°
               </span>
               <span
@@ -279,102 +279,6 @@ function WeatherCard() {
   )
 }
 
-function SessionCard({ session }: { session: TrainingSession }) {
-  const state = sessionState(session)
-  const { name, session: index, total } = session.programme
-  return (
-    <div
-      className={cn(
-        "flex flex-col gap-3 rounded-xl border p-4",
-        state === "live" && "border-orange-500/60 bg-orange-500/5",
-        state === "done" && "opacity-60"
-      )}
-    >
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-medium tabular-nums">
-          {range(session)}
-        </span>
-        <Badge className="ms-auto" variant="outline">
-          <HugeiconsIcon icon={kindIcons[session.kind]} />
-          {session.kind}
-        </Badge>
-      </div>
-      <div className="flex items-center gap-3">
-        <Avatar className="size-10">
-          <AvatarFallback className="bg-training text-training-foreground">
-            {session.initials ?? "6"}
-          </AvatarFallback>
-        </Avatar>
-        <div className="min-w-0">
-          <p className="truncate font-medium">
-            {session.title}
-            {session.breed && (
-              <span className="font-normal text-muted-foreground">
-                {" "}
-                · {session.breed}
-              </span>
-            )}
-          </p>
-          <p className="truncate text-xs text-muted-foreground">
-            {session.owner ?? "6 chiots inscrits"}
-          </p>
-        </div>
-      </div>
-      <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <HugeiconsIcon className="size-3.5 shrink-0" icon={Location01Icon} />
-        <span className="truncate">{session.place}</span>
-      </p>
-      <div className="space-y-1.5">
-        <div className="flex justify-between text-xs">
-          <span className="truncate text-muted-foreground">{name}</span>
-          <span className="font-medium tabular-nums">
-            Séance {index}/{total}
-          </span>
-        </div>
-        <div className="flex gap-1">
-          {Array.from({ length: total }, (_, i) => (
-            <span
-              className={cn(
-                "h-1.5 flex-1 rounded-full",
-                i < index - 1
-                  ? "bg-training-strong"
-                  : i === index - 1
-                    ? "bg-training/70"
-                    : "bg-muted"
-              )}
-              key={i}
-            />
-          ))}
-        </div>
-      </div>
-      <p className="flex items-start gap-1.5 rounded-lg bg-muted/60 p-2 text-xs">
-        <HugeiconsIcon
-          className="mt-px size-3.5 shrink-0"
-          icon={Target02Icon}
-        />
-        {session.goal}
-      </p>
-      {session.skills && (
-        <ul className="space-y-2 border-t pt-3">
-          {session.skills.map((skill) => (
-            <li className="space-y-1" key={skill.label}>
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">{skill.label}</span>
-                <span className="tabular-nums">{skill.value} %</span>
-              </div>
-              <Meter aria-label={skill.label} value={skill.value}>
-                <MeterTrack>
-                  <MeterIndicator className="bg-training-strong" />
-                </MeterTrack>
-              </Meter>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  )
-}
-
 function ReportsCard() {
   const [reports, setReports] = useState(initialReports)
   const pending = reports.filter((r) => !r.sent).length
@@ -393,10 +297,10 @@ function ReportsCard() {
               </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm">
-                  <span className="font-medium">{r.dog}</span>
+                  <span className="font-semibold">{r.dog}</span>
                   <span className="text-muted-foreground"> · {r.owner}</span>
                 </p>
-                <p className="truncate text-xs text-muted-foreground">
+                <p className="truncate text-sm text-muted-foreground">
                   {r.session}
                 </p>
               </div>
@@ -418,7 +322,7 @@ function ReportsCard() {
                       )
                     )
                   }
-                  size="xs"
+                  size="sm"
                   variant="outline"
                 >
                   Rédiger
@@ -443,7 +347,7 @@ function PackagesCard() {
             <li className="space-y-1.5" key={p.dog}>
               <div className="flex items-center gap-2 text-sm">
                 <span className="min-w-0 flex-1 truncate">
-                  <span className="font-medium">{p.dog}</span>
+                  <span className="font-semibold">{p.dog}</span>
                   <span className="text-muted-foreground"> · {p.name}</span>
                 </span>
                 <span className="text-xs text-muted-foreground tabular-nums">
@@ -451,7 +355,7 @@ function PackagesCard() {
                 </span>
               </div>
               <Bar
-                className={ending ? "bg-amber-500" : "bg-training-strong"}
+                className={ending ? "bg-warning" : "bg-training-strong"}
                 label={`Forfait de ${p.dog}`}
                 value={(p.used / p.total) * 100}
               />
@@ -463,12 +367,12 @@ function PackagesCard() {
                   </p>
                 ) : (
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs text-amber-600 dark:text-amber-400">
+                    <span className="text-xs text-warning-foreground">
                       Dernière séance à venir
                     </span>
                     <Button
                       onClick={() => setOffered((list) => [...list, p.dog])}
-                      size="xs"
+                      size="sm"
                       variant="outline"
                     >
                       Proposer un renouvellement
@@ -486,6 +390,7 @@ function PackagesCard() {
 export function TrainingTodayView() {
   const [puppies, setPuppies] = useState(initialPuppies)
   const live = sessions.find((s) => sessionState(s) === "live")
+  const next = sessions.find((s) => sessionState(s) === "upcoming")
   const present = puppies.filter((p) => p.present).length
   const individuals = sessions.filter((s) => s.dog).length
   const hours = sessions.reduce((sum, s) => sum + s.end - s.start, 0)
@@ -493,10 +398,14 @@ export function TrainingTodayView() {
   return (
     <ActivityDayPage
       actions={
-        <Button size="sm">
-          <HugeiconsIcon icon={CalendarAdd01Icon} />
-          Planifier une séance
-        </Button>
+        <NewSessionDialog
+          trigger={
+            <Button>
+              <HugeiconsIcon icon={CalendarAdd01Icon} />
+              Planifier une séance
+            </Button>
+          }
+        />
       }
       activity="Éducation"
       aside={
@@ -516,6 +425,31 @@ export function TrainingTodayView() {
         </>
       }
     >
+      {live ? (
+        <LiveSession
+          onToggle={(id) =>
+            setPuppies((list) =>
+              list.map((p) => (p.id === id ? { ...p, present: !p.present } : p))
+            )
+          }
+          puppies={puppies}
+          session={live}
+        />
+      ) : (
+        next && (
+          <NowCard
+            detail={`${next.place} · ${next.programme.name}, séance ${next.programme.session}/${next.programme.total}`}
+            eyebrow={`Prochaine séance · ${range(next)}`}
+            media={
+              <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-training text-training-foreground">
+                <HugeiconsIcon className="size-7" icon={kindIcons[next.kind]} />
+              </span>
+            }
+            title={next.title}
+          />
+        )
+      )}
+
       <Alert variant="warning">
         <HugeiconsIcon icon={Alert02Icon} />
         <AlertTitle>2 points d&apos;attention</AlertTitle>
@@ -571,34 +505,34 @@ export function TrainingTodayView() {
         </Kpi>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        {live && (
-          <LiveSession
-            className="lg:col-span-2"
-            onToggle={(id) =>
-              setPuppies((list) =>
-                list.map((p) =>
-                  p.id === id ? { ...p, present: !p.present } : p
-                )
-              )
-            }
-            puppies={puppies}
-            session={live}
+      <div className="grid items-start gap-6 lg:grid-cols-3">
+        <Widget
+          className="lg:col-span-2"
+          description="Programme et objectif de chaque séance"
+          title="Séances du jour"
+        >
+          <Timeline
+            items={sessions.map((session) => ({
+              detail: [
+                session.owner ?? "6 chiots inscrits",
+                session.place,
+                `${session.programme.name} · séance ${session.programme.session}/${session.programme.total}`,
+                `Objectif : ${session.goal}`,
+              ].join(" · "),
+              done: sessionState(session) === "done",
+              icon: kindIcons[session.kind],
+              id: session.id,
+              time: session.start,
+              title: `${session.title}${session.breed ? ` · ${session.breed}` : ""}`,
+              tone:
+                sessionState(session) === "live"
+                  ? "bg-control text-control-foreground"
+                  : "bg-training text-training-foreground",
+            }))}
           />
-        )}
+        </Widget>
         <WeatherCard />
       </div>
-
-      <Widget
-        description="Programmes et objectifs de chaque séance"
-        title="Séances du jour"
-      >
-        <div className="grid gap-3 md:grid-cols-3">
-          {sessions.map((session) => (
-            <SessionCard key={session.id} session={session} />
-          ))}
-        </div>
-      </Widget>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <ChecklistWidget

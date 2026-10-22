@@ -140,7 +140,7 @@ function Field({
 }) {
   return (
     <div className="space-y-1.5">
-      <p className="text-sm font-medium">{label}</p>
+      <p className="text-sm font-semibold">{label}</p>
       {children}
       {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
     </div>
@@ -287,7 +287,7 @@ function PeriodForm({
             </div>
             <Label className="flex items-start gap-3 font-normal">
               <span className="flex-1">
-                <span className="block text-sm font-medium">
+                <span className="block text-sm font-semibold">
                   Répéter chaque année
                 </span>
                 <span className="text-xs text-muted-foreground">
@@ -399,7 +399,7 @@ function Step({
 }) {
   return (
     <section className="space-y-3">
-      <h3 className="flex items-center gap-2 text-sm font-medium">
+      <h3 className="flex items-center gap-2 text-sm font-semibold">
         <span className="flex size-5 items-center justify-center rounded-full bg-muted text-xs">
           {n}
         </span>
@@ -433,7 +433,7 @@ function Choice({
       onClick={onClick}
       type="button"
     >
-      <span className="block text-sm font-medium">{title}</span>
+      <span className="block text-sm font-semibold">{title}</span>
       <span className="text-xs text-muted-foreground">{description}</span>
     </button>
   )
@@ -554,7 +554,7 @@ function RateForm({
                 return (
                   <div className="space-y-3 p-3" key={place.name}>
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="me-auto text-sm font-medium">
+                      <span className="me-auto text-sm font-semibold">
                         {place.name}
                       </span>
                       <Unit

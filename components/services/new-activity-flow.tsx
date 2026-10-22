@@ -1,10 +1,7 @@
 "use client"
 
 import { activityColors, colorName } from "@/components/activity-mark"
-import {
-  Cancel01Icon,
-  PlusSignIcon,
-} from "@hugeicons/core-free-icons"
+import { Cancel01Icon, PlusSignIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import Link from "next/link"
 import { type ReactNode, useState } from "react"

@@ -72,8 +72,8 @@ const statusMeta = {
 } as const
 
 const compatMeta: Record<Compat, { label: string; dot: string }> = {
-  careful: { dot: "bg-amber-500", label: "Avec précaution" },
-  no: { dot: "bg-red-500", label: "Non" },
+  careful: { dot: "bg-warning", label: "Avec précaution" },
+  no: { dot: "bg-destructive", label: "Non" },
   yes: { dot: "bg-success", label: "Oui" },
 }
 
@@ -86,7 +86,7 @@ function Facts({ items }: { items: [string, ReactNode][] }) {
           key={label}
         >
           <dt className="text-muted-foreground">{label}</dt>
-          <dd className="text-end font-medium">{value}</dd>
+          <dd className="text-end font-semibold">{value}</dd>
         </div>
       ))}
     </dl>
@@ -210,8 +210,8 @@ export function PetView({ slug }: { slug: string }) {
             <AvatarFallback>{pet.owner.initials}</AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium">{pet.owner.name}</p>
-            <p className="text-xs text-muted-foreground">{pet.owner.phone}</p>
+            <p className="text-sm font-semibold">{pet.owner.name}</p>
+            <p className="text-sm text-muted-foreground">{pet.owner.phone}</p>
           </div>
           <Button aria-label="Appeler" size="icon-sm" variant="outline">
             <HugeiconsIcon icon={Call02Icon} />
@@ -272,7 +272,7 @@ export function PetView({ slug }: { slug: string }) {
                     return (
                       <TableRow key={v.name}>
                         <TableCell>
-                          <span className="flex items-center gap-2 font-medium">
+                          <span className="flex items-center gap-2 font-semibold">
                             <HugeiconsIcon
                               className="size-4 text-muted-foreground"
                               icon={VaccineIcon}
@@ -330,14 +330,14 @@ export function PetView({ slug }: { slug: string }) {
                   ]}
                 />
                 <div className="space-y-2 rounded-xl bg-muted/60 p-3 text-sm">
-                  <p className="flex items-center gap-2 font-medium">
+                  <p className="flex items-center gap-2 font-semibold">
                     <HugeiconsIcon className="size-4" icon={StethoscopeIcon} />
                     {pet.vet.name}
                   </p>
                   <p className="text-muted-foreground">
                     {pet.vet.city} · {pet.vet.phone}
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm text-muted-foreground">
                     Autorisation de soins d&apos;urgence signée par{" "}
                     {pet.owner.name.split(" ")[0]}.
                   </p>
@@ -347,7 +347,7 @@ export function PetView({ slug }: { slug: string }) {
 
             <div className="grid gap-4 md:grid-cols-2">
               <Widget title="Alimentation">
-                <div className="mb-3 flex items-center gap-2 text-sm font-medium">
+                <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
                   <HugeiconsIcon
                     className="size-4 text-muted-foreground"
                     icon={Restaurant01Icon}
@@ -431,7 +431,7 @@ export function PetView({ slug }: { slug: string }) {
                   ["Poids", `${String(pet.weight).replace(".", ",")} kg`],
                   [
                     "Puce",
-                    <span className="font-mono text-xs" key="p">
+                    <span className="font-mono text-sm" key="p">
                       {pet.chip}
                     </span>,
                   ],
@@ -538,8 +538,8 @@ export function PetView({ slug }: { slug: string }) {
               >
                 <ActivityMark activity={n.activity} className="mt-0.5" />
                 <div className="min-w-0 flex-1 space-y-1">
-                  <p className="text-xs text-muted-foreground">
-                    <span className="font-medium text-foreground">
+                  <p className="text-sm text-muted-foreground">
+                    <span className="font-semibold text-foreground">
                       {n.author}
                     </span>{" "}
                     · {n.activity} · {formatDate(n.date)}
@@ -575,8 +575,8 @@ export function PetView({ slug }: { slug: string }) {
                 icon={PawPrintIcon}
               />
               <figcaption className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/50 to-transparent p-3 text-white">
-                <p className="text-sm font-medium">{photo.caption}</p>
-                <p className="text-xs opacity-80">{formatDate(photo.date)}</p>
+                <p className="text-sm font-semibold">{photo.caption}</p>
+                <p className="text-sm opacity-80">{formatDate(photo.date)}</p>
               </figcaption>
             </figure>
           ))}
@@ -610,8 +610,8 @@ export function PetView({ slug }: { slug: string }) {
                 </span>
                 <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl border bg-card p-3">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{r.title}</p>
-                    <p className="truncate text-xs text-muted-foreground">
+                    <p className="truncate text-sm font-semibold">{r.title}</p>
+                    <p className="truncate text-sm text-muted-foreground">
                       {reservationDate(r)} {r.detail && `· ${r.detail}`}
                     </p>
                   </div>

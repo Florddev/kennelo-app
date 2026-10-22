@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  ArrowRight01Icon,
   Alert02Icon,
   Call02Icon,
   Calendar03Icon,
@@ -36,7 +37,6 @@ import { Badge } from "@/components/ui/badge"
 import { NewStayDialog } from "@/components/pension/new-stay-dialog"
 import { petHref } from "@/components/pets/data"
 import { Button } from "@/components/ui/button"
-import { CardFrame } from "@/components/ui/card"
 import {
   Empty,
   EmptyDescription,
@@ -57,14 +57,6 @@ import {
   SheetPopup,
   SheetTitle,
 } from "@/components/ui/sheet"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { Tabs, TabsList, TabsTab } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
@@ -86,7 +78,7 @@ const invoiceStatus = {
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="space-y-2">
-      <h3 className="text-xs font-medium text-muted-foreground">{title}</h3>
+      <h3 className="text-sm font-semibold text-muted-foreground">{title}</h3>
       {children}
     </section>
   )
@@ -164,13 +156,13 @@ function ClientSheet({
               </div>
 
               {client.balance > 0 && (
-                <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm">
+                <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm">
                   <HugeiconsIcon
                     className="size-4 text-destructive-foreground"
                     icon={Alert02Icon}
                   />
                   Solde à régler :{" "}
-                  <span className="font-medium">
+                  <span className="font-semibold">
                     {formatAmount(client.balance)}
                   </span>
                 </div>
@@ -181,17 +173,17 @@ function ClientSheet({
                   {client.pets.map((pet) => (
                     <li key={pet.name}>
                       <Link
-                        className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-accent/40"
+                        className="flex items-center gap-3 rounded-xl border p-3 transition-colors hover:bg-accent/40"
                         href={petHref(pet.name, client.name)}
                       >
                         <Avatar className="size-9">
-                          <AvatarFallback className="text-xs">
+                          <AvatarFallback className="text-sm">
                             {pet.name.slice(0, 2)}
                           </AvatarFallback>
                         </Avatar>
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium">{pet.name}</p>
-                          <p className="truncate text-xs text-muted-foreground">
+                          <p className="text-sm font-semibold">{pet.name}</p>
+                          <p className="truncate text-sm text-muted-foreground">
                             {pet.species}
                             {pet.breed && ` · ${pet.breed}`}
                             {pet.care && ` · ${pet.care}`}
@@ -214,7 +206,7 @@ function ClientSheet({
                     Aucune réservation récente.
                   </p>
                 ) : (
-                  <ul className="divide-y rounded-lg border">
+                  <ul className="divide-y rounded-xl border">
                     {history.map((r) => (
                       <li
                         className="flex items-center gap-3 px-3 py-2.5"
@@ -225,7 +217,7 @@ function ClientSheet({
                           <p className="truncate text-sm">
                             {r.pet} · {r.title}
                           </p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-sm text-muted-foreground">
                             {reservationDate(r)}
                           </p>
                         </div>
@@ -240,7 +232,7 @@ function ClientSheet({
 
               {client.invoices.length > 0 && (
                 <Section title="Factures">
-                  <ul className="divide-y rounded-lg border">
+                  <ul className="divide-y rounded-xl border">
                     {client.invoices.map((invoice) => (
                       <li
                         className="flex items-center gap-3 px-3 py-2.5"
@@ -248,7 +240,7 @@ function ClientSheet({
                       >
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm">{invoice.subject}</p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-sm text-muted-foreground">
                             {invoice.number} · {shortDate(invoice.issued)}
                           </p>
                         </div>
@@ -426,122 +418,85 @@ export function ClientsView() {
           </EmptyHeader>
         </Empty>
       ) : view === "clients" ? (
-        <CardFrame className="overflow-x-auto">
-          <Table variant="card">
-            <TableHeader>
-              <TableRow>
-                <TableHead>Client</TableHead>
-                <TableHead>Animaux</TableHead>
-                <TableHead className="max-md:hidden">Activités</TableHead>
-                <TableHead className="max-lg:hidden">Dernière visite</TableHead>
-                <TableHead>Prochaine visite</TableHead>
-                <TableHead className="text-end">Solde</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((c) => (
-                <TableRow
-                  className="cursor-pointer"
-                  key={c.name}
-                  onClick={() => open(c.name)}
-                >
-                  <TableCell>
-                    <div className="flex items-center gap-2.5">
-                      <Avatar className="size-8">
-                        <AvatarFallback className="text-xs">
-                          {c.initials}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="flex items-center gap-1.5 font-medium">
-                          {c.name}
-                          {c.tags.slice(0, 1).map((tag) => (
-                            <Badge
-                              key={tag}
-                              size="sm"
-                              variant={tagVariant[tag]}
-                            >
-                              {tag}
-                            </Badge>
-                          ))}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {c.city}
-                        </p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {c.pets.map((p) => (
-                        <Badge key={p.name} variant="outline">
-                          {p.name}
-                        </Badge>
-                      ))}
-                    </div>
-                  </TableCell>
-                  <TableCell className="max-md:hidden">
-                    <div className="flex gap-1">
-                      {c.activities.map((a) => (
-                        <ActivityMark activity={a} key={a} />
-                      ))}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground max-lg:hidden">
-                    {c.lastVisit !== undefined
-                      ? relativeDate(c.lastVisit)
-                      : "—"}
-                  </TableCell>
-                  <TableCell
-                    className={cn(
-                      c.nextVisit === undefined && "text-muted-foreground"
-                    )}
-                  >
+        <ul className="-mx-3">
+          {rows.map((c) => (
+            <li key={c.name}>
+              <button
+                className="flex w-full items-center gap-4 rounded-2xl p-3 text-start transition-colors hover:bg-accent"
+                onClick={() => open(c.name)}
+                type="button"
+              >
+                <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold">
+                  {c.initials}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-2 font-semibold">
+                    <span className="truncate">{c.name}</span>
+                    {c.tags.slice(0, 1).map((tag) => (
+                      <Badge key={tag} variant={tagVariant[tag]}>
+                        {tag}
+                      </Badge>
+                    ))}
+                  </span>
+                  <span className="block truncate text-sm text-muted-foreground">
+                    {[c.pets.map((p) => p.name).join(", "), c.city]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </span>
+                </span>
+                <span className="flex shrink-0 gap-1 max-sm:hidden">
+                  {c.activities.map((a) => (
+                    <ActivityMark activity={a} className="size-6" key={a} />
+                  ))}
+                </span>
+                <span className="w-28 shrink-0 text-end">
+                  {c.balance > 0 ? (
+                    <span className="block font-semibold text-destructive-foreground tabular-nums">
+                      {formatAmount(c.balance)} dus
+                    </span>
+                  ) : null}
+                  <span className="block text-sm text-muted-foreground">
                     {c.nextVisit !== undefined
-                      ? relativeDate(c.nextVisit)
-                      : "—"}
-                  </TableCell>
-                  <TableCell
-                    className={cn(
-                      "text-end tabular-nums",
-                      c.balance > 0
-                        ? "font-medium text-destructive-foreground"
-                        : "text-muted-foreground"
-                    )}
-                  >
-                    {c.balance > 0 ? formatAmount(c.balance) : "—"}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardFrame>
+                      ? `Revient ${relativeDate(c.nextVisit).toLowerCase()}`
+                      : c.lastVisit !== undefined
+                        ? `Venu ${relativeDate(c.lastVisit).toLowerCase()}`
+                        : "Jamais venu"}
+                  </span>
+                </span>
+                <HugeiconsIcon
+                  className="size-5 shrink-0 text-muted-foreground"
+                  icon={ArrowRight01Icon}
+                />
+              </button>
+            </li>
+          ))}
+        </ul>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {pets.map((pet) => (
             <Link
-              className="flex flex-col gap-3 rounded-xl border bg-card p-4 text-start transition-colors hover:bg-accent/40"
+              className="flex flex-col gap-4 rounded-2xl border bg-card p-5 text-start transition-colors hover:bg-accent"
               href={petHref(pet.name, pet.owner.name)}
               key={`${pet.owner.name}-${pet.name}`}
             >
               <div className="flex items-center gap-3">
-                <Avatar className="size-10">
-                  <AvatarFallback>{pet.name.slice(0, 2)}</AvatarFallback>
-                </Avatar>
+                <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold">
+                  {pet.name.slice(0, 2)}
+                </span>
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium">{pet.name}</p>
-                  <p className="truncate text-xs text-muted-foreground">
+                  <p className="font-semibold">{pet.name}</p>
+                  <p className="truncate text-sm text-muted-foreground">
                     {pet.breed || pet.species}
                   </p>
                 </div>
                 <Badge variant="outline">{pet.species}</Badge>
               </div>
               {pet.care && (
-                <p className="rounded-md bg-amber-500/10 px-2 py-1 text-xs text-amber-800 dark:text-amber-300">
+                <p className="rounded-xl bg-warning-soft px-3 py-2 text-sm text-warning-foreground">
                   {pet.care}
                 </p>
               )}
-              <div className="mt-auto flex items-center justify-between gap-2 text-xs text-muted-foreground">
+              <div className="mt-auto flex items-center justify-between gap-2 text-sm text-muted-foreground">
                 <span className="truncate">{pet.owner.name}</span>
                 <span className="flex gap-1">
                   {pet.activities.map((a) => (

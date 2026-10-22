@@ -124,7 +124,7 @@ function CheckRow({
         <Button
           aria-label="Retirer"
           onClick={onRemove}
-          size="icon-xs"
+          size="icon-sm"
           variant="ghost"
         >
           <HugeiconsIcon icon={Cancel01Icon} />
@@ -186,7 +186,7 @@ function SignaturePad({
             c?.getContext("2d")?.clearRect(0, 0, c.width, c.height)
             onSigned(false)
           }}
-          size="xs"
+          size="sm"
           variant="ghost"
         >
           Effacer
@@ -300,7 +300,7 @@ function ArrivalSteps({
               }}
             />
             Carnet présenté et vérifié
-            <Button className="ms-auto" size="xs" variant="outline">
+            <Button className="ms-auto" size="sm" variant="outline">
               <HugeiconsIcon icon={Camera01Icon} />
               Scanner
             </Button>

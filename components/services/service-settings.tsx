@@ -92,7 +92,6 @@ export function ServiceSettings({ serviceId }: { serviceId: string }) {
             aria-label="Nom"
             className="w-full sm:w-64"
             onChange={(e) => save({ name: e.target.value })}
-            size="sm"
             value={service.name}
           />
         </SettingsRow>
@@ -101,7 +100,6 @@ export function ServiceSettings({ serviceId }: { serviceId: string }) {
             aria-label="Description"
             className="w-full sm:w-64"
             onChange={(e) => save({ description: e.target.value })}
-            size="sm"
             value={service.description}
           />
         </SettingsRow>
@@ -135,7 +133,7 @@ export function ServiceSettings({ serviceId }: { serviceId: string }) {
           />
         </SettingsRow>
         {service.bundle && (
-          <div className="flex flex-wrap gap-1.5 px-4 py-3">
+          <div className="flex flex-wrap gap-2 px-5 py-4">
             {catalog.services
               .filter((s) => s.id !== service.id && !s.bundle)
               .map((s) => {
@@ -151,8 +149,12 @@ export function ServiceSettings({ serviceId }: { serviceId: string }) {
                           : [...service.bundle!, s.id],
                       })
                     }
-                    size="xs"
-                    variant={on ? "secondary" : "outline"}
+                    className={
+                      on
+                        ? "bg-control text-control-foreground hover:bg-control/90"
+                        : undefined
+                    }
+                    variant="secondary"
                   >
                     {s.name}
                   </Button>
@@ -166,7 +168,7 @@ export function ServiceSettings({ serviceId }: { serviceId: string }) {
         description="La ligne la plus précise l'emporte. Sans ligne pour un animal, la prestation ne lui est pas proposée."
         title="Grille de prix par animal"
       >
-        <div className="p-4">
+        <div className="p-5">
           <GridEditor
             detailed={service.detailed}
             onChange={(grid) => save({ grid })}
@@ -190,7 +192,7 @@ export function ServiceSettings({ serviceId }: { serviceId: string }) {
                 }
               />
             </SettingsRow>
-            <div className="px-4 py-3">
+            <div className="px-5 py-4">
               <OfferControls
                 activityId={activity.id}
                 offer={offer}
@@ -206,8 +208,7 @@ export function ServiceSettings({ serviceId }: { serviceId: string }) {
           >
             <Button
               onClick={() => addOffers(activity.id, [service.id])}
-              size="sm"
-              variant="outline"
+              variant="secondary"
             >
               Remettre en vente
             </Button>
@@ -223,12 +224,12 @@ export function ServiceSettings({ serviceId }: { serviceId: string }) {
           {others.map((other) => {
             const o = offerOf(other.id)
             return (
-              <div className="space-y-3 px-4 py-3" key={other.id}>
+              <div className="space-y-3 px-5 py-4" key={other.id}>
                 <div className="flex items-center gap-3">
-                  <ActivityDot activity={other} className="size-6 rounded-md" />
+                  <ActivityDot activity={other} className="size-10 text-sm" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium">{other.name}</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="font-semibold">{other.name}</p>
+                    <p className="text-sm text-muted-foreground">
                       {o
                         ? o.included
                           ? "Incluse"
@@ -247,7 +248,7 @@ export function ServiceSettings({ serviceId }: { serviceId: string }) {
                   />
                 </div>
                 {o && (
-                  <div className="ps-9">
+                  <div className="ps-14">
                     <OfferControls
                       activityId={other.id}
                       offer={o}
@@ -273,11 +274,7 @@ export function ServiceSettings({ serviceId }: { serviceId: string }) {
         >
           <AlertDialog>
             <AlertDialogTrigger
-              render={
-                <Button size="sm" variant="destructive-outline">
-                  Supprimer
-                </Button>
-              }
+              render={<Button variant="destructive-outline">Supprimer</Button>}
             />
             <AlertDialogPopup>
               <AlertDialogHeader>

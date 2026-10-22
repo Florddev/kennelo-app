@@ -45,7 +45,6 @@ import { groups as trainingGroups } from "@/components/training/data"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectItem,
@@ -66,7 +65,7 @@ const hoursText = ({ hours }: ActivitySettings) =>
   `${hours.label} · ${hours.from.replace(":00", "h")} – ${hours.to.replace(":00", "h")}`
 
 const AddButton = ({ label }: { label: string }) => (
-  <Button size="sm" variant="ghost">
+  <Button variant="secondary">
     <HugeiconsIcon icon={PlusSignIcon} />
     {label}
   </Button>
@@ -94,7 +93,7 @@ function CreatedActivityOverview({ id }: { id: string }) {
         .join(" · ")}
       title={
         <>
-          <ActivityDot activity={activity} className="size-7 rounded-md" />
+          <ActivityDot activity={activity} className="size-9 rounded-full" />
           {activity.name}
         </>
       }
@@ -117,19 +116,19 @@ export function ActivityOverview({ slug }: { slug: string }) {
   return (
     <SettingsPage
       action={
-        <Link
-          className="flex items-center gap-1 text-sm font-medium hover:underline"
-          href={activity.appHref}
-        >
+        <Button render={<Link href={activity.appHref} />} variant="secondary">
           Voir l&apos;activité
-          <HugeiconsIcon className="size-4" icon={ArrowRight01Icon} />
-        </Link>
+          <HugeiconsIcon icon={ArrowRight01Icon} />
+        </Button>
       }
       back={{ href: "/settings/activities", label: "Activités" }}
       description={`Accessible à ${teamOf(activity).length} membres · ${hoursText(activity)}`}
       title={
         <>
-          <ActivityMark activity={activity.name} className="size-7 text-xs" />
+          <ActivityMark
+            activity={activity.name}
+            className="size-10 text-base"
+          />
           {activity.name}
         </>
       }
@@ -184,7 +183,7 @@ function ColorPicker({ initial }: { initial: string }) {
           aria-label={`Couleur ${colorName(c)}`}
           aria-pressed={c === color}
           className={cn(
-            "size-6 rounded-full ring-offset-2 ring-offset-background transition-shadow",
+            "size-8 rounded-full ring-offset-2 ring-offset-background transition-shadow",
             c,
             c === color && "ring-2 ring-ring"
           )}
@@ -269,8 +268,8 @@ function MembersSection({ activity }: SectionProps) {
             description={member.job}
             key={member.email}
             media={
-              <Avatar className="size-8">
-                <AvatarFallback className="text-xs">
+              <Avatar className="size-12">
+                <AvatarFallback className="font-semibold">
                   {member.initials}
                 </AvatarFallback>
               </Avatar>
@@ -288,7 +287,6 @@ function MembersSection({ activity }: SectionProps) {
               <SelectTrigger
                 aria-label={`Rôle de ${member.name}`}
                 className="w-fit min-w-0"
-                size="sm"
               >
                 <SelectValue />
               </SelectTrigger>
@@ -309,17 +307,15 @@ function MembersSection({ activity }: SectionProps) {
             description={member.job}
             key={member.email}
             media={
-              <Avatar className="size-8">
-                <AvatarFallback className="text-xs">
+              <Avatar className="size-12">
+                <AvatarFallback className="font-semibold">
                   {member.initials}
                 </AvatarFallback>
               </Avatar>
             }
             title={member.name}
           >
-            <Button size="sm" variant="outline">
-              Ajouter
-            </Button>
+            <Button variant="secondary">Ajouter</Button>
           </SettingsRow>
         ))}
       </SettingsSection>
@@ -456,7 +452,7 @@ function KennelsSection() {
               onValueChange={(value) => setArea(String(value))}
               value={area}
             >
-              <TabsList size="sm">
+              <TabsList>
                 <TabsTab value="Chenil">Chenil · 20</TabsTab>
                 <TabsTab value="Chatterie">Chatterie · 4</TabsTab>
               </TabsList>
@@ -470,13 +466,18 @@ function KennelsSection() {
           <SettingsRow
             description={`${kennelSize(kennel.id)} · ${kennelFeature(kennel.id)}`}
             key={kennel.id}
+            media={
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-pension font-semibold text-pension-foreground">
+                {kennel.label.replace("C", "")}
+              </span>
+            }
             title={kennelLabel(kennel.id)}
           >
             {kennel.status === "cleaning" && (
               <Badge variant="warning">Nettoyage</Badge>
             )}
             {kennel.pet && (
-              <span className="text-xs text-muted-foreground">
+              <span className="text-sm text-muted-foreground">
                 Occupé · {kennel.pet}
               </span>
             )}
@@ -843,7 +844,7 @@ function StepsSection() {
             description={stepDetails[step]}
             key={step}
             media={
-              <span className="flex size-8 items-center justify-center rounded-lg bg-grooming text-sm font-semibold text-grooming-foreground">
+              <span className="flex size-10 items-center justify-center rounded-full bg-grooming text-sm font-semibold text-grooming-foreground">
                 {i + 1}
               </span>
             }
@@ -924,15 +925,17 @@ function WaitlistSection() {
             description={`${entry.owner} · ${entry.request}`}
             key={entry.id}
             media={
-              <Avatar className="size-8">
-                <AvatarFallback className="text-xs">
+              <Avatar className="size-12">
+                <AvatarFallback className="font-semibold">
                   {entry.initials}
                 </AvatarFallback>
               </Avatar>
             }
             title={entry.pet}
           >
-            <Badge variant="outline">Souhaite {entry.slot}</Badge>
+            <span className="text-sm font-semibold text-muted-foreground">
+              Souhaite {entry.slot}
+            </span>
           </SettingsRow>
         ))}
       </SettingsSection>
@@ -950,17 +953,23 @@ function ProductsSection() {
       >
         {stock.map((item) => (
           <SettingsRow
-            description={`Niveau actuel ${item.level} %`}
+            description={
+              item.level < 25
+                ? `Plus que ${item.level} % · à commander`
+                : `${item.level} % en stock`
+            }
             key={item.label}
             title={item.label}
           >
-            {item.level < 25 && <Badge variant="warning">À commander</Badge>}
-            <Input
-              aria-label={`Seuil d'alerte ${item.label}`}
-              className="w-20"
-              defaultValue="25 %"
-              size="sm"
-            />
+            <span className="h-2.5 w-28 overflow-hidden rounded-full bg-muted">
+              <span
+                className={cn(
+                  "block h-full rounded-full",
+                  item.level < 25 ? "bg-warning" : "bg-control"
+                )}
+                style={{ width: `${item.level}%` }}
+              />
+            </span>
           </SettingsRow>
         ))}
       </SettingsSection>
@@ -1147,7 +1156,7 @@ function GroupsSection() {
             key={group.id}
             title={group.name}
           >
-            <span className="text-xs text-muted-foreground">{group.price}</span>
+            <span className="text-sm text-muted-foreground">{group.price}</span>
             <Badge
               variant={
                 group.members.length >= group.capacity - 1

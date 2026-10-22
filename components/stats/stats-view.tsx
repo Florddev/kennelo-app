@@ -46,10 +46,8 @@ function Delta({ value }: { value: number }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-0.5 font-medium",
-        up
-          ? "text-pension-strong"
-          : "text-destructive-foreground"
+        "inline-flex items-center gap-0.5 font-semibold",
+        up ? "text-pension-strong" : "text-destructive-foreground"
       )}
     >
       <HugeiconsIcon
@@ -327,12 +325,14 @@ export function StatsView() {
           <ol className="space-y-3">
             {topClients.map((client, index) => (
               <li className="flex items-center gap-3" key={client.name}>
-                <span className="w-4 text-xs text-muted-foreground tabular-nums">
+                <span className="w-4 text-sm text-muted-foreground tabular-nums">
                   {index + 1}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{client.name}</p>
-                  <p className="truncate text-xs text-muted-foreground">
+                  <p className="truncate text-sm font-semibold">
+                    {client.name}
+                  </p>
+                  <p className="truncate text-sm text-muted-foreground">
                     {client.pets.map((p) => p.name).join(", ")}
                   </p>
                 </div>
@@ -368,16 +368,16 @@ export function StatsView() {
           </ul>
           <dl className="mt-4 grid grid-cols-2 gap-3 border-t pt-3 text-sm">
             <div>
-              <dt className="text-xs text-muted-foreground">
+              <dt className="text-sm text-muted-foreground">
                 Nouveaux en 2026
               </dt>
-              <dd className="font-medium">
+              <dd className="font-semibold">
                 {clients.filter((c) => c.since === 2026).length}
               </dd>
             </div>
             <div>
-              <dt className="text-xs text-muted-foreground">Multi-activités</dt>
-              <dd className="font-medium">
+              <dt className="text-sm text-muted-foreground">Multi-activités</dt>
+              <dd className="font-semibold">
                 {Math.round((multi / clients.length) * 100)} %
               </dd>
             </div>

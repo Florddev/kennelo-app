@@ -2,33 +2,17 @@
 
 import {
   ArrowLeft01Icon,
-  Calendar03Icon,
-  Building03Icon,
   CircleArrowUpIcon,
-  CodeIcon,
-  CreditCardIcon,
-  ArrowDataTransferHorizontalIcon,
-  Globe02Icon,
-  LinkIcon,
-  Message01Icon,
-  Notification03Icon,
-  PlugIcon,
   PlusSignIcon,
   Search01Icon,
-  Shield01Icon,
-  ShieldIcon,
-  SlidersHorizontalIcon,
-  Store01Icon,
-  UserGroupIcon,
-  UserIcon,
-  Wallet01Icon,
 } from "@hugeicons/core-free-icons"
-import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
+import { HugeiconsIcon } from "@hugeicons/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
 import { ActivityMark } from "@/components/activity-mark"
 import { activitySettings } from "@/components/settings/data"
+import { settingsNav } from "@/components/settings/nav"
 import { Button } from "@/components/ui/button"
 import {
   InputGroup,
@@ -46,78 +30,6 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 
-type NavItem = { title: string; icon: IconSvgElement; href: string }
-
-const sections: { label: string; items: NavItem[] }[] = [
-  {
-    items: [
-      {
-        href: "/settings/preferences",
-        icon: SlidersHorizontalIcon,
-        title: "Préférences",
-      },
-      { href: "/settings/profile", icon: UserIcon, title: "Profil" },
-      {
-        href: "/settings/notifications",
-        icon: Notification03Icon,
-        title: "Notifications",
-      },
-      {
-        href: "/settings/account-security",
-        icon: ShieldIcon,
-        title: "Sécurité & accès",
-      },
-      {
-        href: "/settings/connected-accounts",
-        icon: LinkIcon,
-        title: "Comptes connectés",
-      },
-    ],
-    label: "Compte",
-  },
-  {
-    items: [
-      {
-        href: "/settings/organization",
-        icon: Building03Icon,
-        title: "Établissement",
-      },
-      { href: "/settings/members", icon: UserGroupIcon, title: "Membres" },
-      { href: "/settings/activities", icon: Store01Icon, title: "Activités" },
-      {
-        href: "/settings/periods",
-        icon: Calendar03Icon,
-        title: "Périodes tarifaires",
-      },
-      {
-        href: "/settings/booking",
-        icon: Globe02Icon,
-        title: "Réservation en ligne",
-      },
-      {
-        href: "/settings/communication",
-        icon: Message01Icon,
-        title: "Communication",
-      },
-      {
-        href: "/settings/payments",
-        icon: Wallet01Icon,
-        title: "Paiements & factures",
-      },
-      { href: "/settings/integrations", icon: PlugIcon, title: "Intégrations" },
-      { href: "/settings/api", icon: CodeIcon, title: "API" },
-      { href: "/settings/security", icon: Shield01Icon, title: "Sécurité" },
-      { href: "/settings/billing", icon: CreditCardIcon, title: "Abonnement" },
-      {
-        href: "/settings/import-export",
-        icon: ArrowDataTransferHorizontalIcon,
-        title: "Import & export",
-      },
-    ],
-    label: "Organisation",
-  },
-]
-
 export function SettingsSidebar() {
   const pathname = usePathname()
   const [query, setQuery] = useState("")
@@ -127,30 +39,35 @@ export function SettingsSidebar() {
 
   return (
     <>
-      <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton render={<Link href="/today" />}>
-              <HugeiconsIcon icon={ArrowLeft01Icon} />
-              <span>Retour à l&apos;application</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-        <InputGroup>
+      <SidebarHeader className="gap-4 p-4">
+        <Button
+          className="h-12 w-fit gap-3 ps-1.5 pe-4"
+          render={<Link href="/today" />}
+          variant="ghost"
+        >
+          <span className="flex size-9 items-center justify-center rounded-full bg-muted">
+            <HugeiconsIcon icon={ArrowLeft01Icon} />
+          </span>
+          <span className="text-foreground">Retour à l&apos;application</span>
+        </Button>
+        <Link className="px-2 text-2xl font-semibold" href="/settings">
+          Paramètres
+        </Link>
+        <InputGroup className="rounded-full">
           <InputGroupAddon>
             <HugeiconsIcon icon={Search01Icon} />
           </InputGroupAddon>
           <InputGroupInput
             aria-label="Rechercher un paramètre"
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Rechercher…"
+            placeholder="Rechercher"
             value={query}
           />
         </InputGroup>
       </SidebarHeader>
 
-      <SidebarContent>
-        {sections.map((section) => {
+      <SidebarContent className="px-2">
+        {settingsNav.map((section) => {
           const items = section.items.filter((item) => match(item.title))
           if (items.length === 0) return null
           return (
@@ -160,7 +77,11 @@ export function SettingsSidebar() {
                 {items.map((item) => (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
-                      isActive={item.href === pathname}
+                      isActive={
+                        pathname === item.href ||
+                        (item.href === "/settings/activities" &&
+                          pathname === "/settings/activities/new")
+                      }
                       render={<Link href={item.href} />}
                     >
                       <HugeiconsIcon icon={item.icon} />
@@ -189,7 +110,7 @@ export function SettingsSidebar() {
                     >
                       <ActivityMark
                         activity={activity.name}
-                        className="size-4 rounded text-[0.5rem]"
+                        className="size-6 text-[0.6875rem]"
                       />
                       <span>{activity.name}</span>
                     </SidebarMenuButton>
@@ -198,7 +119,10 @@ export function SettingsSidebar() {
               })}
               {!query && (
                 <SidebarMenuItem>
-                  <SidebarMenuButton className="text-muted-foreground">
+                  <SidebarMenuButton
+                    className="text-muted-foreground"
+                    render={<Link href="/settings/activities/new" />}
+                  >
                     <HugeiconsIcon icon={PlusSignIcon} />
                     <span>Créer une activité</span>
                   </SidebarMenuButton>
@@ -209,20 +133,11 @@ export function SettingsSidebar() {
         )}
       </SidebarContent>
 
-      <SidebarFooter className="flex-row items-center">
+      <SidebarFooter className="p-4">
         <Button
-          aria-label="Aide"
-          className="rounded-full"
-          size="icon-sm"
-          variant="outline"
-        >
-          ?
-        </Button>
-        <Button
-          className="rounded-full"
+          className="w-full"
           render={<Link href="/settings/billing" />}
-          size="sm"
-          variant="outline"
+          variant="secondary"
         >
           <HugeiconsIcon icon={CircleArrowUpIcon} />
           Offre gratuite

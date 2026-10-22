@@ -7,7 +7,7 @@ import {
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { type ReactElement, useState } from "react"
-import { dateOf, longDate, TODAY, weekdayOf } from "@/components/calendar"
+import { longDate, TODAY } from "@/components/calendar"
 import { type Client, clients } from "@/components/clients/data"
 import {
   ClientStep,
@@ -33,44 +33,40 @@ import {
   sizeOfWeight,
   useCatalog,
 } from "@/components/services/data"
-import { NOW } from "@/components/today/data"
 import { formatAmount, formatHour } from "@/components/today/widgets"
+import { durationLabel, SlotStep } from "@/components/flow/slot-step"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { cn } from "@/lib/utils"
 
 type StepId = "client" | "newClient" | "pet" | "service" | "slot" | "recap"
 
 /** Wall clock, only read from event handlers. */
 const clock = () => Date.now()
-const DAYS = Array.from({ length: 7 }, (_, i) => TODAY + i)
-/** Créneaux de 9h à 17h30, toutes les demi-heures. */
-const TIMES = Array.from({ length: 18 }, (_, i) => 9 + i / 2)
-const CLOSING = 18.5
-
-const durationLabel = (minutes: number) =>
-  minutes < 60
-    ? `${minutes} min`
-    : `${Math.floor(minutes / 60)}h${minutes % 60 ? String(minutes % 60).padStart(2, "0") : ""}`
-
 export function NewAppointmentDialog({
   trigger,
   onCreate,
+  initial,
+  defaultOpen,
+  onOpenChange,
 }: {
-  trigger: ReactElement
+  trigger?: ReactElement
+  /** Créneau déjà choisi, quand le parcours part de l'agenda. */
+  initial?: { day: number; start: number }
+  defaultOpen?: boolean
+  onOpenChange?: (open: boolean) => void
   onCreate?: (booking: SalonBooking) => void
 }) {
   const catalog = useCatalog()
   const steps = useSteps<StepId>("client")
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(defaultOpen ?? false)
   const [clientName, setClientName] = useState<string>()
   const [draft, setDraft] = useState(emptyClientDraft)
   const [petName, setPetName] = useState<string>()
   const [serviceId, setServiceId] = useState<string>()
-  const [day, setDay] = useState(TODAY)
-  const [start, setStart] = useState<number | null>(null)
+  const [day, setDay] = useState(initial?.day ?? TODAY)
+  const [start, setStart] = useState<number | null>(initial?.start ?? null)
   const [sms, setSms] = useState(true)
   const [created, setCreated] = useState<SalonBooking | null>(null)
 
@@ -104,17 +100,14 @@ export function NewAppointmentDialog({
   })
   const service = offers.find((o) => o.id === serviceId)
   const length = (service?.duration ?? 60) / 60
-  const taken = (t: number) =>
+  const taken = (d: number, t: number) =>
     salonBookings.some(
       (b) =>
-        b.day === day &&
+        b.day === d &&
         b.status !== "cancelled" &&
         b.start < t + length &&
         t < b.end
     )
-  const times = TIMES.filter(
-    (t) => t + length <= CLOSING && !(day === TODAY && t <= NOW)
-  )
   const when = start === null ? "" : `${longDate(day)} à ${formatHour(start)}`
   const ready = Boolean(service && start !== null && animal && owner)
 
@@ -165,6 +158,7 @@ export function NewAppointmentDialog({
       onOpenChange={(next) => {
         if (next) reset()
         setOpen(next)
+        onOpenChange?.(next)
       }}
       open={open}
       progress={created ? undefined : progress}
@@ -245,8 +239,7 @@ export function NewAppointmentDialog({
                 }
                 onClick={() => {
                   setServiceId(o.id)
-                  setStart(null)
-                  steps.next("slot")
+                  steps.next(start === null ? "slot" : "recap")
                 }}
                 selected={serviceId === o.id}
                 title={o.name}
@@ -255,57 +248,24 @@ export function NewAppointmentDialog({
           </div>
         </FlowScreen>
       ) : steps.step === "slot" ? (
-        <FlowScreen
+        <SlotStep
+          busy={taken}
+          day={day}
           description={
             service && `${service.name} · ${durationLabel(service.duration)}`
           }
+          length={length}
           onBack={steps.back}
-          title="Quel jour, à quelle heure ?"
-        >
-          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
-            {DAYS.map((d) => (
-              <button
-                aria-pressed={d === day}
-                className={cn(
-                  "flex w-16 shrink-0 flex-col items-center rounded-2xl border py-2 transition-colors",
-                  d === day
-                    ? "border-control bg-control text-control-foreground"
-                    : "hover:bg-accent"
-                )}
-                key={d}
-                onClick={() => {
-                  setDay(d)
-                  setStart(null)
-                }}
-                type="button"
-              >
-                <span className="text-xs font-semibold">{weekdayOf(d)}</span>
-                <span className="text-xl font-semibold">{dateOf(d).day}</span>
-              </button>
-            ))}
-          </div>
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-            {times.map((t) => (
-              <Button
-                disabled={taken(t)}
-                key={t}
-                onClick={() => {
-                  setStart(t)
-                  steps.next("recap")
-                }}
-                size="lg"
-                variant={start === t ? "default" : "outline"}
-              >
-                {formatHour(t)}
-              </Button>
-            ))}
-          </div>
-          {times.every(taken) && (
-            <p className="text-center text-muted-foreground">
-              Plus de créneau libre ce jour-là : essayez un autre jour.
-            </p>
-          )}
-        </FlowScreen>
+          onDay={(d) => {
+            setDay(d)
+            setStart(null)
+          }}
+          onPick={(t) => {
+            setStart(t)
+            steps.next("recap")
+          }}
+          start={start}
+        />
       ) : (
         <FlowScreen
           description="Touchez une ligne pour la modifier."

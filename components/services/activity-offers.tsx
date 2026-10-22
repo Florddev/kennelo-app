@@ -22,20 +22,25 @@ import {
   updateOffer,
   useCatalog,
 } from "@/components/services/data"
-import { ActivityTag, ServiceDialog } from "@/components/services/service-form"
-import { SettingsSection } from "@/components/settings/settings-ui"
+import { ChoiceRow, FlowMedia } from "@/components/flow/flow"
+import {
+  ActivityDot,
+  ActivityTag,
+  ServiceDialog,
+} from "@/components/services/service-form"
+import { notify, SettingsSection } from "@/components/settings/settings-ui"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   Dialog,
+  DialogClose,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogPanel,
   DialogPopup,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import {
   InputGroup,
@@ -107,7 +112,6 @@ export function OfferControls({
               adjust: Math.max(-100, Math.min(100, Number(e.target.value))),
             })
           }
-          size="sm"
           type="number"
           value={offer.adjust}
         />
@@ -115,7 +119,7 @@ export function OfferControls({
           <InputGroupText>%</InputGroupText>
         </InputGroupAddon>
       </InputGroup>
-      <span className="text-sm font-medium tabular-nums">
+      <span className="text-sm font-semibold tabular-nums">
         {offer.included
           ? `Incluse · ${euros(0)}`
           : gridSummary(service, offer.adjust)}
@@ -137,7 +141,6 @@ export function OfferControls({
             <SelectTrigger
               aria-label="Quantité proposée"
               className="w-fit min-w-0"
-              size="sm"
             >
               <SelectValue />
             </SelectTrigger>
@@ -156,7 +159,130 @@ export function OfferControls({
   )
 }
 
-/** Prestations d'une activité : les siennes (principales) et celles reprises. */
+/** Nom, état et prix d'une prestation dans une activité. */
+function OfferText({
+  offer,
+  service,
+  stay,
+  from,
+  children,
+}: {
+  offer: Offer
+  service: Service
+  stay: boolean
+  /** Activité qui fait la prestation, quand ce n'est pas celle-ci. */
+  from?: CatalogActivity
+  children?: ReactNode
+}) {
+  return (
+    <div
+      className={cn(
+        "min-w-0 flex-1",
+        (!offer.active || !service.active) && "opacity-60"
+      )}
+    >
+      <p className="flex flex-wrap items-center gap-2 font-semibold">
+        {service.name}
+        {from && <ActivityTag activity={from} />}
+        {service.bundle && (
+          <Badge size="sm" variant="outline">
+            Forfait
+          </Badge>
+        )}
+        {offer.included && (
+          <Badge size="sm" variant="success">
+            Incluse
+          </Badge>
+        )}
+        {!service.active && (
+          <Badge size="sm" variant="warning">
+            Désactivée
+          </Badge>
+        )}
+        {service.active && !offer.active && (
+          <Badge size="sm" variant="secondary">
+            Hors vente
+          </Badge>
+        )}
+      </p>
+      <p className="text-sm text-muted-foreground">
+        {from && `Faite par ${from.name} · `}
+        {offer.included ? "Incluse, 0 €" : gridSummary(service, offer.adjust)}
+        {stay && (offer.perNight ? " · par nuit" : " · par séjour")}
+        {!from && ` · ${serviceMeta(service)}`}
+      </p>
+      {children}
+    </div>
+  )
+}
+
+/** Réglages d'une prestation d'une autre activité : en vente, prix, retrait. */
+function OfferDialog({
+  activity,
+  offer,
+  service,
+  stay,
+  onOpenChange,
+}: {
+  activity: CatalogActivity
+  offer: Offer
+  service: Service
+  stay: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  const owner = useCatalog().activities.find((a) => a.id === service.owner)
+  return (
+    <Dialog onOpenChange={onOpenChange} open>
+      <DialogPopup className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{service.name}</DialogTitle>
+          <DialogDescription>
+            Faite par {owner?.name}, à son prix de {gridSummary(service)}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogPanel className="space-y-6">
+          <Label className="flex items-center justify-between gap-4 rounded-2xl bg-muted p-4 font-semibold">
+            Proposée dans {activity.name}
+            <Switch
+              checked={offer.active}
+              onCheckedChange={(active) =>
+                updateOffer(activity.id, service.id, { active })
+              }
+            />
+          </Label>
+          <div className="space-y-3">
+            <div>
+              <p className="font-semibold">Votre prix</p>
+              <p className="text-sm text-muted-foreground">
+                En plus ou en moins du prix de {owner?.name}
+              </p>
+            </div>
+            <OfferControls
+              activityId={activity.id}
+              offer={offer}
+              service={service}
+              stay={stay}
+            />
+          </div>
+        </DialogPanel>
+        <DialogFooter variant="bare">
+          <Button
+            onClick={() => {
+              removeOffer(activity.id, service.id)
+              onOpenChange(false)
+            }}
+            variant="destructive-outline"
+          >
+            Retirer
+          </Button>
+          <DialogClose render={<Button />}>Terminé</DialogClose>
+        </DialogFooter>
+      </DialogPopup>
+    </Dialog>
+  )
+}
+
+/** Prestations d'une activité, les siennes puis celles des autres, dans une seule liste. */
 export function ActivityOffers({
   activityId,
   title = "Prestations principales",
@@ -165,174 +291,200 @@ export function ActivityOffers({
   title?: string
 }) {
   const catalog = useCatalog()
+  const [openId, setOpenId] = useState<string | null>(null)
+  const [adding, setAdding] = useState<"choose" | "new" | "reuse" | null>(null)
+  const reusable = useReusable(activityId).flatMap((group) =>
+    group.services.map((service) => ({ from: group.activity, service }))
+  )
   const activity = catalog.activities.find((a) => a.id === activityId)
   if (!activity) return null
   const stay = journeyOf(activity) === "stay"
+  const noun = stay ? "option" : "prestation"
   const entries = (catalog.offers[activityId] ?? []).flatMap((offer) => {
     const service = catalog.services.find((s) => s.id === offer.serviceId)
     return service ? [{ offer, service }] : []
   })
   const own = entries.filter((e) => e.service.owner === activityId)
   const borrowed = entries.filter((e) => e.service.owner !== activityId)
+  const opened = borrowed.find((e) => e.service.id === openId)
+  const example = reusable[0]
+  const close = (open: boolean) => !open && setAdding(null)
+  const row =
+    "flex min-h-16 w-full items-center gap-4 px-5 py-4 text-start transition-colors hover:bg-accent"
+  const chevron = (
+    <HugeiconsIcon
+      className="size-5 shrink-0 text-muted-foreground"
+      icon={ArrowRight01Icon}
+    />
+  )
 
   return (
-    <>
-      <SettingsSection
-        action={
-          <ServiceDialog
-            detailed={activity.metier === "toilettage"}
-            onSaved={(service) => addOffers(activityId, [service.id])}
-            owner={activityId}
-            trigger={
-              <Button size="sm" variant="outline">
-                <HugeiconsIcon icon={PlusSignIcon} />
-                Nouvelle
-              </Button>
-            }
-          />
-        }
-        description={`Créées par ${activity.name} : leur grille et leur durée se gèrent ici`}
-        title={title}
-      >
-        {own.length === 0 && (
-          <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-            Aucune prestation créée par {activity.name}.
-          </p>
-        )}
-        {own.map(({ offer, service }) => {
-          const borrowers = sellersOf(catalog, service.id).filter(
-            (a) => a.id !== activityId
-          )
-          return (
-            <Link
-              className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-accent/60"
-              href={serviceHref(service)}
-              key={service.id}
-            >
-              <div
-                className={cn(
-                  "min-w-0 flex-1",
-                  (!offer.active || !service.active) && "opacity-60"
-                )}
-              >
-                <p className="flex flex-wrap items-center gap-2 text-sm font-medium">
-                  {service.name}
-                  {service.bundle && (
-                    <Badge size="sm" variant="outline">
-                      Forfait
-                    </Badge>
-                  )}
-                  {offer.included && (
-                    <Badge size="sm" variant="success">
-                      Incluse
-                    </Badge>
-                  )}
-                  {!service.active && (
-                    <Badge size="sm" variant="warning">
-                      Désactivée
-                    </Badge>
-                  )}
-                  {service.active && !offer.active && (
-                    <Badge size="sm" variant="secondary">
-                      Hors vente
-                    </Badge>
-                  )}
+    <SettingsSection
+      action={
+        <Button onClick={() => setAdding("choose")}>
+          <HugeiconsIcon icon={PlusSignIcon} />
+          Ajouter
+        </Button>
+      }
+      description={
+        stay
+          ? "Ce que le client peut ajouter à son séjour"
+          : `Ce que vous vendez dans ${activity.name}`
+      }
+      title={title}
+    >
+      {entries.length === 0 && (
+        <p className="px-5 py-8 text-center text-muted-foreground">
+          Aucune {noun} pour l&apos;instant.
+        </p>
+      )}
+      {own.map(({ offer, service }) => {
+        const borrowers = sellersOf(catalog, service.id).filter(
+          (a) => a.id !== activityId
+        )
+        return (
+          <Link className={row} href={serviceHref(service)} key={service.id}>
+            <OfferText offer={offer} service={service} stay={stay}>
+              {borrowers.length > 0 && (
+                <p className="mt-1.5 flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
+                  Proposée aussi par
+                  {borrowers.map((a) => (
+                    <ActivityTag activity={a} key={a.id} />
+                  ))}
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  {serviceMeta(service)} ·{" "}
-                  {offer.included
-                    ? "0 € ici"
-                    : gridSummary(service, offer.adjust)}
-                  {stay && (offer.perNight ? " · par nuit" : " · par séjour")}
-                </p>
-                {borrowers.length > 0 && (
-                  <p className="mt-1.5 flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
-                    Reprise par
-                    {borrowers.map((a) => (
-                      <ActivityTag activity={a} key={a.id} />
-                    ))}
-                  </p>
-                )}
-              </div>
-              <HugeiconsIcon
-                className="size-4 text-muted-foreground"
-                icon={ArrowRight01Icon}
-              />
-            </Link>
-          )
-        })}
-      </SettingsSection>
+              )}
+            </OfferText>
+            {chevron}
+          </Link>
+        )
+      })}
+      {borrowed.map(({ offer, service }) => {
+        const from = catalog.activities.find((a) => a.id === service.owner)
+        return (
+          <button
+            className={row}
+            key={service.id}
+            onClick={() => setOpenId(service.id)}
+            type="button"
+          >
+            <OfferText
+              from={from}
+              offer={offer}
+              service={service}
+              stay={stay}
+            />
+            {chevron}
+          </button>
+        )
+      })}
 
-      <SettingsSection
-        action={<ReuseDialog activity={activity} />}
-        description="Leur grille est gérée par leur activité principale, vous réglez ici votre prix"
-        title="Reprises d'autres activités"
-      >
-        {borrowed.length === 0 && (
-          <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-            Aucune prestation reprise.
-          </p>
-        )}
-        {borrowed.map(({ offer, service }) => {
-          const owner = catalog.activities.find((a) => a.id === service.owner)
-          return (
-            <div className="space-y-3 px-4 py-3.5" key={service.id}>
-              <div className="flex items-start gap-3">
-                <div
-                  className={cn(
-                    "min-w-0 flex-1",
-                    (!offer.active || !service.active) && "opacity-60"
-                  )}
-                >
-                  <p className="flex flex-wrap items-center gap-2 text-sm font-medium">
-                    {service.name}
-                    {owner && <ActivityTag activity={owner} />}
-                    {!service.active && (
-                      <Badge size="sm" variant="warning">
-                        Désactivée par {owner?.name}
-                      </Badge>
-                    )}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {serviceMeta(service)} · grille {gridSummary(service)}
-                  </p>
-                </div>
-                <Switch
-                  aria-label={`${service.name} en vente`}
-                  checked={offer.active}
-                  onCheckedChange={(active) =>
-                    updateOffer(activityId, service.id, { active })
-                  }
-                />
-              </div>
-              <OfferControls
-                activityId={activityId}
-                offer={offer}
-                service={service}
-                stay={stay}
+      {reusable.length > 0 && (
+        <div className="space-y-4 bg-muted px-5 py-5">
+          <div>
+            <p className="font-semibold">
+              Vos autres activités peuvent aussi servir ici
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {stay
+                ? "Proposez-les en option des séjours : l'autre activité s'en occupe, vous choisissez votre prix."
+                : "Vendez-les aussi ici, avec votre propre prix."}
+            </p>
+          </div>
+          <div className="space-y-2">
+            {reusable.slice(0, 3).map(({ from, service }) => (
+              <div
+                className="flex items-center gap-3 rounded-2xl bg-card p-3"
+                key={service.id}
               >
-                <div className="ms-auto flex gap-1">
-                  <Button
-                    render={<Link href={serviceHref(service)} />}
-                    size="xs"
-                    variant="ghost"
-                  >
-                    Voir la grille
-                  </Button>
-                  <Button
-                    onClick={() => removeOffer(activityId, service.id)}
-                    size="xs"
-                    variant="ghost"
-                  >
-                    Retirer
-                  </Button>
+                <ActivityDot activity={from} className="size-10 text-sm" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold">{service.name}</p>
+                  <p className="truncate text-sm text-muted-foreground">
+                    Faite par {from.name} · {gridSummary(service)}
+                  </p>
                 </div>
-              </OfferControls>
+                <Button
+                  onClick={() => {
+                    addOffers(activityId, [service.id])
+                    notify(`« ${service.name} » ajoutée`)
+                  }}
+                  variant="secondary"
+                >
+                  <HugeiconsIcon icon={PlusSignIcon} />
+                  Ajouter
+                </Button>
+              </div>
+            ))}
+          </div>
+          {reusable.length > 3 && (
+            <Button onClick={() => setAdding("reuse")} variant="ghost">
+              Voir les {reusable.length} prestations disponibles
+            </Button>
+          )}
+        </div>
+      )}
+
+      <Dialog onOpenChange={close} open={adding === "choose"}>
+        <DialogPopup className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Ajouter une {noun}</DialogTitle>
+            <DialogDescription>Que voulez-vous proposer ?</DialogDescription>
+          </DialogHeader>
+          <DialogPanel>
+            <div className="-mx-3 space-y-1">
+              <ChoiceRow
+                description={
+                  stay
+                    ? "Une promenade en plus, une nourriture spéciale, des photos…"
+                    : `Une prestation faite par ${activity.name}`
+                }
+                media={
+                  <FlowMedia className="bg-primary text-primary-foreground">
+                    <HugeiconsIcon icon={PlusSignIcon} />
+                  </FlowMedia>
+                }
+                onClick={() => setAdding("new")}
+                title={`Une nouvelle ${noun}`}
+              />
+              {example && (
+                <ChoiceRow
+                  description={`Par exemple « ${example.service.name} », faite par ${example.from.name}. Vous choisissez votre prix.`}
+                  media={
+                    <ActivityDot
+                      activity={example.from}
+                      className="size-12 text-base"
+                    />
+                  }
+                  onClick={() => setAdding("reuse")}
+                  title="Une prestation de vos autres activités"
+                />
+              )}
             </div>
-          )
-        })}
-      </SettingsSection>
-    </>
+          </DialogPanel>
+        </DialogPopup>
+      </Dialog>
+      <ServiceDialog
+        detailed={activity.metier === "toilettage"}
+        onOpenChange={close}
+        onSaved={(service) => addOffers(activityId, [service.id])}
+        open={adding === "new"}
+        owner={activityId}
+      />
+      <ReuseDialog
+        activity={activity}
+        onOpenChange={close}
+        open={adding === "reuse"}
+      />
+      {opened && (
+        <OfferDialog
+          activity={activity}
+          offer={opened.offer}
+          onOpenChange={(open) => !open && setOpenId(null)}
+          service={opened.service}
+          stay={stay}
+        />
+      )}
+    </SettingsSection>
   )
 }
 
@@ -358,15 +510,22 @@ export function useReusable(activityId: string | null, query = "") {
     .filter((g) => g.services.length)
 }
 
-function ReuseDialog({ activity }: { activity: CatalogActivity }) {
-  const [open, setOpen] = useState(false)
+function ReuseDialog({
+  activity,
+  open,
+  onOpenChange,
+}: {
+  activity: CatalogActivity
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
   const [query, setQuery] = useState("")
   const [selected, setSelected] = useState<string[]>([])
   const groups = useReusable(activity.id, query)
   const stay = journeyOf(activity) === "stay"
 
   const close = (next: boolean) => {
-    setOpen(next)
+    onOpenChange(next)
     if (!next) {
       setQuery("")
       setSelected([])
@@ -375,21 +534,13 @@ function ReuseDialog({ activity }: { activity: CatalogActivity }) {
 
   return (
     <Dialog onOpenChange={close} open={open}>
-      <DialogTrigger
-        render={
-          <Button size="sm" variant="outline">
-            <HugeiconsIcon icon={PlusSignIcon} />
-            Reprendre
-          </Button>
-        }
-      />
       <DialogPopup className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Reprendre dans {activity.name}</DialogTitle>
+          <DialogTitle>Prestations de vos autres activités</DialogTitle>
           <DialogDescription>
             {stay
-              ? "Proposées en option des séjours, avec votre propre prix."
-              : "Vendues seules, avec votre propre prix. Une prestation par rendez-vous."}
+              ? `Proposez-les en option des séjours de ${activity.name}. L'autre activité s'en occupe, vous choisissez votre prix.`
+              : `Vendez-les aussi dans ${activity.name}, avec votre propre prix.`}
           </DialogDescription>
         </DialogHeader>
         <DialogPanel className="space-y-4">
@@ -406,7 +557,7 @@ function ReuseDialog({ activity }: { activity: CatalogActivity }) {
           </InputGroup>
           {groups.length === 0 && (
             <p className="py-6 text-center text-sm text-muted-foreground">
-              Rien à reprendre de vos autres activités.
+              Aucune autre prestation disponible.
             </p>
           )}
           {groups.map(({ activity: from, services }) => (
@@ -440,7 +591,7 @@ function ReuseDialog({ activity }: { activity: CatalogActivity }) {
               close(false)
             }}
           >
-            Reprendre {selected.length || ""}
+            Ajouter {selected.length || ""}
           </Button>
         </DialogFooter>
       </DialogPopup>
@@ -462,7 +613,7 @@ export function ReuseRow({
   return (
     <div
       className={cn(
-        "rounded-xl border px-3 py-2.5",
+        "rounded-2xl border px-4 py-3",
         checked && "border-ring/60 bg-accent"
       )}
     >
@@ -473,8 +624,8 @@ export function ReuseRow({
           onCheckedChange={onChange}
         />
         <span className="min-w-0 flex-1">
-          <span className="block text-sm font-medium">{service.name}</span>
-          <span className="block text-xs text-muted-foreground">
+          <span className="block text-sm font-semibold">{service.name}</span>
+          <span className="block text-sm text-muted-foreground">
             {serviceMeta(service)} · {gridSummary(service)}
           </span>
         </span>

@@ -1,5 +1,6 @@
 "use client"
 
+import { NewSessionDialog } from "@/components/training/new-session-dialog"
 import { NewAppointmentDialog } from "@/components/grooming/new-appointment-dialog"
 import { NewStayDialog } from "@/components/pension/new-stay-dialog"
 import {
@@ -35,10 +36,8 @@ import {
   PageShell,
   Widget,
 } from "@/components/today/widgets"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { CardFrame } from "@/components/ui/card"
 import {
   Empty,
   EmptyDescription,
@@ -58,16 +57,7 @@ import {
   MenuSeparator,
   MenuTrigger,
 } from "@/components/ui/menu"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { Tabs, TabsList, TabsTab } from "@/components/ui/tabs"
-import { cn } from "@/lib/utils"
 
 export const reservationStatus: Record<
   ReservationStatus,
@@ -105,6 +95,17 @@ const statusFilters: { label: string; value: StatusFilter }[] = [
   { label: "Annulées", value: "cancelled" },
   { label: "Toutes", value: "all" },
 ]
+
+/** Réservations groupées par jour, comme les transactions de Wise. */
+const byDay = (list: Reservation[], latestFirst: boolean) => {
+  const days = new Map<number, Reservation[]>()
+  for (const r of [...list].sort((a, b) =>
+    latestFirst ? b.start - a.start : a.start - b.start
+  )) {
+    days.set(r.start, [...(days.get(r.start) ?? []), r])
+  }
+  return [...days]
+}
 
 const sum = (list: Reservation[]) =>
   list.reduce((total, r) => total + (r.amount ?? 0), 0)
@@ -165,6 +166,17 @@ export function ReservationsView() {
                   className="size-5 text-[0.625rem]"
                 />
                 Rendez-vous
+              </Button>
+            }
+          />
+          <NewSessionDialog
+            trigger={
+              <Button className="max-sm:hidden" variant="secondary">
+                <ActivityMark
+                  activity="Éducation"
+                  className="size-5 text-[0.625rem]"
+                />
+                Séance
               </Button>
             }
           />
@@ -235,13 +247,13 @@ export function ReservationsView() {
                 >
                   <ActivityMark activity={r.activity} />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">
+                    <p className="truncate text-sm font-semibold">
                       {r.pet}{" "}
                       <span className="font-normal text-muted-foreground">
                         · {r.owner}
                       </span>
                     </p>
-                    <p className="truncate text-xs text-muted-foreground">
+                    <p className="truncate text-sm text-muted-foreground">
                       {r.title} · {reservationDate(r)}
                     </p>
                   </div>
@@ -253,14 +265,14 @@ export function ReservationsView() {
                   <div className="flex gap-1.5">
                     <Button
                       onClick={() => setStatusOf(r.id, "cancelled")}
-                      size="xs"
+                      size="sm"
                       variant="ghost"
                     >
                       Refuser
                     </Button>
                     <Button
                       onClick={() => setStatusOf(r.id, "confirmed")}
-                      size="xs"
+                      size="sm"
                     >
                       <HugeiconsIcon icon={Tick02Icon} />
                       Accepter
@@ -331,117 +343,118 @@ export function ReservationsView() {
           </EmptyHeader>
         </Empty>
       ) : (
-        <CardFrame className="overflow-x-auto">
-          <Table variant="card">
-            <TableHeader>
-              <TableRow>
-                <TableHead>Animal</TableHead>
-                <TableHead>Activité</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead className="max-lg:hidden">Canal</TableHead>
-                <TableHead className="text-end">Montant</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead className="w-10" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-2.5">
-                      <Avatar className="size-8">
-                        <AvatarFallback className="text-xs">
+        <div className="space-y-8">
+          {byDay(rows, status === "done" || status === "cancelled").map(
+            ([day, items]) => (
+              <section className="space-y-1" key={day}>
+                <h2 className="text-sm font-semibold text-muted-foreground">
+                  {relativeDate(day)}
+                </h2>
+                <ul className="-mx-3">
+                  {items.map((r) => (
+                    <li
+                      className="flex items-center gap-4 rounded-2xl p-3 transition-colors hover:bg-accent"
+                      key={r.id}
+                    >
+                      <span className="relative shrink-0">
+                        <span className="flex size-12 items-center justify-center rounded-full bg-muted text-sm font-semibold">
                           {r.pet.slice(0, 2)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium">{r.pet}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {r.owner}
+                        </span>
+                        <ActivityMark
+                          activity={r.activity}
+                          className="absolute -end-1 -bottom-1 size-5 text-[0.625rem] ring-2 ring-background"
+                        />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-semibold">
+                          {r.pet}
+                          <span className="font-normal text-muted-foreground">
+                            {" "}
+                            · {r.owner}
+                          </span>
+                        </p>
+                        <p className="truncate text-sm text-muted-foreground">
+                          {[
+                            r.title,
+                            r.detail,
+                            r.end !== undefined
+                              ? `${shortDate(r.start)} → ${shortDate(r.end)}`
+                              : r.hour !== undefined
+                                ? formatHour(r.hour)
+                                : undefined,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
                         </p>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <ActivityMark activity={r.activity} />
-                      <div>
-                        <p>{r.title}</p>
-                        {r.detail && (
-                          <p className="text-xs text-muted-foreground">
-                            {r.detail}
-                          </p>
-                        )}
+                      <div className="shrink-0 space-y-1 text-end">
+                        <p className="font-semibold tabular-nums">
+                          {r.amount !== undefined
+                            ? formatAmount(r.amount)
+                            : "Forfait"}
+                        </p>
+                        <Badge variant={reservationStatus[r.status].variant}>
+                          {reservationStatus[r.status].label}
+                        </Badge>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className={cn(r.start === TODAY && "font-medium")}>
-                    {reservationDate(r)}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground max-lg:hidden">
-                    {r.source}
-                  </TableCell>
-                  <TableCell className="text-end tabular-nums">
-                    {r.amount !== undefined ? (
-                      formatAmount(r.amount)
-                    ) : (
-                      <span className="text-muted-foreground">Forfait</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={reservationStatus[r.status].variant}>
-                      {reservationStatus[r.status].label}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Menu>
-                      <MenuTrigger
-                        render={
-                          <Button
-                            aria-label="Actions"
-                            size="icon-xs"
-                            variant="ghost"
-                          />
-                        }
-                      >
-                        <HugeiconsIcon icon={MoreHorizontalIcon} />
-                      </MenuTrigger>
-                      <MenuPopup align="end">
-                        <MenuLinkItem
-                          render={<Link href={activityHref[r.activity]} />}
+                      {r.status === "pending" && (
+                        <Button
+                          className="max-sm:hidden"
+                          onClick={() => setStatusOf(r.id, "confirmed")}
+                          size="sm"
                         >
-                          <HugeiconsIcon icon={Calendar03Icon} />
-                          Ouvrir dans {r.activity}
-                        </MenuLinkItem>
-                        {r.status === "pending" && (
-                          <MenuItem
-                            onClick={() => setStatusOf(r.id, "confirmed")}
+                          Confirmer
+                        </Button>
+                      )}
+                      <Menu>
+                        <MenuTrigger
+                          render={
+                            <Button
+                              aria-label="Actions"
+                              size="icon-sm"
+                              variant="ghost"
+                            />
+                          }
+                        >
+                          <HugeiconsIcon icon={MoreHorizontalIcon} />
+                        </MenuTrigger>
+                        <MenuPopup align="end">
+                          <MenuLinkItem
+                            render={<Link href={activityHref[r.activity]} />}
                           >
-                            <HugeiconsIcon icon={Tick02Icon} />
-                            Confirmer
-                          </MenuItem>
-                        )}
-                        {(r.status === "pending" ||
-                          r.status === "confirmed") && (
-                          <>
-                            <MenuSeparator />
+                            <HugeiconsIcon icon={Calendar03Icon} />
+                            Ouvrir dans {r.activity}
+                          </MenuLinkItem>
+                          {r.status === "pending" && (
                             <MenuItem
-                              onClick={() => setStatusOf(r.id, "cancelled")}
-                              variant="destructive"
+                              onClick={() => setStatusOf(r.id, "confirmed")}
                             >
-                              <HugeiconsIcon icon={Cancel01Icon} />
-                              {r.status === "pending" ? "Refuser" : "Annuler"}
+                              <HugeiconsIcon icon={Tick02Icon} />
+                              Confirmer
                             </MenuItem>
-                          </>
-                        )}
-                      </MenuPopup>
-                    </Menu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardFrame>
+                          )}
+                          {(r.status === "pending" ||
+                            r.status === "confirmed") && (
+                            <>
+                              <MenuSeparator />
+                              <MenuItem
+                                onClick={() => setStatusOf(r.id, "cancelled")}
+                                variant="destructive"
+                              >
+                                <HugeiconsIcon icon={Cancel01Icon} />
+                                {r.status === "pending" ? "Refuser" : "Annuler"}
+                              </MenuItem>
+                            </>
+                          )}
+                        </MenuPopup>
+                      </Menu>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )
+          )}
+        </div>
       )}
     </PageShell>
   )

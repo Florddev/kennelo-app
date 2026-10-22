@@ -85,18 +85,25 @@ const overlaps = (s: Stay, arrival: number, departure: number) =>
 
 export function NewStayDialog({
   trigger,
+  initial,
+  defaultOpen,
+  onOpenChange,
   stays = initialStays,
   defaultClient,
   defaultPet,
   onCreate,
 }: {
-  trigger: ReactElement
+  trigger?: ReactElement
+  /** Box et jour d'arrivée déjà choisis, quand le parcours part du planning. */
+  initial?: { arrival: number; kennelId: string }
+  defaultOpen?: boolean
+  onOpenChange?: (open: boolean) => void
   stays?: Stay[]
   defaultClient?: string
   defaultPet?: string
   onCreate?: (stay: Stay) => void
 }) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(defaultOpen ?? false)
   const [startedAt, setStartedAt] = useState(0)
   const catalog = useCatalog()
   const [clientName, setClientName] = useState<string | undefined>(
@@ -104,9 +111,13 @@ export function NewStayDialog({
   )
   const [draft, setDraft] = useState<ClientDraft>(emptyClientDraft)
   const [petName, setPetName] = useState<string | undefined>(defaultPet)
-  const [arrival, setArrival] = useState<number | null>(null)
+  const [arrival, setArrival] = useState<number | null>(
+    initial?.arrival ?? null
+  )
   const [departure, setDeparture] = useState<number | null>(null)
-  const [kennelChoice, setKennelChoice] = useState<string | null>(null)
+  const [kennelChoice, setKennelChoice] = useState<string | null>(
+    initial?.kennelId ?? null
+  )
   const [options, setOptions] = useState<string[] | null>(null)
   const [sms, setSms] = useState(true)
   const [created, setCreated] = useState<{
@@ -260,7 +271,9 @@ export function NewStayDialog({
     const stay = { ...draftStay, id: `new-${clock()}`, kennelId }
     onCreate?.(stay)
     setCreated({
-      seconds: Math.max(1, Math.round((clock() - startedAt) / 1000)),
+      seconds: startedAt
+        ? Math.max(1, Math.round((clock() - startedAt) / 1000))
+        : 0,
       stay,
     })
   }
@@ -307,6 +320,7 @@ export function NewStayDialog({
       onOpenChange={(next) => {
         if (next) reset()
         setOpen(next)
+        onOpenChange?.(next)
       }}
       open={open}
       progress={created ? undefined : progress}
@@ -340,9 +354,11 @@ export function NewStayDialog({
           description={`${created.stay.pet} · ${shortDate(created.stay.arrival)} → ${shortDate(created.stay.departure)} · ${kennelLabel(created.stay.kennelId)} · ${formatAmount(stayAmount(created.stay, prices))}`}
           title="Séjour créé"
         >
-          <Badge size="lg" variant="success">
-            Créé en {created.seconds} s
-          </Badge>
+          {created.seconds > 0 && (
+            <Badge size="lg" variant="success">
+              Créé en {created.seconds} s
+            </Badge>
+          )}
           {sms && (
             <Badge size="lg" variant="info">
               <HugeiconsIcon icon={SmsCodeIcon} />

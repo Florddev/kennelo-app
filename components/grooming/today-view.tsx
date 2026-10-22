@@ -3,6 +3,7 @@
 import { NewAppointmentDialog } from "@/components/grooming/new-appointment-dialog"
 import {
   Alert02Icon,
+  PlusSignIcon,
   Calendar03Icon,
   CalendarAdd01Icon,
   Call02Icon,
@@ -26,6 +27,7 @@ import {
   stock,
   waitlist,
 } from "@/components/grooming/data"
+import { TODAY } from "@/components/calendar"
 import { NOW } from "@/components/today/data"
 import {
   ActivityDayPage,
@@ -108,7 +110,7 @@ function GroomingTable({
             <HugeiconsIcon icon={ScissorIcon} />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="font-medium">Table libre</p>
+            <p className="font-semibold">Table libre</p>
             <p className="text-sm text-muted-foreground">
               {notified ??
                 (next
@@ -156,7 +158,7 @@ function GroomingTable({
           </p>
         </div>
         <div className="text-end text-sm">
-          <p className="font-medium tabular-nums">
+          <p className="font-semibold tabular-nums">
             {Math.round(elapsed * 60)} min
             <span className="text-muted-foreground">
               {" "}
@@ -185,7 +187,9 @@ function GroomingTable({
             <span
               className={cn(
                 "flex items-center gap-1 text-xs",
-                i === step ? "font-medium" : i > step && "text-muted-foreground"
+                i === step
+                  ? "font-semibold"
+                  : i > step && "text-muted-foreground"
               )}
             >
               {i < step && (
@@ -230,23 +234,25 @@ function SalonAgenda({
   appointments,
   selectedId,
   onSelect,
+  onSlot,
   className,
 }: {
   appointments: GroomingAppointment[]
   selectedId: string
   onSelect: (id: string) => void
+  onSlot: (start: number) => void
   className?: string
 }) {
   return (
     <Widget
       action={
         <Badge variant="outline">
-          <span className="size-1.5 rounded-full bg-orange-500" />
+          <span className="size-1.5 rounded-full bg-control" />
           {formatHour(NOW)}
         </Badge>
       }
       className={className}
-      description="Cliquez sur un rendez-vous pour voir sa fiche"
+      description="Touchez un rendez-vous pour sa fiche, un créneau libre pour réserver"
       title="Agenda du salon"
     >
       <div
@@ -266,22 +272,26 @@ function SalonAgenda({
         ))}
 
         {freeSlots(appointments).map((slot) => (
-          <div
-            className="absolute inset-x-0 flex items-center justify-center rounded-lg border border-dashed text-xs text-muted-foreground"
+          <button
+            className="absolute inset-x-0 flex items-center justify-center gap-1.5 rounded-xl border-2 border-dashed text-sm font-semibold text-muted-foreground transition-colors hover:border-control hover:bg-accent hover:text-link disabled:pointer-events-none disabled:opacity-60"
+            disabled={slot.end <= NOW}
             key={slot.start}
+            onClick={() => onSlot(Math.max(slot.start, Math.ceil(NOW * 2) / 2))}
             style={{
               height: (slot.end - slot.start) * HOUR_PX - 4,
               top: top(slot.start) + 2,
             }}
+            type="button"
           >
+            <HugeiconsIcon className="size-4" icon={PlusSignIcon} />
             Créneau libre · {formatDuration(slot.end - slot.start)}
-          </div>
+          </button>
         ))}
 
         {appointments.map((a) => (
           <button
             className={cn(
-              "absolute inset-x-0 flex gap-2 overflow-hidden rounded-lg border px-2.5 py-1.5 text-start text-xs transition-shadow",
+              "absolute inset-x-0 flex gap-2 overflow-hidden rounded-xl border px-2.5 py-1.5 text-start text-xs transition-shadow",
               a.status === "done" && "bg-muted text-muted-foreground",
               a.status === "in-progress" &&
                 "border-grooming-strong bg-grooming text-grooming-foreground",
@@ -301,7 +311,7 @@ function SalonAgenda({
             type="button"
           >
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">
+              <p className="truncate text-sm font-semibold">
                 {a.pet}{" "}
                 <span className="font-normal opacity-70">· {a.breed}</span>
               </p>
@@ -310,12 +320,12 @@ function SalonAgenda({
               </p>
             </div>
             <div className="flex shrink-0 flex-col items-end gap-1">
-              <span className="font-medium tabular-nums">
+              <span className="font-semibold tabular-nums">
                 {formatAmount(priceOf(a))}
               </span>
               {a.alert && (
                 <HugeiconsIcon
-                  className="size-3.5 text-amber-500"
+                  className="size-3.5 text-warning"
                   icon={Alert02Icon}
                 />
               )}
@@ -328,10 +338,10 @@ function SalonAgenda({
 
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -start-1 end-0 h-0.5 bg-orange-500"
+          className="pointer-events-none absolute -start-1 end-0 h-0.5 bg-control"
           style={{ top: top(NOW) }}
         >
-          <span className="absolute -start-1 -top-[3px] size-2 rounded-full bg-orange-500" />
+          <span className="absolute -start-1 -top-[3px] size-2 rounded-full bg-control" />
         </div>
       </div>
     </Widget>
@@ -365,7 +375,7 @@ function GroomingSheet({
             <AvatarFallback>{a.initials}</AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium">{a.owner}</p>
+            <p className="truncate text-sm font-semibold">{a.owner}</p>
             <p className="text-xs text-muted-foreground">
               Dernière visite : {a.lastVisit.toLowerCase()}
             </p>
@@ -392,20 +402,20 @@ function GroomingSheet({
               <dt className="text-[0.6875rem] text-muted-foreground">
                 {label}
               </dt>
-              <dd className="text-xs font-medium">{value}</dd>
+              <dd className="text-xs font-semibold">{value}</dd>
             </div>
           ))}
         </dl>
 
         <div className="space-y-1">
-          <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+          <p className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
             <HugeiconsIcon className="size-3.5" icon={ScissorIcon} />
             Coupe habituelle
           </p>
           <p className="text-sm">{a.cut}</p>
         </div>
         <div className="space-y-1">
-          <p className="text-xs font-medium text-muted-foreground">
+          <p className="text-xs font-semibold text-muted-foreground">
             Comportement
           </p>
           <p className="text-sm">{a.behaviour}</p>
@@ -425,7 +435,7 @@ function GroomingSheet({
               <span className="tabular-nums">{formatAmount(s.price)}</span>
             </li>
           ))}
-          <li className="flex justify-between font-medium">
+          <li className="flex justify-between font-semibold">
             <span>Total</span>
             <span className="tabular-nums">{formatAmount(priceOf(a))}</span>
           </li>
@@ -527,7 +537,7 @@ function StockCard() {
   return (
     <Widget
       action={
-        <Button size="xs" variant="ghost">
+        <Button size="sm" variant="ghost">
           <HugeiconsIcon icon={PackageIcon} />
           Commander
         </Button>
@@ -546,7 +556,7 @@ function StockCard() {
                   className={cn(
                     "text-xs tabular-nums",
                     low
-                      ? "font-medium text-amber-600 dark:text-amber-400"
+                      ? "font-semibold text-warning-foreground"
                       : "text-muted-foreground"
                   )}
                 >
@@ -556,7 +566,7 @@ function StockCard() {
               <Meter aria-label={item.label} value={item.level}>
                 <MeterTrack>
                   <MeterIndicator
-                    className={low ? "bg-amber-500" : "bg-grooming-strong"}
+                    className={low ? "bg-warning" : "bg-grooming-strong"}
                   />
                 </MeterTrack>
               </Meter>
@@ -581,15 +591,15 @@ function WaitlistCard() {
             className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0"
             key={w.id}
           >
-            <Avatar className="size-8">
+            <Avatar className="size-10">
               <AvatarFallback className="text-xs">{w.initials}</AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm">
-                <span className="font-medium">{w.pet}</span>
+                <span className="font-semibold">{w.pet}</span>
                 <span className="text-muted-foreground"> · {w.owner}</span>
               </p>
-              <p className="truncate text-xs text-muted-foreground">
+              <p className="truncate text-sm text-muted-foreground">
                 {w.request}
               </p>
             </div>
@@ -601,7 +611,7 @@ function WaitlistCard() {
             ) : (
               <Button
                 onClick={() => setOffered((list) => [...list, w.id])}
-                size="xs"
+                size="sm"
                 variant="outline"
               >
                 Proposer {w.slot}
@@ -619,6 +629,7 @@ export function GroomingTodayView() {
   const [step, setStep] = useState(2)
   const [selectedId, setSelectedId] = useState("cannelle")
   const [notified, setNotified] = useState<string | null>(null)
+  const [slot, setSlot] = useState<number | null>(null)
 
   const current = appointments.find((a) => a.status === "in-progress")
   const next = appointments.find(
@@ -690,6 +701,15 @@ export function GroomingTodayView() {
         </>
       }
     >
+      <GroomingTable
+        current={current}
+        next={next}
+        notified={notified}
+        onInstall={install}
+        onNext={nextStep}
+        step={step}
+      />
+
       <Alert variant="warning">
         <HugeiconsIcon icon={Alert02Icon} />
         <AlertTitle>Rocky à 14h : peau sensible</AlertTitle>
@@ -699,7 +719,7 @@ export function GroomingTodayView() {
           séchoir : prévoir un séchage serviette.
         </AlertDescription>
         <AlertAction>
-          <Button size="xs" variant="outline">
+          <Button size="sm" variant="outline">
             <HugeiconsIcon icon={PackageIcon} />
             Commander
           </Button>
@@ -746,20 +766,12 @@ export function GroomingTodayView() {
         </Kpi>
       </div>
 
-      <GroomingTable
-        current={current}
-        next={next}
-        notified={notified}
-        onInstall={install}
-        onNext={nextStep}
-        step={step}
-      />
-
       <div className="grid gap-4 lg:grid-cols-3">
         <SalonAgenda
           appointments={appointments}
           className="lg:col-span-2"
           onSelect={setSelectedId}
+          onSlot={setSlot}
           selectedId={selected.id}
         />
         <GroomingSheet
@@ -779,6 +791,15 @@ export function GroomingTodayView() {
         <StockCard />
         <WaitlistCard />
       </div>
+
+      {slot !== null && (
+        <NewAppointmentDialog
+          defaultOpen
+          initial={{ day: TODAY, start: slot }}
+          key={slot}
+          onOpenChange={(next) => !next && setSlot(null)}
+        />
+      )}
     </ActivityDayPage>
   )
 }

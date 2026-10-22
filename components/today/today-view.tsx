@@ -73,10 +73,13 @@ const boxStyles: Record<BoxStatus, { label: string; className: string }> = {
     label: "Arrivée prévue",
   },
   cleaning: {
-    className: "bg-sky-500/15 text-sky-700 dark:text-sky-400",
+    className: "bg-wise-blue/70 text-wise-charcoal",
     label: "Nettoyage",
   },
-  departing: { className: "bg-amber-500 text-white", label: "Départ prévu" },
+  departing: {
+    className: "bg-warning text-warning-foreground",
+    label: "Départ prévu",
+  },
   free: { className: "bg-muted text-muted-foreground", label: "Libre" },
   occupied: {
     className: "bg-pension text-pension-foreground",
@@ -133,7 +136,7 @@ function DayTimeline() {
                           activityMeta[activity].color,
                           event.end <= NOW && "opacity-40",
                           live &&
-                            "ring-2 ring-orange-500 ring-offset-1 ring-offset-background"
+                            "ring-2 ring-control ring-offset-1 ring-offset-background"
                         )}
                         key={event.label}
                         style={{
@@ -164,10 +167,10 @@ function DayTimeline() {
             className="pointer-events-none absolute inset-y-0 start-28 end-0"
           >
             <div
-              className="absolute inset-y-0 w-0.5 -translate-x-1/2 bg-orange-500"
+              className="absolute inset-y-0 w-0.5 -translate-x-1/2 bg-control"
               style={{ left: `${pct(NOW)}%` }}
             >
-              <span className="absolute -top-1 left-1/2 size-2 -translate-x-1/2 rounded-full bg-orange-500" />
+              <span className="absolute -top-1 left-1/2 size-2 -translate-x-1/2 rounded-full bg-control" />
             </div>
           </div>
         </div>
@@ -662,7 +665,7 @@ export function TodayView() {
       <Widget
         action={
           <Badge variant="outline">
-            <span className="size-1.5 rounded-full bg-orange-500" />
+            <span className="size-1.5 rounded-full bg-control" />
             Maintenant · {formatHour(NOW)}
           </Badge>
         }
