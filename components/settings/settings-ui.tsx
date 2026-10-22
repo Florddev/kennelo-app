@@ -66,23 +66,28 @@ export function SettingsPage({
 }) {
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="flex h-12 items-center gap-1 px-2">
+      <div className="flex h-16 items-center gap-2 px-4 md:px-6">
         <SidebarTrigger className="md:hidden" />
         {back && (
-          <Button render={<Link href={back.href} />} size="sm" variant="ghost">
+          <Button
+            aria-label={back.label}
+            render={<Link href={back.href} />}
+            size="icon-lg"
+            title={back.label}
+            variant="secondary"
+          >
             <HugeiconsIcon icon={ArrowLeft01Icon} />
-            {back.label}
           </Button>
         )}
       </div>
-      <div className="mx-auto flex max-w-2xl flex-col gap-10 px-4 pt-2 pb-16 md:pt-8">
+      <div className="mx-auto flex max-w-2xl flex-col gap-10 px-4 pt-2 pb-16 md:pt-4">
         <div className="flex flex-wrap items-end justify-between gap-4 px-1">
-          <div className="space-y-1">
-            <h1 className="flex items-center gap-2.5 text-2xl font-semibold">
+          <div className="space-y-2">
+            <h1 className="flex items-center gap-3 font-heading text-3xl font-semibold">
               {title}
             </h1>
             {description && (
-              <p className="text-sm text-muted-foreground">{description}</p>
+              <p className="text-base text-muted-foreground">{description}</p>
             )}
           </div>
           {action}

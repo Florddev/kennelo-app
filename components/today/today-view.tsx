@@ -9,6 +9,7 @@ import {
   EuroCircleIcon,
   Login03Icon,
   Logout03Icon,
+  PlusSignIcon,
   PrinterIcon,
   SunCloud01Icon,
   Tick02Icon,
@@ -39,6 +40,7 @@ import {
   formatAmount,
   formatHour,
   Kpi,
+  PageBody,
   Widget,
 } from "@/components/today/widgets"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -51,7 +53,6 @@ import {
   ProgressIndicator,
   ProgressTrack,
 } from "@/components/ui/progress"
-import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Tabs, TabsList, TabsTab } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 
@@ -75,7 +76,10 @@ const boxStyles: Record<BoxStatus, { label: string; className: string }> = {
   },
   departing: { className: "bg-amber-500 text-white", label: "Départ prévu" },
   free: { className: "bg-muted text-muted-foreground", label: "Libre" },
-  occupied: { className: "bg-pension text-pension-foreground", label: "Occupé" },
+  occupied: {
+    className: "bg-pension text-pension-foreground",
+    label: "Occupé",
+  },
 }
 
 function DayTimeline() {
@@ -213,26 +217,24 @@ function MovementsCard({
           .filter((m) => m.type === tab)
           .map((m) => (
             <li
-              className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0"
+              className="flex items-center gap-4 py-3 first:pt-0 last:pb-0"
               key={m.id}
             >
-              <span className="w-11 shrink-0 text-sm text-muted-foreground tabular-nums">
-                {m.time}
-              </span>
-              <Avatar className="size-8">
-                <AvatarFallback className="text-xs">
+              <Avatar className="size-12">
+                <AvatarFallback className="bg-muted text-sm font-semibold">
                   {m.initials}
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">
+                <p className="truncate font-semibold">
                   {m.pet}{" "}
                   <span className="font-normal text-muted-foreground">
                     · {m.breed}
                   </span>
                 </p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {m.client} · {m.box}
+                <p className="truncate text-sm text-muted-foreground">
+                  <span className="tabular-nums">{m.time}</span> · {m.client} ·{" "}
+                  {m.box}
                 </p>
               </div>
               {m.status === "done" ? (
@@ -247,8 +249,8 @@ function MovementsCard({
                   )}
                   <Button
                     onClick={() => onComplete(m.id)}
-                    size="xs"
-                    variant="outline"
+                    size="sm"
+                    variant="secondary"
                   >
                     {m.type === "arrival" ? "Enregistrer" : "Valider le départ"}
                   </Button>
@@ -278,7 +280,7 @@ function CareCard() {
           <ProgressIndicator className="bg-pension-strong" />
         </ProgressTrack>
       </Progress>
-      <ul className="space-y-3">
+      <ul className="space-y-4">
         {tasks.map((task) => (
           <li key={task.id}>
             <label className="flex cursor-pointer items-start gap-3">
@@ -296,13 +298,13 @@ function CareCard() {
               <span className="min-w-0 flex-1">
                 <span
                   className={cn(
-                    "block text-sm",
+                    "block",
                     task.done && "text-muted-foreground line-through"
                   )}
                 >
                   <span className="font-medium">{task.pet}</span> · {task.task}
                 </span>
-                <span className="block text-xs text-muted-foreground">
+                <span className="block text-sm text-muted-foreground">
                   {task.time} · {task.box}
                 </span>
               </span>
@@ -445,7 +447,7 @@ function TodoCard() {
   const remaining = items.filter((todo) => !todo.done).length
   return (
     <Widget description={`${remaining} restantes`} title="À faire">
-      <ul className="space-y-2.5">
+      <ul className="space-y-4">
         {items.map((todo) => (
           <li className="flex items-start gap-3" key={todo.id}>
             <Checkbox
@@ -463,7 +465,6 @@ function TodoCard() {
             <div className="min-w-0 flex-1 space-y-1">
               <p
                 className={cn(
-                  "text-sm",
                   todo.done && "text-muted-foreground line-through"
                 )}
               >
@@ -508,178 +509,181 @@ export function TodayView() {
     timeline.filter((event) => event.activity === activity).length
 
   return (
-    <>
-      <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
-        <SidebarTrigger className="md:hidden" />
-        <h1 className="text-sm font-medium">Ma journée</h1>
-        <Button className="ms-auto" size="sm" variant="outline">
-          <HugeiconsIcon icon={PrinterIcon} />
-          Feuille du jour
-        </Button>
-      </header>
-
-      <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-6xl space-y-6 p-4 md:p-6">
-          <section className="flex flex-wrap items-end justify-between gap-4">
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">
-                Mercredi 21 octobre
-              </p>
-              <h2 className="font-heading text-2xl font-semibold">
-                Bonjour 👋
-              </h2>
-              <p className="max-w-xl text-sm text-muted-foreground">
-                {present} animaux en pension, {movements.length} arrivées et
-                départs, et{" "}
-                {appointments("Toilettage") + appointments("Éducation")}{" "}
-                rendez-vous au programme aujourd&apos;hui.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm">
-                <HugeiconsIcon
-                  className="size-4 text-amber-500"
-                  icon={SunCloud01Icon}
-                />
-                16 °C
-                <span className="text-muted-foreground">
-                  · Promenades idéales jusqu&apos;à 16h
-                </span>
-              </div>
-              <AvatarGroup aria-label="Équipe du jour">
-                {team.map((member) => (
-                  <Avatar
-                    key={member.name}
-                    title={`${member.name} · ${member.role} · ${member.hours}`}
-                  >
-                    <AvatarFallback className="text-xs">
-                      {member.initials}
-                    </AvatarFallback>
-                  </Avatar>
-                ))}
-              </AvatarGroup>
-            </div>
-          </section>
-
-          <Alert variant="warning">
-            <HugeiconsIcon icon={Alert02Icon} />
-            <AlertTitle>2 points d&apos;attention</AlertTitle>
-            <AlertDescription>
-              <ul className="list-disc space-y-0.5 ps-4">
-                <li>
-                  Pixel (box 14) devait partir à 10h : pas de nouvelles de Nina
-                  Robert pour le moment.
-                </li>
-                <li>
-                  Rocky (toilettage 14h) a la peau sensible : shampoing
-                  hypoallergénique uniquement.
-                </li>
-              </ul>
-            </AlertDescription>
-          </Alert>
-
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <Kpi
-              icon={BedDoubleIcon}
-              label="Pensionnaires"
-              value={
-                <>
-                  {present}
-                  <span className="text-base text-muted-foreground">
-                    {" "}
-                    / {boxes.length}
-                  </span>
-                </>
-              }
-            >
-              <Progress
-                aria-label="Taux d'occupation"
-                className="gap-1"
-                value={(present / boxes.length) * 100}
-              >
-                <ProgressTrack>
-                  <ProgressIndicator className="bg-pension-strong" />
-                </ProgressTrack>
-              </Progress>
-              <p className="mt-1.5">
-                {Math.round((present / boxes.length) * 100)} % d&apos;occupation
-              </p>
-            </Kpi>
-            <Kpi
-              icon={Login03Icon}
-              label="Arrivées · Départs"
-              value={`${arrivals} · ${movements.length - arrivals}`}
-            >
-              {done} effectués
-              {late > 0 && (
-                <span className="text-destructive-foreground">
-                  {" "}
-                  · {late} en retard
-                </span>
-              )}
-            </Kpi>
-            <Kpi
-              icon={Calendar03Icon}
-              label="Rendez-vous"
-              value={appointments("Toilettage") + appointments("Éducation")}
-            >
-              <span className="flex flex-wrap gap-x-3 gap-y-1">
-                {(["Toilettage", "Éducation"] as const).map((activity) => (
-                  <span className="flex items-center gap-1" key={activity}>
-                    <ActivityMark
-                      activity={activity}
-                      className="size-3.5 rounded-sm text-[0.5rem]"
-                    />
-                    {appointments(activity)} {activity.toLowerCase()}
-                  </span>
-                ))}
-              </span>
-            </Kpi>
-            <Kpi
-              icon={EuroCircleIcon}
-              label="CA prévu"
-              value={formatAmount(revenue.reduce((s, r) => s + r.amount, 0))}
-            >
-              <span className="flex items-center gap-1 text-pension-strong">
-                <HugeiconsIcon className="size-3.5" icon={ChartIncreaseIcon} />
-                +12 % vs mercredi dernier
-              </span>
-            </Kpi>
+    <PageBody>
+      <section className="space-y-6">
+        <div className="flex flex-wrap items-end justify-between gap-6">
+          <div className="space-y-3">
+            <p className="text-sm font-semibold text-muted-foreground">
+              Mercredi 21 octobre
+            </p>
+            <h1 className="font-display text-6xl md:text-7xl">Bonjour</h1>
+            <p className="max-w-xl text-lg text-muted-foreground">
+              {present} animaux en pension, {movements.length} arrivées et
+              départs, et{" "}
+              {appointments("Toilettage") + appointments("Éducation")}{" "}
+              rendez-vous au programme aujourd&apos;hui.
+            </p>
           </div>
-
-          <Widget
-            action={
-              <Badge variant="outline">
-                <span className="size-1.5 rounded-full bg-orange-500" />
-                Maintenant · {formatHour(NOW)}
-              </Badge>
-            }
-            description="Toutes activités confondues"
-            title="Planning de la journée"
-          >
-            <DayTimeline />
-          </Widget>
-
-          <div className="grid gap-4 lg:grid-cols-3">
-            <MovementsCard
-              className="lg:col-span-2"
-              movements={movements}
-              onComplete={(id) =>
-                setMovements((list) =>
-                  list.map((m) => (m.id === id ? { ...m, status: "done" } : m))
-                )
-              }
-            />
-            <CareCard />
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <BoxesCard />
-            <RevenueCard />
-            <TodoCard />
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex h-10 items-center gap-2 rounded-full bg-muted px-4 text-sm font-semibold">
+              <HugeiconsIcon className="size-5" icon={SunCloud01Icon} />
+              16 °C
+              <span className="font-normal text-muted-foreground">
+                · Promenades idéales jusqu&apos;à 16h
+              </span>
+            </div>
+            <AvatarGroup aria-label="Équipe du jour">
+              {team.map((member) => (
+                <Avatar
+                  className="size-10"
+                  key={member.name}
+                  title={`${member.name} · ${member.role} · ${member.hours}`}
+                >
+                  <AvatarFallback className="text-xs font-semibold">
+                    {member.initials}
+                  </AvatarFallback>
+                </Avatar>
+              ))}
+            </AvatarGroup>
           </div>
         </div>
+        <div className="flex flex-wrap gap-2">
+          <Button render={<Link href="/pension/stays" />} size="lg">
+            <HugeiconsIcon icon={PlusSignIcon} />
+            Nouveau séjour
+          </Button>
+          <Button
+            render={<Link href="/grooming/appointments" />}
+            size="lg"
+            variant="secondary"
+          >
+            <HugeiconsIcon icon={Calendar03Icon} />
+            Nouveau rendez-vous
+          </Button>
+          <Button size="lg" variant="secondary">
+            <HugeiconsIcon icon={PrinterIcon} />
+            Feuille du jour
+          </Button>
+        </div>
+      </section>
+
+      <Alert variant="warning">
+        <HugeiconsIcon icon={Alert02Icon} />
+        <AlertTitle>2 points d&apos;attention</AlertTitle>
+        <AlertDescription>
+          <ul className="list-disc space-y-0.5 ps-4">
+            <li>
+              Pixel (box 14) devait partir à 10h : pas de nouvelles de Nina
+              Robert pour le moment.
+            </li>
+            <li>
+              Rocky (toilettage 14h) a la peau sensible : shampoing
+              hypoallergénique uniquement.
+            </li>
+          </ul>
+        </AlertDescription>
+      </Alert>
+
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <Kpi
+          icon={BedDoubleIcon}
+          label="Pensionnaires"
+          value={
+            <>
+              {present}
+              <span className="text-base text-muted-foreground">
+                {" "}
+                / {boxes.length}
+              </span>
+            </>
+          }
+        >
+          <Progress
+            aria-label="Taux d'occupation"
+            className="gap-1"
+            value={(present / boxes.length) * 100}
+          >
+            <ProgressTrack>
+              <ProgressIndicator className="bg-pension-strong" />
+            </ProgressTrack>
+          </Progress>
+          <p className="mt-1.5">
+            {Math.round((present / boxes.length) * 100)} % d&apos;occupation
+          </p>
+        </Kpi>
+        <Kpi
+          icon={Login03Icon}
+          label="Arrivées · Départs"
+          value={`${arrivals} · ${movements.length - arrivals}`}
+        >
+          {done} effectués
+          {late > 0 && (
+            <span className="text-destructive-foreground">
+              {" "}
+              · {late} en retard
+            </span>
+          )}
+        </Kpi>
+        <Kpi
+          icon={Calendar03Icon}
+          label="Rendez-vous"
+          value={appointments("Toilettage") + appointments("Éducation")}
+        >
+          <span className="flex flex-wrap gap-x-3 gap-y-1">
+            {(["Toilettage", "Éducation"] as const).map((activity) => (
+              <span className="flex items-center gap-1" key={activity}>
+                <ActivityMark
+                  activity={activity}
+                  className="size-3.5 rounded-sm text-[0.5rem]"
+                />
+                {appointments(activity)} {activity.toLowerCase()}
+              </span>
+            ))}
+          </span>
+        </Kpi>
+        <Kpi
+          icon={EuroCircleIcon}
+          label="CA prévu"
+          value={formatAmount(revenue.reduce((s, r) => s + r.amount, 0))}
+        >
+          <span className="flex items-center gap-1 text-pension-strong">
+            <HugeiconsIcon className="size-3.5" icon={ChartIncreaseIcon} />
+            +12 % vs mercredi dernier
+          </span>
+        </Kpi>
       </div>
-    </>
+
+      <Widget
+        action={
+          <Badge variant="outline">
+            <span className="size-1.5 rounded-full bg-orange-500" />
+            Maintenant · {formatHour(NOW)}
+          </Badge>
+        }
+        description="Toutes activités confondues"
+        title="Planning de la journée"
+      >
+        <DayTimeline />
+      </Widget>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <MovementsCard
+          className="lg:col-span-2"
+          movements={movements}
+          onComplete={(id) =>
+            setMovements((list) =>
+              list.map((m) => (m.id === id ? { ...m, status: "done" } : m))
+            )
+          }
+        />
+        <CareCard />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <BoxesCard />
+        <RevenueCard />
+        <TodoCard />
+      </div>
+    </PageBody>
   )
 }

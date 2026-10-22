@@ -849,9 +849,9 @@ export function MessagesView() {
 
   return (
     <>
-      <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
+      <header className="flex h-16 shrink-0 items-center gap-3 border-b px-4 md:px-6">
         <SidebarTrigger className="md:hidden" />
-        <h1 className="text-sm font-medium">Messages</h1>
+        <h1 className="font-heading text-xl font-semibold">Messages</h1>
         <Button className="ms-auto rounded-full" size="sm" variant="outline">
           <HugeiconsIcon icon={PlusSignIcon} />
           Nouveau message

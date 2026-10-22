@@ -1,24 +1,17 @@
 "use client"
 
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { type ReactNode, useState } from "react"
 import { type Activity, ActivityMark } from "@/components/activity-mark"
-import {
-  Card,
-  CardFrame,
-  CardFrameAction,
-  CardFrameDescription,
-  CardFrameHeader,
-  CardFrameTitle,
-  CardPanel,
-} from "@/components/ui/card"
+import { activityNav } from "@/components/navigation"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   Progress,
   ProgressIndicator,
   ProgressTrack,
 } from "@/components/ui/progress"
-import { SidebarTrigger } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
 
 export const formatHour = (hour: number) =>
@@ -27,6 +20,7 @@ export const formatHour = (hour: number) =>
 export const formatAmount = (amount: number) =>
   `${String(amount).replace(/\B(?=(\d{3})+(?!\d))/g, " ")} €`
 
+/** Une section : titre au-dessus, contenu dans une grande carte. */
 export function Widget({
   title,
   description,
@@ -41,21 +35,22 @@ export function Widget({
   children: ReactNode
 }) {
   return (
-    <CardFrame className={className}>
-      <CardFrameHeader className="px-5 py-3.5">
-        <CardFrameTitle>{title}</CardFrameTitle>
-        {description && (
-          <CardFrameDescription>{description}</CardFrameDescription>
-        )}
-        {action && <CardFrameAction>{action}</CardFrameAction>}
-      </CardFrameHeader>
-      <Card className="flex-1">
-        <CardPanel className="p-5">{children}</CardPanel>
-      </Card>
-    </CardFrame>
+    <section className={cn("flex flex-col gap-3", className)}>
+      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+        <div className="min-w-0">
+          <h2 className="font-heading text-xl font-semibold">{title}</h2>
+          {description && (
+            <p className="text-sm text-muted-foreground">{description}</p>
+          )}
+        </div>
+        {action}
+      </div>
+      <div className="flex-1 rounded-2xl border bg-card p-5">{children}</div>
+    </section>
   )
 }
 
+/** Chiffre clé, comme les cartes de solde de Wise. */
 export function Kpi({
   label,
   icon,
@@ -68,18 +63,18 @@ export function Kpi({
   children: ReactNode
 }) {
   return (
-    <Card>
-      <CardPanel className="space-y-2 p-5">
-        <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
-          {label}
-          <HugeiconsIcon className="size-4 shrink-0" icon={icon} />
-        </div>
-        <p className="font-heading text-2xl font-semibold tabular-nums">
+    <div className="space-y-4 rounded-2xl bg-muted p-5">
+      <span className="flex size-10 items-center justify-center rounded-full bg-background">
+        <HugeiconsIcon className="size-5" icon={icon} />
+      </span>
+      <div>
+        <p className="font-heading text-3xl font-semibold tabular-nums">
           {value}
         </p>
-        <div className="text-xs text-muted-foreground">{children}</div>
-      </CardPanel>
-    </Card>
+        <p className="text-sm font-semibold text-muted-foreground">{label}</p>
+      </div>
+      <div className="text-sm text-muted-foreground">{children}</div>
+    </div>
   )
 }
 
@@ -101,65 +96,140 @@ export function Bar({
   )
 }
 
-export function ActivityHeader({
-  activity,
+/** En-tête de page : grand titre, actions à droite, onglets en dessous. */
+export function PageHeader({
   title,
+  eyebrow,
+  media,
   actions,
+  children,
 }: {
-  activity: Activity
-  title: string
+  title: ReactNode
+  eyebrow?: ReactNode
+  media?: ReactNode
   actions?: ReactNode
+  children?: ReactNode
 }) {
   return (
-    <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
-      <SidebarTrigger className="md:hidden" />
-      <ActivityMark activity={activity} />
-      <h1 className="truncate text-sm font-medium">
-        {activity}
-        <span className="text-muted-foreground"> / {title}</span>
-      </h1>
-      <div className="ms-auto flex items-center gap-2">{actions}</div>
+    <header className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-4">
+          {media}
+          <div className="min-w-0">
+            {eyebrow && (
+              <p className="text-sm font-semibold text-muted-foreground">
+                {eyebrow}
+              </p>
+            )}
+            <h1 className="truncate font-heading text-3xl font-semibold">
+              {title}
+            </h1>
+          </div>
+        </div>
+        {actions && (
+          <div className="flex flex-wrap items-center gap-2">{actions}</div>
+        )}
+      </div>
+      {children}
     </header>
   )
 }
 
-/** Shell for an organisation page: header and a scrollable, centered body. */
+/** Corps de page défilant et centré. */
+export function PageBody({
+  className,
+  children,
+}: {
+  className?: string
+  children: ReactNode
+}) {
+  return (
+    <div className="flex-1 overflow-y-auto">
+      <div
+        className={cn(
+          "mx-auto max-w-6xl space-y-8 px-4 py-6 md:px-10 md:py-10",
+          className
+        )}
+      >
+        {children}
+      </div>
+    </div>
+  )
+}
+
+/** Les pages d'une activité, en pastilles. */
+export function ActivityTabs({ activity }: { activity: Activity }) {
+  const pathname = usePathname()
+  const items = activityNav.find((a) => a.name === activity)?.items ?? []
+  return (
+    <nav
+      aria-label={`Pages ${activity}`}
+      className="-mx-4 flex gap-2 overflow-x-auto px-4 md:mx-0 md:px-0"
+    >
+      {items.map((item) => {
+        const active = pathname === item.href
+        return (
+          <Link
+            aria-current={active ? "page" : undefined}
+            className={cn(
+              "flex h-10 shrink-0 items-center rounded-full px-4 text-sm font-semibold transition-colors",
+              active
+                ? "bg-control text-control-foreground"
+                : "bg-secondary text-secondary-foreground hover:bg-neutral-hover"
+            )}
+            href={item.href}
+            key={item.href}
+          >
+            {item.title}
+          </Link>
+        )
+      })}
+    </nav>
+  )
+}
+
+function ActivityHeader({
+  activity,
+  actions,
+}: {
+  activity: Activity
+  actions?: ReactNode
+}) {
+  return (
+    <PageHeader
+      actions={actions}
+      media={<ActivityMark activity={activity} className="size-12 text-base" />}
+      title={activity}
+    >
+      <ActivityTabs activity={activity} />
+    </PageHeader>
+  )
+}
+
+/** Page d'organisation : grand titre puis contenu. */
 export function PageShell({
   title,
-  icon,
   actions,
   className,
   children,
 }: {
   title: string
-  icon: IconSvgElement
+  icon?: IconSvgElement
   actions?: ReactNode
   className?: string
   children: ReactNode
 }) {
   return (
-    <>
-      <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
-        <SidebarTrigger className="md:hidden" />
-        <HugeiconsIcon className="size-4 text-muted-foreground" icon={icon} />
-        <h1 className="truncate text-sm font-medium">{title}</h1>
-        <div className="ms-auto flex items-center gap-2">{actions}</div>
-      </header>
-      <div className="flex-1 overflow-y-auto">
-        <div
-          className={cn("mx-auto max-w-6xl space-y-8 p-5 md:p-8", className)}
-        >
-          {children}
-        </div>
-      </div>
-    </>
+    <PageBody className={className}>
+      <PageHeader actions={actions} title={title} />
+      {children}
+    </PageBody>
   )
 }
 
-/** Shell for an activity page: header and a scrollable, centered body. */
+/** Page d'une activité : l'activité en titre, ses pages en onglets. */
 export function ActivityPage({
   activity,
-  title,
   actions,
   className,
   children,
@@ -171,20 +241,14 @@ export function ActivityPage({
   children: ReactNode
 }) {
   return (
-    <>
-      <ActivityHeader actions={actions} activity={activity} title={title} />
-      <div className="flex-1 overflow-y-auto">
-        <div
-          className={cn("mx-auto max-w-6xl space-y-8 p-5 md:p-8", className)}
-        >
-          {children}
-        </div>
-      </div>
-    </>
+    <PageBody className={className}>
+      <ActivityHeader actions={actions} activity={activity} />
+      {children}
+    </PageBody>
   )
 }
 
-/** Shell shared by the activity "Aujourd'hui" pages. */
+/** Page « Aujourd'hui » d'une activité. */
 export function ActivityDayPage({
   activity,
   summary,
@@ -199,32 +263,19 @@ export function ActivityDayPage({
   children: ReactNode
 }) {
   return (
-    <>
-      <ActivityHeader
-        actions={actions}
-        activity={activity}
-        title="Aujourd'hui"
-      />
-      <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-6xl space-y-8 p-5 md:p-8">
-          <section className="flex flex-wrap items-end justify-between gap-4">
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">
-                Mercredi 21 octobre
-              </p>
-              <h2 className="font-heading text-2xl font-semibold">
-                Aujourd&apos;hui en {activity.toLowerCase()}
-              </h2>
-              <p className="max-w-xl text-sm text-muted-foreground">
-                {summary}
-              </p>
-            </div>
-            {aside}
-          </section>
-          {children}
+    <PageBody>
+      <ActivityHeader actions={actions} activity={activity} />
+      <section className="flex flex-wrap items-end justify-between gap-4">
+        <div className="space-y-1">
+          <p className="text-sm font-semibold text-muted-foreground">
+            Mercredi 21 octobre
+          </p>
+          <p className="max-w-xl text-lg">{summary}</p>
         </div>
-      </div>
-    </>
+        {aside}
+      </section>
+      {children}
+    </PageBody>
   )
 }
 

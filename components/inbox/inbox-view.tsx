@@ -904,9 +904,9 @@ export function InboxView() {
 
   return (
     <>
-      <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
+      <header className="flex h-16 shrink-0 items-center gap-3 border-b px-4 md:px-6">
         <SidebarTrigger className="md:hidden" />
-        <h1 className="text-sm font-medium">Boîte de réception</h1>
+        <h1 className="font-heading text-xl font-semibold">Boîte de réception</h1>
         <Button
           className="ms-auto"
           disabled={unreadCount === 0}

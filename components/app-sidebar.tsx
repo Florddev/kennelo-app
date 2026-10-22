@@ -1,36 +1,31 @@
 "use client"
 
-import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
+import { HugeiconsIcon } from "@hugeicons/react"
 import {
-  CalendarIcon,
-  ChartNoAxesColumnIcon,
   ChevronDownIcon,
   CircleArrowUpIcon,
-  ClipboardIcon,
-  ClipboardListIcon,
-  InboxIcon,
-  LayoutPanelLeftIcon,
+  HelpCircleIcon,
+  HistoryIcon,
   LogOutIcon,
-  MessageCircleIcon,
-  PlusIcon,
-  ReceiptIcon,
+  Moon02Icon,
   SearchIcon,
+  SendIcon,
   SettingsIcon,
-  SunDimIcon,
-  SunIcon,
+  Sun03Icon,
   UsersIcon,
 } from "@hugeicons/core-free-icons"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import type * as React from "react"
-import { type Activity, ActivityMark } from "@/components/activity-mark"
-import { inboxUnreadCount } from "@/components/inbox/data"
-import { Button } from "@/components/ui/button"
+import { useTheme } from "next-themes"
+import { ActivityMark } from "@/components/activity-mark"
 import {
-  Collapsible,
-  CollapsiblePanel,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
+  activityNav,
+  isActive,
+  mainNav,
+  type NavItem,
+  organisationNav,
+} from "@/components/navigation"
+import { Button } from "@/components/ui/button"
 import {
   Menu,
   MenuItem,
@@ -49,141 +44,51 @@ import {
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
-
-type NavItem = {
-  title: string
-  icon: IconSvgElement
-  href?: string
-  badge?: number
-  dot?: boolean
-}
-
-const primary: NavItem[] = [
-  {
-    badge: inboxUnreadCount,
-    href: "/inbox",
-    icon: InboxIcon,
-    title: "Boîte de réception",
-  },
-  { href: "/today", icon: SunIcon, title: "Ma journée" },
-]
-
-const organisation: NavItem[] = [
-  { href: "/reservations", icon: ClipboardListIcon, title: "Réservations" },
-  { href: "/clients", icon: UsersIcon, title: "Clients & animaux" },
-  { href: "/billing", icon: ReceiptIcon, title: "Facturation" },
-  { dot: true, href: "/messages", icon: MessageCircleIcon, title: "Messages" },
-  { href: "/statistics", icon: ChartNoAxesColumnIcon, title: "Statistiques" },
-]
-
-const activities: {
-  name: Activity
-  defaultOpen?: boolean
-  items: NavItem[]
-}[] = [
-  {
-    defaultOpen: true,
-    items: [
-      { href: "/pension/today", icon: SunDimIcon, title: "Aujourd'hui" },
-      {
-        href: "/pension/planning",
-        icon: LayoutPanelLeftIcon,
-        title: "Planning des box",
-      },
-      { href: "/pension/stays", icon: ClipboardIcon, title: "Séjours" },
-    ],
-    name: "Pension",
-  },
-  {
-    items: [
-      { href: "/grooming/today", icon: SunDimIcon, title: "Aujourd'hui" },
-      {
-        href: "/grooming/appointments",
-        icon: CalendarIcon,
-        title: "Rendez-vous",
-      },
-    ],
-    name: "Toilettage",
-  },
-  {
-    items: [
-      { href: "/training/today", icon: SunDimIcon, title: "Aujourd'hui" },
-      { href: "/training/sessions", icon: CalendarIcon, title: "Séances" },
-    ],
-    name: "Éducation",
-  },
-]
 
 function NavLink({ item }: { item: NavItem }) {
   const pathname = usePathname()
   return (
     <SidebarMenuItem>
       <SidebarMenuButton
-        isActive={item.href === pathname}
-        render={<Link href={item.href ?? "#"} />}
+        isActive={isActive(pathname, item.href)}
+        render={<Link href={item.href} />}
       >
         <HugeiconsIcon icon={item.icon} />
         <span>{item.title}</span>
       </SidebarMenuButton>
       {item.badge ? (
         <SidebarMenuBadge>
-          <span className="rounded-full bg-pension text-pension-foreground px-1.5">
+          <span className="rounded-full bg-primary px-2 py-0.5 font-semibold text-primary-foreground">
             {item.badge}
           </span>
         </SidebarMenuBadge>
       ) : null}
       {item.dot && (
         <SidebarMenuBadge>
-          <span className="size-2 rounded-full bg-orange-500" />
+          <span className="size-2.5 rounded-full bg-destructive" />
         </SidebarMenuBadge>
       )}
     </SidebarMenuItem>
   )
 }
 
-function NavSection({
-  label,
-  children,
-}: {
-  label: string
-  children: React.ReactNode
-}) {
-  return (
-    <Collapsible defaultOpen render={<SidebarGroup />}>
-      <SidebarGroupLabel
-        className="group/trigger w-fit gap-1 hover:bg-sidebar-accent"
-        render={<CollapsibleTrigger />}
-      >
-        {label}
-        <HugeiconsIcon
-          icon={ChevronDownIcon}
-          className="size-3! -rotate-90 transition-transform group-data-panel-open/trigger:rotate-0"
-        />
-      </SidebarGroupLabel>
-      <CollapsiblePanel>
-        <SidebarMenu>{children}</SidebarMenu>
-      </CollapsiblePanel>
-    </Collapsible>
-  )
-}
-
 export function AppSidebar() {
   const pathname = usePathname()
+  const { resolvedTheme, setTheme } = useTheme()
   return (
     <>
-      <SidebarHeader className="flex-row items-center justify-between">
+      <SidebarHeader className="flex-row items-center justify-between p-4">
         <Menu>
           <MenuTrigger
-            render={<Button className="px-1.5" size="sm" variant="ghost" />}
+            render={
+              <Button className="h-12 gap-3 ps-1.5 pe-3" variant="ghost" />
+            }
           >
-            <span className="flex size-6 items-center justify-center rounded-md bg-pension text-pension-foreground text-[0.625rem] font-semibold">
+            <span className="flex size-9 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
               LC
             </span>
-            Les Coteaux
+            <span className="text-foreground">Les Coteaux</span>
             <HugeiconsIcon icon={ChevronDownIcon} />
           </MenuTrigger>
           <MenuPopup align="start">
@@ -202,85 +107,81 @@ export function AppSidebar() {
             </MenuItem>
           </MenuPopup>
         </Menu>
-        <div className="flex items-center gap-1">
-          <Button aria-label="Rechercher" size="icon-sm" variant="ghost">
-            <HugeiconsIcon icon={SearchIcon} />
-          </Button>
-          <Button aria-label="Créer" size="icon-sm" variant="outline">
-            <HugeiconsIcon icon={PlusIcon} />
-          </Button>
-        </div>
+        <Button aria-label="Rechercher" size="icon" variant="ghost">
+          <HugeiconsIcon icon={SearchIcon} />
+        </Button>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="px-2">
         <SidebarGroup>
           <SidebarMenu>
-            {primary.map((item) => (
-              <NavLink item={item} key={item.title} />
+            {mainNav.map((item) => (
+              <NavLink item={item} key={item.href} />
             ))}
           </SidebarMenu>
         </SidebarGroup>
 
-        <NavSection label="Organisation">
-          {organisation.map((item) => (
-            <NavLink item={item} key={item.title} />
-          ))}
-        </NavSection>
+        <SidebarGroup>
+          <SidebarGroupLabel>Vos activités</SidebarGroupLabel>
+          <SidebarMenu>
+            {activityNav.map((activity) => (
+              <SidebarMenuItem key={activity.name}>
+                <SidebarMenuButton
+                  isActive={isActive(pathname, activity.base)}
+                  render={<Link href={activity.items[0].href} />}
+                >
+                  <ActivityMark
+                    activity={activity.name}
+                    className="size-6 text-[0.6875rem]"
+                  />
+                  <span>{activity.name}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </SidebarGroup>
 
-        <NavSection label="Vos activités">
-          {activities.map((activity) => (
-            <Collapsible
-              defaultOpen={
-                activity.defaultOpen ||
-                activity.items.some((item) => item.href === pathname)
-              }
-              key={activity.name}
-              render={<SidebarMenuItem />}
-            >
-              <SidebarMenuButton
-                className="group/trigger font-semibold"
-                render={<CollapsibleTrigger />}
-              >
-                <ActivityMark activity={activity.name} />
-                <span>{activity.name}</span>
-                <HugeiconsIcon
-                  icon={ChevronDownIcon}
-                  className="ms-auto size-3 -rotate-90 opacity-60 transition-transform group-data-panel-open/trigger:rotate-0"
-                />
-              </SidebarMenuButton>
-              <CollapsiblePanel>
-                <SidebarMenuSub className="border-transparent">
-                  {activity.items.map((item) => (
-                    <SidebarMenuSubItem key={item.title}>
-                      <SidebarMenuSubButton
-                        isActive={item.href === pathname}
-                        render={<Link href={item.href ?? "#"} />}
-                      >
-                        <HugeiconsIcon icon={item.icon} />
-                        <span>{item.title}</span>
-                      </SidebarMenuSubButton>
-                    </SidebarMenuSubItem>
-                  ))}
-                </SidebarMenuSub>
-              </CollapsiblePanel>
-            </Collapsible>
-          ))}
-        </NavSection>
+        <SidebarGroup>
+          <SidebarGroupLabel>Organisation</SidebarGroupLabel>
+          <SidebarMenu>
+            {organisationNav.map((item) => (
+              <NavLink item={item} key={item.href} />
+            ))}
+          </SidebarMenu>
+        </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="flex-row items-center">
+      <SidebarFooter className="gap-3 p-4">
         <Button
-          aria-label="Aide"
-          className="rounded-full"
-          size="icon-sm"
-          variant="outline"
+          className="w-full"
+          render={<Link href="/settings/billing" />}
+          variant="secondary"
         >
-          ?
-        </Button>
-        <Button className="rounded-full" size="sm" variant="outline">
           <HugeiconsIcon icon={CircleArrowUpIcon} />
           Offre gratuite
         </Button>
+        <div className="flex items-center justify-between">
+          <Button aria-label="Aide" size="icon" variant="ghost">
+            <HugeiconsIcon icon={HelpCircleIcon} />
+          </Button>
+          <Button aria-label="Agent" size="icon" variant="ghost">
+            <HugeiconsIcon icon={SendIcon} />
+          </Button>
+          <Button aria-label="Historique" size="icon" variant="ghost">
+            <HugeiconsIcon icon={HistoryIcon} />
+          </Button>
+          <Button
+            aria-label="Basculer le mode sombre"
+            onClick={() =>
+              setTheme(resolvedTheme === "dark" ? "light" : "dark")
+            }
+            size="icon"
+            variant="ghost"
+          >
+            <HugeiconsIcon className="dark:hidden" icon={Moon02Icon} />
+            <HugeiconsIcon className="hidden dark:block" icon={Sun03Icon} />
+          </Button>
+        </div>
       </SidebarFooter>
     </>
   )
