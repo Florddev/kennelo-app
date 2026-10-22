@@ -68,6 +68,13 @@ export type PetNote = {
   author: string
   date: string
   text: string
+  /** Envoyé au propriétaire (sinon note interne à l'équipe). */
+  shared?: boolean
+  tags?: string[]
+  tip?: string
+  photos?: string[]
+  /** Appétit, sommeil, moral : de 1 à 3, pour un séjour. */
+  mood?: { appetite: number; sleep: number; play: number }
 }
 
 export type PetProfile = {

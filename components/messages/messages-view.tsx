@@ -27,7 +27,7 @@ import { ChatReactionPicker } from "@/components/chat/chat-reaction-picker"
 import { ChatTypingIndicator } from "@/components/chat/chat-typing-indicator"
 import { ChatUnreadDivider } from "@/components/chat/chat-unread-divider"
 import { useChatScroll } from "@/components/chat/hooks/use-chat-scroll"
-import { type Client, clients } from "@/components/clients/data"
+import { type Client, clientHref, clients } from "@/components/clients/data"
 import { ClientStep } from "@/components/flow/client-steps"
 import { FlowDialog } from "@/components/flow/flow"
 import {
@@ -539,7 +539,11 @@ function ClientPanel({
             />
           </>
         )}
-        <RoundAction href="/clients" icon={UserIcon} label="Fiche" />
+        <RoundAction
+          href={client ? clientHref(client.name) : "/clients"}
+          icon={UserIcon}
+          label="Fiche"
+        />
       </div>
 
       <section className="space-y-1">

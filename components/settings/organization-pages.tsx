@@ -3,6 +3,7 @@
 import {
   ArrowRight01Icon,
   Calendar03Icon,
+  Cancel01Icon,
   CheckmarkCircle02Icon,
   Copy01Icon,
   CreditCardIcon,
@@ -31,6 +32,8 @@ import { metierOf, useCatalog } from "@/components/services/data"
 import { ActivityDot } from "@/components/services/service-form"
 import { SizeLimits } from "@/components/services/size-limits"
 import { ActivityMark, activityNames } from "@/components/activity-mark"
+import { Photo, PhotoButton } from "@/components/site/site-ui"
+import { venueOf } from "@/components/site/venues"
 import {
   activitySettings,
   invitations,
@@ -76,6 +79,52 @@ import {
 import { Switch } from "@/components/ui/switch"
 import { cn } from "@/lib/utils"
 
+/** Photos de la page publique : la première sert de couverture. */
+function PagePhotos() {
+  const [photos, setPhotos] = useState(
+    () => venueOf("les-coteaux")?.photos ?? []
+  )
+  return (
+    <div className="grid grid-cols-2 gap-2 p-5 sm:grid-cols-3">
+      {photos.map((p, i) => (
+        <div className="relative" key={p}>
+          <Photo
+            alt={`Photo ${i + 1}`}
+            className="aspect-square rounded-2xl"
+            sizes="200px"
+            src={p}
+          />
+          {i === 0 && (
+            <span className="absolute bottom-2 left-2 rounded-full bg-background px-2.5 py-0.5 text-sm font-semibold">
+              Couverture
+            </span>
+          )}
+          <Button
+            aria-label="Retirer la photo"
+            className="absolute top-2 right-2 bg-background/90"
+            onClick={() => setPhotos((list) => list.filter((x) => x !== p))}
+            size="icon-sm"
+            variant="outline"
+          >
+            <HugeiconsIcon icon={Cancel01Icon} />
+          </Button>
+        </div>
+      ))}
+      <PhotoButton
+        className="aspect-square h-auto flex-col rounded-2xl border-2 border-dashed"
+        onPick={(url) => {
+          setPhotos((list) => [...list, url])
+          notify("Photo ajoutée")
+        }}
+        variant="ghost"
+      >
+        <HugeiconsIcon className="size-6" icon={PlusSignIcon} />
+        Ajouter
+      </PhotoButton>
+    </div>
+  )
+}
+
 export function OrganizationPage() {
   return (
     <SettingsPage
@@ -93,6 +142,20 @@ export function OrganizationPage() {
         }
         title="Les Coteaux"
       />
+      <SettingsSection
+        action={
+          <Button
+            render={<Link href="/places/les-coteaux" />}
+            variant="secondary"
+          >
+            Voir ma page
+          </Button>
+        }
+        description="Les clients les voient sur votre page Kennelo. La première sert de couverture."
+        title="Photos de votre page"
+      >
+        <PagePhotos />
+      </SettingsSection>
       <SettingsGroups
         groups={[
           {

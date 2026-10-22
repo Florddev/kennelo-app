@@ -190,3 +190,20 @@ function buildClients(): Client[] {
 }
 
 export const clients = buildClients()
+
+const slugOf = (name: string) =>
+  name
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+
+export const findClient = (slug: string) =>
+  clients.find((c) => slugOf(c.name) === slug)
+
+export const clientSlugs = () => clients.map((c) => slugOf(c.name))
+
+/** Fiche du client, ou la liste s'il vient d'être créé. */
+export const clientHref = (name: string) =>
+  clients.some((c) => c.name === name) ? `/clients/${slugOf(name)}` : "/clients"

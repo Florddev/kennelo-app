@@ -24,7 +24,7 @@ import {
   activityNames,
 } from "@/components/activity-mark"
 import { relativeDate, shortDate } from "@/components/calendar"
-import { type Client, clients } from "@/components/clients/data"
+import { type Client, clientHref, clients } from "@/components/clients/data"
 import { NewClientDialog } from "@/components/clients/new-client-dialog"
 import { invoiceTotal } from "@/components/invoices/data"
 import {
@@ -421,10 +421,15 @@ export function ClientsView() {
         <ul className="-mx-3">
           {rows.map((c) => (
             <li key={c.name}>
-              <button
+              <Link
                 className="flex w-full items-center gap-4 rounded-2xl p-3 text-start transition-colors hover:bg-accent"
-                onClick={() => open(c.name)}
-                type="button"
+                href={clientHref(c.name)}
+                onClick={(e) => {
+                  /* Un client créé à l'instant n'a pas encore de fiche : on ouvre le panneau */
+                  if (clientHref(c.name) !== "/clients") return
+                  e.preventDefault()
+                  open(c.name)
+                }}
               >
                 <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold">
                   {c.initials}
@@ -467,7 +472,7 @@ export function ClientsView() {
                   className="size-5 shrink-0 text-muted-foreground"
                   icon={ArrowRight01Icon}
                 />
-              </button>
+              </Link>
             </li>
           ))}
         </ul>

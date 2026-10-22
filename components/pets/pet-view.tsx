@@ -2,16 +2,13 @@
 
 import {
   Alert02Icon,
+  ArrowLeft01Icon,
   CalendarAdd01Icon,
   Call02Icon,
   Camera01Icon,
+  Edit02Icon,
   Message01Icon,
-  PawPrintIcon,
-  Restaurant01Icon,
-  ShieldCheckIcon,
-  SmileIcon,
   StethoscopeIcon,
-  VaccineIcon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import Link from "next/link"
@@ -22,80 +19,72 @@ import {
   activityNames,
 } from "@/components/activity-mark"
 import { TODAY } from "@/components/calendar"
+import { clientHref } from "@/components/clients/data"
 import { NewStayDialog } from "@/components/pension/new-stay-dialog"
 import {
   ageOf,
   type Compat,
+  daysBetween,
   findPet,
   formatDate,
   type PetNote,
   TODAY_ISO,
   vaccineStatus,
 } from "@/components/pets/data"
+import { NoteDialog } from "@/components/pets/note-dialog"
+import { petGalleryPhoto, petPhoto, petTone } from "@/components/pets/photos"
 import {
   reservationDate,
   reservationStatus,
 } from "@/components/reservations/reservations-view"
-import {
-  formatAmount,
-  Kpi,
-  PageShell,
-  Widget,
-} from "@/components/today/widgets"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { NoteExtras } from "@/components/site/pet-profile"
+import { Photo, PhotoButton, PhotoStrip } from "@/components/site/site-ui"
+import { formatAmount, PageBody } from "@/components/today/widgets"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {
-  Select,
-  SelectItem,
-  SelectPopup,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { Tabs, TabsList, TabsPanel, TabsTab } from "@/components/ui/tabs"
-import { Textarea } from "@/components/ui/textarea"
+import { toastManager } from "@/components/ui/toast"
 import { cn } from "@/lib/utils"
 
-const statusMeta = {
-  expired: { label: "Expiré", variant: "error" },
-  soon: { label: "Bientôt", variant: "warning" },
-  valid: { label: "À jour", variant: "success" },
+const vaxStyle = {
+  expired: { bar: "bg-destructive", label: "Expiré", variant: "error" },
+  soon: { bar: "bg-warning", label: "Bientôt", variant: "warning" },
+  valid: { bar: "bg-primary", label: "À jour", variant: "success" },
 } as const
 
-const compatMeta: Record<Compat, { label: string; dot: string }> = {
-  careful: { dot: "bg-warning", label: "Avec précaution" },
-  no: { dot: "bg-destructive", label: "Non" },
-  yes: { dot: "bg-success", label: "Oui" },
+const compatMeta: Record<Compat, { label: string; tone: string }> = {
+  careful: { label: "Avec précaution", tone: "bg-warning-soft" },
+  no: { label: "Non", tone: "bg-destructive-soft" },
+  yes: { label: "Oui", tone: "bg-success-soft" },
 }
 
-function Facts({ items }: { items: [string, ReactNode][] }) {
+const chip =
+  "flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold transition-colors"
+
+/** Une carte de la colonne de droite : titre au-dessus, lignes dedans. */
+function Box({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <dl className="divide-y text-sm">
-      {items.map(([label, value]) => (
-        <div
-          className="flex justify-between gap-4 py-2 first:pt-0 last:pb-0"
-          key={label}
-        >
-          <dt className="text-muted-foreground">{label}</dt>
-          <dd className="text-end font-semibold">{value}</dd>
-        </div>
-      ))}
-    </dl>
+    <section className="space-y-3">
+      <h2 className="font-heading text-xl font-semibold">{title}</h2>
+      <div className="divide-y overflow-hidden rounded-3xl border bg-card">
+        {children}
+      </div>
+    </section>
   )
 }
 
-function Chips({ items, empty }: { items: string[]; empty: string }) {
-  if (items.length === 0)
-    return <span className="text-muted-foreground">{empty}</span>
+function Fact({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex min-h-12 items-center justify-between gap-4 px-5 py-3">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="text-end font-semibold">{children}</span>
+    </div>
+  )
+}
+
+function Tags({ items, empty }: { items: string[]; empty: string }) {
+  if (!items.length)
+    return <span className="font-normal text-muted-foreground">{empty}</span>
   return (
     <span className="flex flex-wrap justify-end gap-1">
       {items.map((item) => (
@@ -107,14 +96,67 @@ function Chips({ items, empty }: { items: string[]; empty: string }) {
   )
 }
 
+function Stat({ value, label }: { value: ReactNode; label: string }) {
+  return (
+    <div className="rounded-3xl bg-muted p-5">
+      <p className="text-3xl font-semibold tabular-nums">{value}</p>
+      <p className="mt-1 text-muted-foreground">{label}</p>
+    </div>
+  )
+}
+
+/** Un mot ou une note de l'équipe. */
+function NoteCard({ note, owner }: { note: PetNote; owner: string }) {
+  const initials = note.author
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+  return (
+    <article className="space-y-4 rounded-3xl border bg-card p-5">
+      <div className="flex items-center gap-3">
+        <Avatar className="size-10">
+          <AvatarFallback className="font-semibold">{initials}</AvatarFallback>
+        </Avatar>
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold">{note.author}</p>
+          <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <ActivityMark
+              activity={note.activity}
+              className="size-4 text-[0.5rem]"
+            />
+            {note.activity} · {formatDate(note.date)}
+          </p>
+        </div>
+        <span
+          className={cn(
+            "shrink-0 rounded-full px-3 py-1 text-sm font-semibold",
+            note.shared ? "bg-success-soft" : "bg-muted"
+          )}
+        >
+          {note.shared ? `Envoyé à ${owner}` : "Note interne"}
+        </span>
+      </div>
+      <p className="text-pretty">{note.text}</p>
+      <NoteExtras
+        author={note.author.split(" ")[0]}
+        mood={note.mood}
+        photos={note.photos}
+        tags={note.tags}
+        tip={note.tip}
+        title={`${note.activity} · ${formatDate(note.date)}`}
+      />
+    </article>
+  )
+}
+
 export function PetView({ slug }: { slug: string }) {
   const pet = findPet(slug)!
+  const owner = pet.owner.name.split(" ")[0]
   const [notes, setNotes] = useState<PetNote[]>(pet.notes)
-  const [noteFilter, setNoteFilter] = useState<Activity | "all">("all")
-  const [draft, setDraft] = useState("")
-  const [draftActivity, setDraftActivity] = useState<Activity>(
-    pet.activities[0] ?? "Pension"
-  )
+  const [filter, setFilter] = useState<Activity | "all">("all")
+  const [showAll, setShowAll] = useState(false)
+  const [writing, setWriting] = useState(false)
+  const [added, setAdded] = useState<string[]>([])
 
   const current = pet.history.find(
     (r) =>
@@ -131,504 +173,445 @@ export function PetView({ slug }: { slug: string }) {
     (s, r) => s + (r.status !== "cancelled" ? (r.amount ?? 0) : 0),
     0
   )
-  const shownNotes = [...notes]
-    .filter((n) => noteFilter === "all" || n.activity === noteFilter)
+  const sorted = [...notes]
+    .filter((n) => filter === "all" || n.activity === filter)
     .sort((a, b) => (a.date < b.date ? 1 : -1))
+  const shown = showAll ? sorted : sorted.slice(0, 3)
+  const photos = [
+    ...added,
+    ...pet.photos.map((_, i) => petGalleryPhoto(slug, pet.species, i)),
+  ]
   const alerts = [
     pet.behavior.warning,
     ...pet.allergies.map((a) => `Allergie : ${a}`),
     ...pet.treatments.map((t) => `Traitement : ${t.dose}`),
   ].filter(Boolean) as string[]
+  const soft = "border-transparent bg-white/60 text-inherit hover:bg-white/80"
 
   return (
-    <PageShell
-      actions={
-        <>
-          <Button
-            className="max-sm:hidden"
-            render={<Link href="/messages" />}
-            size="sm"
-            variant="outline"
-          >
-            <HugeiconsIcon icon={Message01Icon} />
-            Écrire
-          </Button>
-          <NewStayDialog
-            defaultClient={pet.owner.name}
-            defaultPet={pet.name}
-            trigger={
-              <Button>
-                <HugeiconsIcon icon={CalendarAdd01Icon} />
-                Nouveau séjour
-              </Button>
-            }
-          />
-        </>
-      }
-      icon={PawPrintIcon}
-      title={`Animaux / ${pet.name}`}
-    >
-      <section className="flex flex-wrap items-start gap-5">
-        <div className="flex size-24 shrink-0 items-center justify-center rounded-3xl bg-wise-green text-wise-forest">
-          <HugeiconsIcon className="size-10" icon={PawPrintIcon} />
-        </div>
-        <div className="min-w-0 flex-1 space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="font-heading text-3xl font-semibold">{pet.name}</h2>
+    <PageBody>
+      <Link
+        className="inline-flex items-center gap-2 font-semibold"
+        href="/clients"
+      >
+        <span className="flex size-8 items-center justify-center rounded-full bg-secondary">
+          <HugeiconsIcon className="size-5" icon={ArrowLeft01Icon} />
+        </span>
+        Clients et animaux
+      </Link>
+
+      <section
+        className={cn(
+          "grid overflow-hidden rounded-3xl lg:grid-cols-[minmax(0,1fr)_20rem]",
+          petTone(slug)
+        )}
+      >
+        <div className="min-w-0 space-y-6 p-6 md:p-10">
+          <div className="flex flex-wrap gap-2">
             {current && (
-              <Badge variant="success">En séjour · {current.title}</Badge>
+              <span className="rounded-full bg-white/70 px-3 py-1 text-sm font-semibold text-wise-forest">
+                En séjour · {current.title}
+              </span>
             )}
             {expired.length > 0 ? (
-              <Badge variant="error">
-                <HugeiconsIcon icon={Alert02Icon} />
+              <span className="flex items-center gap-1.5 rounded-full bg-destructive px-3 py-1 text-sm font-semibold text-white">
+                <HugeiconsIcon className="size-4" icon={Alert02Icon} />
                 {expired.map((v) => v.name).join(", ")} expiré
-              </Badge>
+              </span>
             ) : (
-              <Badge variant="outline">
-                <HugeiconsIcon icon={ShieldCheckIcon} />
+              <span className="rounded-full bg-white/70 px-3 py-1 text-sm font-semibold text-wise-forest">
                 Vaccins à jour
-              </Badge>
+              </span>
             )}
           </div>
-          <p className="text-muted-foreground">
-            {pet.breed} · {pet.sex === "Mâle" ? "Mâle" : "Femelle"}
-            {pet.neutered &&
-              (pet.sex === "Mâle" ? " castré" : " stérilisée")} ·{" "}
-            {ageOf(pet.birth)} · {String(pet.weight).replace(".", ",")} kg
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {pet.activities.map((a) => (
-              <Badge className="gap-1.5" key={a} variant="outline">
-                <ActivityMark activity={a} className="size-3.5 text-[0.5rem]" />
-                {a}
-              </Badge>
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-end">
+            <span className="block size-28 shrink-0 rounded-full bg-white/60 p-1.5 md:size-36">
+              <Photo
+                alt={pet.name}
+                className="size-full rounded-full"
+                sizes="144px"
+                src={petPhoto(slug, pet.species)}
+              />
+            </span>
+            <div className="min-w-0">
+              <p className="font-semibold opacity-80">
+                {pet.species} · {pet.sex}
+                {pet.neutered &&
+                  (pet.sex === "Mâle" ? " castré" : " stérilisée")}
+              </p>
+              <h1 className="truncate font-display text-6xl md:text-8xl">
+                {pet.name}
+              </h1>
+              <p className="mt-2 text-lg font-semibold">
+                {pet.breed} · {ageOf(pet.birth)} ·{" "}
+                {String(pet.weight).replace(".", ",")} kg
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {pet.behavior.traits.map((t) => (
+              <span
+                className="flex h-8 items-center rounded-full bg-white/60 px-3 text-sm font-semibold"
+                key={t}
+              >
+                {t}
+              </span>
             ))}
           </div>
-        </div>
-        <div className="flex w-full items-center gap-3 rounded-2xl border bg-card p-3 sm:w-auto">
-          <Avatar className="size-10">
-            <AvatarFallback>{pet.owner.initials}</AvatarFallback>
-          </Avatar>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold">{pet.owner.name}</p>
-            <p className="text-sm text-muted-foreground">{pet.owner.phone}</p>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => setWriting(true)} size="lg">
+              <HugeiconsIcon icon={Edit02Icon} />
+              Laisser un mot
+            </Button>
+            <NewStayDialog
+              defaultClient={pet.owner.name}
+              defaultPet={pet.name}
+              trigger={
+                <Button className={soft} size="lg" variant="outline">
+                  <HugeiconsIcon icon={CalendarAdd01Icon} />
+                  Nouveau séjour
+                </Button>
+              }
+            />
           </div>
-          <Button aria-label="Appeler" size="icon-sm" variant="outline">
-            <HugeiconsIcon icon={Call02Icon} />
-          </Button>
         </div>
+
+        <aside className="flex flex-col gap-5 bg-white/30 p-6 md:p-8">
+          <p className="font-semibold opacity-80">Propriétaire</p>
+          <Link
+            className="flex items-center gap-3"
+            href={clientHref(pet.owner.name)}
+          >
+            <Avatar className="size-14">
+              <AvatarFallback className="bg-white/70 text-lg font-semibold">
+                {pet.owner.initials}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <p className="truncate text-lg font-semibold">{pet.owner.name}</p>
+              <p className="opacity-80">{pet.owner.phone}</p>
+            </div>
+          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              className={soft}
+              render={<a href={`tel:${pet.owner.phone.replace(/\s/g, "")}`} />}
+              variant="outline"
+            >
+              <HugeiconsIcon icon={Call02Icon} />
+              Appeler
+            </Button>
+            <Button
+              className={soft}
+              render={<Link href="/messages" />}
+              variant="outline"
+            >
+              <HugeiconsIcon icon={Message01Icon} />
+              Écrire
+            </Button>
+          </div>
+          <Link
+            className="mt-auto font-semibold underline underline-offset-4"
+            href={clientHref(pet.owner.name)}
+          >
+            Voir la fiche de {owner}
+          </Link>
+        </aside>
       </section>
 
       {alerts.length > 0 && (
-        <Alert variant="warning">
-          <HugeiconsIcon icon={Alert02Icon} />
-          <AlertTitle>À savoir avant de s&apos;en occuper</AlertTitle>
-          <AlertDescription>
-            <ul className="list-inside list-disc">
+        <div className="flex gap-4 rounded-3xl bg-warning-soft p-5">
+          <HugeiconsIcon className="size-6 shrink-0" icon={Alert02Icon} />
+          <div>
+            <p className="font-semibold">À savoir avant de s&apos;en occuper</p>
+            <ul className="mt-1 list-inside list-disc">
               {alerts.map((a) => (
                 <li key={a}>{a}</li>
               ))}
             </ul>
-          </AlertDescription>
-        </Alert>
+          </div>
+        </div>
       )}
 
-      <Tabs defaultValue="profile">
-        <TabsList>
-          <TabsTab value="profile">Fiche</TabsTab>
-          <TabsTab value="notes">
-            Notes{" "}
-            <span className="ms-1 text-muted-foreground">{notes.length}</span>
-          </TabsTab>
-          <TabsTab value="photos">
-            Photos{" "}
-            <span className="ms-1 text-muted-foreground">
-              {pet.photos.length}
-            </span>
-          </TabsTab>
-          <TabsTab value="history">
-            Historique{" "}
-            <span className="ms-1 text-muted-foreground">
-              {pet.history.length}
-            </span>
-          </TabsTab>
-        </TabsList>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <Stat
+          label={stays.length > 1 ? "séjours" : "séjour"}
+          value={stays.length}
+        />
+        <Stat label="nuits en pension" value={nights} />
+        <Stat label="prestations" value={pet.history.length} />
+        <Stat label="réservé ou réglé" value={formatAmount(spent)} />
+      </div>
 
-        <TabsPanel className="mt-6 grid gap-4 lg:grid-cols-3" value="profile">
-          <div className="space-y-4 lg:col-span-2">
-            <Widget description="Contrôlés à chaque arrivée" title="Vaccins">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Vaccin</TableHead>
-                    <TableHead>Fait le</TableHead>
-                    <TableHead>Valable jusqu&apos;au</TableHead>
-                    <TableHead className="text-end">Statut</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pet.vaccines.map((v) => {
-                    const status = vaccineStatus(v)
-                    return (
-                      <TableRow key={v.name}>
-                        <TableCell>
-                          <span className="flex items-center gap-2 font-semibold">
-                            <HugeiconsIcon
-                              className="size-4 text-muted-foreground"
-                              icon={VaccineIcon}
-                            />
-                            {v.name}
-                            {v.required && (
-                              <Badge size="sm" variant="outline">
-                                Obligatoire
-                              </Badge>
-                            )}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {formatDate(v.done)}
-                        </TableCell>
-                        <TableCell
-                          className={cn(
-                            status === "expired" &&
-                              "text-destructive-foreground"
-                          )}
-                        >
-                          {formatDate(v.expires)}
-                        </TableCell>
-                        <TableCell className="text-end">
-                          <Badge variant={statusMeta[status].variant}>
-                            {statusMeta[status].label}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-            </Widget>
-
-            <Widget title="Santé">
-              <div className="grid gap-6 sm:grid-cols-2">
-                <Facts
-                  items={[
-                    [
-                      "Allergies",
-                      <Chips empty="Aucune" items={pet.allergies} key="a" />,
-                    ],
-                    [
-                      "Pathologies",
-                      <Chips empty="Aucune" items={pet.conditions} key="c" />,
-                    ],
-                    [
-                      "Traitements",
-                      pet.treatments.length
-                        ? pet.treatments.map((t) => t.dose).join(", ")
-                        : "Aucun",
-                    ],
-                    ["Dernière visite", formatDate(pet.lastVetVisit)],
-                  ]}
-                />
-                <div className="space-y-2 rounded-xl bg-muted/60 p-3 text-sm">
-                  <p className="flex items-center gap-2 font-semibold">
-                    <HugeiconsIcon className="size-4" icon={StethoscopeIcon} />
-                    {pet.vet.name}
-                  </p>
-                  <p className="text-muted-foreground">
-                    {pet.vet.city} · {pet.vet.phone}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Autorisation de soins d&apos;urgence signée par{" "}
-                    {pet.owner.name.split(" ")[0]}.
-                  </p>
-                </div>
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="min-w-0 space-y-10">
+          <section className="space-y-4">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 className="font-heading text-2xl font-semibold">
+                  Mots et notes
+                </h2>
+                <p className="text-muted-foreground">
+                  Les mots envoyés à {owner} et les notes de l&apos;équipe
+                </p>
               </div>
-            </Widget>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <Widget title="Alimentation">
-                <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
-                  <HugeiconsIcon
-                    className="size-4 text-muted-foreground"
-                    icon={Restaurant01Icon}
-                  />
-                  {pet.food.brand}
-                </div>
-                <Facts
-                  items={[
-                    ["Ration", pet.food.ration],
-                    ["Repas", pet.food.meals.join(" · ")],
-                    [
-                      "Fourni par",
-                      pet.food.providedByOwner
-                        ? "Le propriétaire"
-                        : "La pension",
-                    ],
-                    ["Friandises", pet.food.treats],
-                  ]}
-                />
-              </Widget>
-              <Widget title="Comportement">
-                <div className="mb-3 flex flex-wrap gap-1">
-                  <HugeiconsIcon
-                    className="me-1 size-4 text-muted-foreground"
-                    icon={SmileIcon}
-                  />
-                  {pet.behavior.traits.map((t) => (
-                    <Badge key={t} variant="secondary">
-                      {t}
-                    </Badge>
-                  ))}
-                </div>
-                <Facts
-                  items={[
-                    ...(
-                      [
-                        ["Avec les chiens", pet.behavior.dogs],
-                        ["Avec les chats", pet.behavior.cats],
-                        ["Avec les humains", pet.behavior.people],
-                      ] as const
-                    ).map(
-                      ([label, value]) =>
-                        [
-                          label,
-                          <span
-                            className="inline-flex items-center gap-1.5"
-                            key={label}
-                          >
-                            <span
-                              className={cn(
-                                "size-2 rounded-full",
-                                compatMeta[value].dot
-                              )}
-                            />
-                            {compatMeta[value].label}
-                          </span>,
-                        ] as [string, ReactNode]
-                    ),
-                    [
-                      "Peurs",
-                      <Chips
-                        empty="Aucune connue"
-                        items={pet.behavior.fears}
-                        key="f"
-                      />,
-                    ],
-                  ]}
-                />
-              </Widget>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <Widget title="Identité">
-              <Facts
-                items={[
-                  ["Espèce", pet.species],
-                  ["Race", pet.breed],
-                  ["Robe", pet.color],
-                  ["Né le", formatDate(pet.birth)],
-                  ["Poids", `${String(pet.weight).replace(".", ",")} kg`],
-                  [
-                    "Puce",
-                    <span className="font-mono text-sm" key="p">
-                      {pet.chip}
-                    </span>,
-                  ],
-                ]}
-              />
-            </Widget>
-            <Widget description="Ce qu'il apporte d'habitude" title="Affaires">
-              <ul className="flex flex-wrap gap-1.5">
-                {pet.belongings.map((b) => (
-                  <li key={b}>
-                    <Badge variant="outline">{b}</Badge>
-                  </li>
-                ))}
-              </ul>
-            </Widget>
-            <Widget title="Documents">
-              <Facts
-                items={[
-                  [
-                    "Contrat de pension",
-                    pet.contractSigned ? (
-                      "Signé"
-                    ) : (
-                      <Badge key="c" variant="warning">
-                        À signer
-                      </Badge>
-                    ),
-                  ],
-                  ["Carnet de santé", "Scanné"],
-                  ["Autorisation de soins", "Signée"],
-                ]}
-              />
-            </Widget>
-          </div>
-        </TabsPanel>
-
-        <TabsPanel className="mt-6 space-y-4" value="notes">
-          <div className="space-y-2 rounded-2xl border bg-card p-4">
-            <Textarea
-              onChange={(e) => setDraft(e.target.value)}
-              placeholder={`Une observation sur ${pet.name} ? Elle sera visible par toute l'équipe.`}
-              value={draft}
-            />
-            <div className="flex items-center justify-end gap-2">
-              <Select
-                items={activityNames.map((a) => ({ label: a, value: a }))}
-                onValueChange={(v) => setDraftActivity(v as Activity)}
-                value={draftActivity}
-              >
-                <SelectTrigger className="w-40" size="sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectPopup>
-                  {activityNames.map((a) => (
-                    <SelectItem key={a} value={a}>
-                      {a}
-                    </SelectItem>
-                  ))}
-                </SelectPopup>
-              </Select>
-              <Button
-                disabled={!draft.trim()}
-                onClick={() => {
-                  setNotes([
-                    {
-                      activity: draftActivity,
-                      author: "Alex Martin",
-                      date: TODAY_ISO,
-                      text: draft.trim(),
-                    },
-                    ...notes,
-                  ])
-                  setDraft("")
-                }}
-                size="sm"
-              >
-                Ajouter la note
+              <Button onClick={() => setWriting(true)} variant="secondary">
+                <HugeiconsIcon icon={Edit02Icon} />
+                Laisser un mot
               </Button>
             </div>
-          </div>
-          <Tabs
-            onValueChange={(v) => setNoteFilter(v as Activity | "all")}
-            value={noteFilter}
-          >
-            <TabsList size="sm">
-              <TabsTab value="all">Toutes</TabsTab>
-              {activityNames.map((a) => (
-                <TabsTab key={a} value={a}>
-                  {a}
-                </TabsTab>
+            <div className="flex flex-wrap gap-2">
+              {(["all", ...activityNames] as const).map((a) => (
+                <button
+                  aria-pressed={filter === a}
+                  className={cn(
+                    chip,
+                    filter === a
+                      ? "bg-control text-control-foreground"
+                      : "bg-secondary text-secondary-foreground hover:bg-neutral-hover"
+                  )}
+                  key={a}
+                  onClick={() => setFilter(a)}
+                  type="button"
+                >
+                  {a === "all" ? "Tout" : a}
+                </button>
               ))}
-            </TabsList>
-          </Tabs>
-          <ul className="space-y-3">
-            {shownNotes.length === 0 && (
-              <li className="text-sm text-muted-foreground">
-                Aucune note pour cette activité.
-              </li>
+            </div>
+            {shown.length ? (
+              shown.map((n, i) => (
+                <NoteCard key={`${n.date}-${i}`} note={n} owner={owner} />
+              ))
+            ) : (
+              <p className="rounded-3xl bg-muted p-6 text-muted-foreground">
+                Aucun mot pour cette activité.
+              </p>
             )}
-            {shownNotes.map((n, i) => (
-              <li
-                className="flex gap-3 rounded-2xl border bg-card p-4"
-                key={`${n.date}-${i}`}
+            {sorted.length > 3 && (
+              <Button onClick={() => setShowAll((s) => !s)} variant="ghost">
+                {showAll
+                  ? "Voir moins"
+                  : `Voir les ${sorted.length - 3} autres`}
+              </Button>
+            )}
+          </section>
+
+          <section className="space-y-4">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <h2 className="font-heading text-2xl font-semibold">Photos</h2>
+              <PhotoButton
+                onPick={(url) => setAdded((list) => [url, ...list])}
+                variant="secondary"
               >
-                <ActivityMark activity={n.activity} className="mt-0.5" />
-                <div className="min-w-0 flex-1 space-y-1">
-                  <p className="text-sm text-muted-foreground">
-                    <span className="font-semibold text-foreground">
-                      {n.author}
-                    </span>{" "}
-                    · {n.activity} · {formatDate(n.date)}
-                  </p>
-                  <p className="text-sm">{n.text}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </TabsPanel>
-
-        <TabsPanel
-          className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4"
-          value="photos"
-        >
-          <button
-            className="flex aspect-square flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed text-sm text-muted-foreground hover:bg-accent"
-            type="button"
-          >
-            <HugeiconsIcon className="size-6" icon={Camera01Icon} />
-            Ajouter des photos
-          </button>
-          {pet.photos.map((photo, i) => (
-            <figure
-              className={cn(
-                "relative flex aspect-square items-center justify-center overflow-hidden rounded-2xl bg-linear-to-br",
-                photo.tone
-              )}
-              key={i}
-            >
-              <HugeiconsIcon
-                className="size-10 text-black/15"
-                icon={PawPrintIcon}
+                <HugeiconsIcon icon={Camera01Icon} />
+                Ajouter
+              </PhotoButton>
+            </div>
+            {photos.length ? (
+              <PhotoStrip
+                className="grid-cols-3 md:grid-cols-4"
+                max={8}
+                photos={photos}
+                title={`Photos de ${pet.name}`}
               />
-              <figcaption className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/50 to-transparent p-3 text-white">
-                <p className="text-sm font-semibold">{photo.caption}</p>
-                <p className="text-sm opacity-80">{formatDate(photo.date)}</p>
-              </figcaption>
-            </figure>
-          ))}
-        </TabsPanel>
+            ) : (
+              <p className="rounded-3xl bg-muted p-6 text-muted-foreground">
+                Pas encore de photo. Elles rassurent beaucoup {owner} pendant un
+                séjour.
+              </p>
+            )}
+          </section>
 
-        <TabsPanel className="mt-6 space-y-4" value="history">
-          <div className="grid grid-cols-3 gap-3">
-            <Kpi icon={PawPrintIcon} label="Séjours" value={stays.length}>
-              {nights} nuits au total
-            </Kpi>
-            <Kpi
-              icon={CalendarAdd01Icon}
-              label="Prestations"
-              value={pet.history.length}
-            >
-              Toutes activités
-            </Kpi>
-            <Kpi
-              icon={ShieldCheckIcon}
-              label="Montant"
-              value={formatAmount(spent)}
-            >
-              Réservé ou réglé
-            </Kpi>
-          </div>
-          <ol className="relative space-y-3 before:absolute before:inset-y-2 before:start-[1.1rem] before:w-px before:bg-border">
-            {pet.history.map((r) => (
-              <li className="relative flex gap-3" key={r.id}>
-                <span className="z-10 mt-3 flex size-9 shrink-0 items-center justify-center rounded-full border bg-background">
-                  <ActivityMark activity={r.activity} />
-                </span>
-                <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl border bg-card p-3">
+          <section className="space-y-4">
+            <h2 className="font-heading text-2xl font-semibold">Historique</h2>
+            <div className="divide-y overflow-hidden rounded-3xl border bg-card">
+              {pet.history.map((r) => (
+                <div className="flex items-center gap-4 px-5 py-4" key={r.id}>
+                  <ActivityMark
+                    activity={r.activity}
+                    className="size-10 text-sm"
+                  />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">{r.title}</p>
+                    <p className="truncate font-semibold">{r.title}</p>
                     <p className="truncate text-sm text-muted-foreground">
-                      {reservationDate(r)} {r.detail && `· ${r.detail}`}
+                      {reservationDate(r)}
+                      {r.detail && ` · ${r.detail}`}
                     </p>
                   </div>
-                  {r.amount !== undefined && (
-                    <span className="text-sm tabular-nums">
-                      {formatAmount(r.amount)}
-                    </span>
-                  )}
-                  <Badge variant={reservationStatus[r.status].variant}>
-                    {reservationStatus[r.status].label}
-                  </Badge>
+                  <div className="shrink-0 text-end">
+                    {r.amount !== undefined && (
+                      <p className="font-semibold tabular-nums">
+                        {formatAmount(r.amount)}
+                      </p>
+                    )}
+                    <Badge variant={reservationStatus[r.status].variant}>
+                      {reservationStatus[r.status].label}
+                    </Badge>
+                  </div>
                 </div>
-              </li>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        <div className="space-y-8">
+          <Box title="Vaccins">
+            {pet.vaccines.map((v) => {
+              const status = vaccineStatus(v)
+              const left = Math.max(
+                0,
+                Math.min(100, (daysBetween(TODAY_ISO, v.expires) / 365) * 100)
+              )
+              return (
+                <div className="space-y-2 px-5 py-4" key={v.name}>
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-semibold">
+                      {v.name}
+                      {v.required && (
+                        <span className="ms-2 text-sm font-normal text-muted-foreground">
+                          obligatoire
+                        </span>
+                      )}
+                    </p>
+                    <Badge variant={vaxStyle[status].variant}>
+                      {vaxStyle[status].label}
+                    </Badge>
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className={cn(
+                        "h-full rounded-full",
+                        vaxStyle[status].bar
+                      )}
+                      style={{ width: `${Math.max(left, 3)}%` }}
+                    />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Jusqu&apos;au {formatDate(v.expires)}
+                  </p>
+                </div>
+              )
+            })}
+          </Box>
+
+          <Box title="Santé">
+            <Fact label="Allergies">
+              <Tags empty="Aucune" items={pet.allergies} />
+            </Fact>
+            <Fact label="Pathologies">
+              <Tags empty="Aucune" items={pet.conditions} />
+            </Fact>
+            <Fact label="Traitements">
+              {pet.treatments.length
+                ? pet.treatments.map((t) => t.dose).join(", ")
+                : "Aucun"}
+            </Fact>
+            <div className="flex items-center gap-4 px-5 py-4">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted">
+                <HugeiconsIcon className="size-5" icon={StethoscopeIcon} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-semibold">{pet.vet.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {pet.vet.city} · vu le {formatDate(pet.lastVetVisit)}
+                </p>
+              </div>
+              <Button
+                aria-label={`Appeler ${pet.vet.name}`}
+                render={<a href={`tel:${pet.vet.phone.replace(/\s/g, "")}`} />}
+                size="icon"
+                variant="secondary"
+              >
+                <HugeiconsIcon icon={Call02Icon} />
+              </Button>
+            </div>
+          </Box>
+
+          <Box title="Alimentation">
+            <div className="px-5 py-4">
+              <p className="font-semibold">{pet.food.brand}</p>
+              <p className="text-sm text-muted-foreground">
+                {pet.food.ration} · fourni par{" "}
+                {pet.food.providedByOwner ? "le propriétaire" : "la pension"}
+              </p>
+            </div>
+            <ol className="space-y-2 px-5 py-4">
+              {pet.food.meals.map((m) => (
+                <li className="flex gap-3" key={m}>
+                  <span className="mt-2 size-2 shrink-0 rounded-full bg-primary" />
+                  {m}
+                </li>
+              ))}
+            </ol>
+            <Fact label="Friandises">{pet.food.treats}</Fact>
+          </Box>
+
+          <Box title="Comportement">
+            {(
+              [
+                ["Avec les chiens", pet.behavior.dogs],
+                ["Avec les chats", pet.behavior.cats],
+                ["Avec les humains", pet.behavior.people],
+              ] as const
+            ).map(([label, value]) => (
+              <div
+                className="flex min-h-12 items-center justify-between gap-4 px-5 py-3"
+                key={label}
+              >
+                <span>{label}</span>
+                <span
+                  className={cn(
+                    "rounded-full px-3 py-1 text-sm font-semibold",
+                    compatMeta[value].tone
+                  )}
+                >
+                  {compatMeta[value].label}
+                </span>
+              </div>
             ))}
-          </ol>
-        </TabsPanel>
-      </Tabs>
-    </PageShell>
+            <Fact label="Peurs">
+              <Tags empty="Aucune connue" items={pet.behavior.fears} />
+            </Fact>
+          </Box>
+
+          <Box title="Identité">
+            <Fact label="Robe">{pet.color}</Fact>
+            <Fact label="Né le">{formatDate(pet.birth)}</Fact>
+            <Fact label="Puce">
+              <span className="font-mono text-sm">{pet.chip}</span>
+            </Fact>
+            <Fact label="Affaires">
+              <Tags empty="Aucune" items={pet.belongings} />
+            </Fact>
+          </Box>
+
+          <Box title="Documents">
+            <Fact label="Contrat de pension">
+              {pet.contractSigned ? (
+                "Signé"
+              ) : (
+                <Badge variant="warning">À signer</Badge>
+              )}
+            </Fact>
+            <Fact label="Carnet de santé">Scanné</Fact>
+            <Fact label="Autorisation de soins">Signée</Fact>
+          </Box>
+        </div>
+      </div>
+
+      <NoteDialog
+        onOpenChange={setWriting}
+        onSave={(note) => {
+          setNotes((list) => [note, ...list])
+          setFilter("all")
+          toastManager.add({
+            title: note.shared ? `Mot envoyé à ${owner}` : "Note enregistrée",
+            type: "success",
+          })
+        }}
+        open={writing}
+        pet={pet}
+      />
+    </PageBody>
   )
 }
