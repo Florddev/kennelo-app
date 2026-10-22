@@ -158,7 +158,7 @@ export function PlanningView() {
         <NewStayDialog
           onCreate={(stay) => setStays((list) => [...list, stay])}
           trigger={
-            <Button size="sm">
+            <Button>
               <HugeiconsIcon icon={CalendarAdd01Icon} />
               Nouveau séjour
             </Button>

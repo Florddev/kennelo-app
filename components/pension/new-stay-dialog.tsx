@@ -2,16 +2,34 @@
 
 import {
   Alert02Icon,
-  CheckmarkCircle02Icon,
-  Search01Icon,
+  BedDoubleIcon,
+  Calendar03Icon,
+  ClipboardIcon,
   SmsCodeIcon,
-  UserAdd01Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import Link from "next/link"
-import { type ReactElement, type ReactNode, useState } from "react"
+import { type ReactElement, useState } from "react"
 import { dateOf, shortDate, TODAY, weekdayOf } from "@/components/calendar"
-import { clients } from "@/components/clients/data"
+import { type Client, clients } from "@/components/clients/data"
+import {
+  type ClientDraft,
+  ClientStep,
+  draftFromQuery,
+  emptyClientDraft,
+  NewClientStep,
+  PetStep,
+  type Species,
+} from "@/components/flow/client-steps"
+import {
+  ChoiceRow,
+  FlowDialog,
+  FlowDone,
+  FlowMedia,
+  FlowScreen,
+  SummaryRow,
+  useSteps,
+} from "@/components/flow/flow"
 import {
   kennels,
   type OptionPrices,
@@ -38,47 +56,15 @@ import {
 } from "@/components/services/data"
 import { formatAmount } from "@/components/today/widgets"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import {
-  Dialog,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogPanel,
-  DialogPopup,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@/components/ui/input-group"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { Tabs, TabsList, TabsTab } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 
-type Species = "Chien" | "Chat"
-type Draft = {
-  name: string
-  phone: string
-  pet: string
-  species: Species
-  breed: string
-}
-
-const emptyDraft: Draft = {
-  breed: "",
-  name: "",
-  pet: "",
-  phone: "",
-  species: "Chien",
-}
+type StepId =
+  "client" | "newClient" | "pet" | "dates" | "kennel" | "options" | "recap"
 /** Wall clock, only read from event handlers. */
 const clock = () => Date.now()
 const DAYS = Array.from({ length: 28 }, (_, i) => i)
@@ -97,39 +83,6 @@ const overlaps = (s: Stay, arrival: number, departure: number) =>
   s.arrival < departure &&
   arrival < s.departure
 
-function Step({
-  n,
-  title,
-  done,
-  children,
-}: {
-  n: number
-  title: string
-  done: boolean
-  children: ReactNode
-}) {
-  return (
-    <section className="space-y-3">
-      <h3 className="flex items-center gap-2 text-sm font-semibold">
-        <span
-          className={cn(
-            "flex size-6 items-center justify-center rounded-full border text-xs",
-            done && "border-transparent bg-primary text-primary-foreground"
-          )}
-        >
-          {done ? (
-            <HugeiconsIcon className="size-3.5" icon={CheckmarkCircle02Icon} />
-          ) : (
-            n
-          )}
-        </span>
-        {title}
-      </h3>
-      <div className="ps-8">{children}</div>
-    </section>
-  )
-}
-
 export function NewStayDialog({
   trigger,
   stays = initialStays,
@@ -146,12 +99,10 @@ export function NewStayDialog({
   const [open, setOpen] = useState(false)
   const [startedAt, setStartedAt] = useState(0)
   const catalog = useCatalog()
-  const [query, setQuery] = useState("")
   const [clientName, setClientName] = useState<string | undefined>(
     defaultClient
   )
-  const [creating, setCreating] = useState(false)
-  const [draft, setDraft] = useState<Draft>(emptyDraft)
+  const [draft, setDraft] = useState<ClientDraft>(emptyClientDraft)
   const [petName, setPetName] = useState<string | undefined>(defaultPet)
   const [arrival, setArrival] = useState<number | null>(null)
   const [departure, setDeparture] = useState<number | null>(null)
@@ -163,12 +114,15 @@ export function NewStayDialog({
     seconds: number
   } | null>(null)
 
+  const steps = useSteps<StepId>("client")
+
   const reset = () => {
-    setQuery("")
+    const start = clients.find((c) => c.name === defaultClient)
+    const single = start?.pets.length === 1 ? start.pets[0].name : undefined
     setClientName(defaultClient)
-    setCreating(false)
-    setDraft(emptyDraft)
-    setPetName(defaultPet)
+    setDraft(emptyClientDraft)
+    setPetName(defaultPet ?? single)
+    steps.reset(!start ? "client" : defaultPet || single ? "dates" : "pet")
     setArrival(null)
     setDeparture(null)
     setKennelChoice(null)
@@ -179,17 +133,6 @@ export function NewStayDialog({
   }
 
   const client = clients.find((c) => c.name === clientName)
-  const q = query.trim().toLowerCase()
-  const matches = q
-    ? clients
-        .filter((c) =>
-          `${c.name} ${c.phone.replaceAll(" ", "")} ${c.phone} ${c.pets.map((p) => p.name).join(" ")}`
-            .toLowerCase()
-            .includes(q)
-        )
-        .slice(0, 5)
-    : []
-
   const pet = client && petName ? petByName(petName, client.name) : undefined
   const species: Species = pet?.species ?? draft.species
   const owner = client?.name ?? draft.name
@@ -297,25 +240,19 @@ export function NewStayDialog({
     }
   }
 
-  const selectClient = (name: string) => {
-    const c = clients.find((x) => x.name === name)
-    setClientName(name)
-    setCreating(false)
-    setQuery("")
-    setPetName(c?.pets.length === 1 ? c.pets[0].name : undefined)
+  const selectClient = (c: Client) => {
+    setClientName(c.name)
+    setPetName(c.pets.length === 1 ? c.pets[0].name : undefined)
     setOptions(null)
+    if (c.pets.length === 1) steps.next("dates")
+    else steps.go("pet")
   }
 
-  const startCreate = () => {
-    const digits = /^[\d\s+]+$/.test(query)
-    setDraft({
-      ...emptyDraft,
-      name: digits ? "" : query,
-      phone: digits ? query : "",
-    })
-    setCreating(true)
+  const startCreate = (query: string) => {
+    setDraft(draftFromQuery(query))
     setClientName(undefined)
     setPetName(undefined)
+    steps.go("newClient")
   }
 
   const create = () => {
@@ -328,48 +265,63 @@ export function NewStayDialog({
     })
   }
 
+  const hasOptions = Object.keys(prices).length > 0
+  const order: StepId[] = [
+    "client",
+    "pet",
+    "dates",
+    "kennel",
+    "options",
+    "recap",
+  ]
+  const progress =
+    order.indexOf(steps.step === "newClient" ? "pet" : steps.step) /
+    (order.length - 1)
+  const periodAlerts = stayQuote && (
+    <>
+      {stayQuote.short && (
+        <Alert variant="warning">
+          <HugeiconsIcon icon={Alert02Icon} />
+          <AlertTitle>Séjour minimum de {stayQuote.minStay} nuits</AlertTitle>
+          <AlertDescription>
+            Pour une arrivée pendant « {stayQuote.nights[0]?.period?.name} ».
+          </AlertDescription>
+        </Alert>
+      )}
+      {stayQuote.closed.length > 0 && (
+        <Alert variant="warning">
+          <HugeiconsIcon icon={Alert02Icon} />
+          <AlertTitle>Fermé sur une partie du séjour</AlertTitle>
+          <AlertDescription>
+            {stayQuote.closed
+              .map((n) => `${formatDate(n.date)} : ${n.closed}`)
+              .join(" · ")}
+          </AlertDescription>
+        </Alert>
+      )}
+    </>
+  )
+
   return (
-    <Dialog
+    <FlowDialog
       onOpenChange={(next) => {
         if (next) reset()
         setOpen(next)
       }}
       open={open}
+      progress={created ? undefined : progress}
+      trigger={trigger}
     >
-      <DialogTrigger render={trigger} />
-      <DialogPopup className="max-w-4xl">
-        {created ? (
-          <>
-            <DialogPanel className="flex flex-col items-center gap-4 py-10 text-center">
-              <span className="flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                <HugeiconsIcon
-                  className="size-7"
-                  icon={CheckmarkCircle02Icon}
-                />
-              </span>
-              <div className="space-y-1">
-                <DialogTitle>Séjour de {created.stay.pet} créé</DialogTitle>
-                <DialogDescription>
-                  {shortDate(created.stay.arrival)} →{" "}
-                  {shortDate(created.stay.departure)} ·{" "}
-                  {kennelLabel(created.stay.kennelId)} ·{" "}
-                  {formatAmount(stayAmount(created.stay, prices))}
-                </DialogDescription>
-              </div>
-              <div className="flex flex-wrap justify-center gap-2">
-                <Badge variant="success">Créé en {created.seconds} s</Badge>
-                {sms && (
-                  <Badge variant="info">
-                    <HugeiconsIcon icon={SmsCodeIcon} />
-                    Acompte de {formatAmount(
-                      stayDeposit(created.stay, prices)
-                    )}{" "}
-                    demandé au {phone}
-                  </Badge>
-                )}
-              </div>
-            </DialogPanel>
-            <DialogFooter>
+      {created ? (
+        <FlowDone
+          actions={
+            <>
+              <Button onClick={() => setOpen(false)} size="lg">
+                Terminé
+              </Button>
+              <Button onClick={reset} size="lg" variant="secondary">
+                Créer un autre séjour
+              </Button>
               {client && (
                 <Button
                   render={
@@ -377,478 +329,335 @@ export function NewStayDialog({
                       href={petHref(created.stay.pet, created.stay.owner)}
                     />
                   }
-                  variant="outline"
+                  size="lg"
+                  variant="ghost"
                 >
-                  Fiche de {created.stay.pet}
+                  Voir la fiche de {created.stay.pet}
                 </Button>
               )}
-              <Button onClick={reset} variant="outline">
-                Autre séjour
-              </Button>
-              <Button onClick={() => setOpen(false)}>Terminé</Button>
-            </DialogFooter>
-          </>
-        ) : (
-          <>
-            <DialogHeader>
-              <DialogTitle>Nouveau séjour</DialogTitle>
-              <DialogDescription>
-                Client, animal, dates : le box et le prix se calculent tout
-                seuls.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogPanel className="grid gap-8 md:grid-cols-[1fr_17rem]">
-              <div className="min-w-0 space-y-7">
-                <Step done={whoDone} n={1} title="Client et animal">
-                  {client ? (
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3 rounded-xl border p-3">
-                        <Avatar className="size-9">
-                          <AvatarFallback>{client.initials}</AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium">
-                            {client.name}
-                          </p>
-                          <p className="truncate text-xs text-muted-foreground">
-                            {client.phone} · {client.city}
-                            {client.balance > 0 &&
-                              ` · solde dû ${formatAmount(client.balance)}`}
-                          </p>
-                        </div>
-                        <Button
-                          onClick={() => setClientName(undefined)}
-                          size="xs"
-                          variant="ghost"
-                        >
-                          Changer
-                        </Button>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {client.pets.map((p) => (
-                          <Button
-                            className={cn(
-                              petName === p.name &&
-                                "border-primary bg-primary/30"
-                            )}
-                            key={p.name}
-                            onClick={() => {
-                              setPetName(p.name)
-                              setOptions(null)
-                            }}
-                            size="sm"
-                            variant="outline"
-                          >
-                            {p.name}
-                            <span className="text-muted-foreground">
-                              {p.breed || p.species}
-                            </span>
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  ) : creating ? (
-                    <div className="grid gap-3 rounded-xl border p-3 sm:grid-cols-2">
-                      {(
-                        [
-                          ["name", "Nom du client", "Prénom Nom"],
-                          ["phone", "Téléphone", "06 12 34 56 78"],
-                          ["pet", "Nom de l'animal", "Ex. Filou"],
-                          ["breed", "Race", "Ex. Beagle"],
-                        ] as const
-                      ).map(([key, label, placeholder]) => (
-                        <div className="space-y-1.5" key={key}>
-                          <Label htmlFor={`new-${key}`}>{label}</Label>
-                          <Input
-                            autoFocus={key === "name" && !draft.name}
-                            id={`new-${key}`}
-                            onChange={(e) =>
-                              setDraft({ ...draft, [key]: e.target.value })
-                            }
-                            placeholder={placeholder}
-                            size="sm"
-                            value={draft[key]}
-                          />
-                        </div>
-                      ))}
-                      <div className="flex items-center justify-between gap-2 sm:col-span-2">
-                        <Tabs
-                          onValueChange={(v) =>
-                            setDraft({ ...draft, species: v as Species })
-                          }
-                          value={draft.species}
-                        >
-                          <TabsList size="sm">
-                            <TabsTab value="Chien">Chien</TabsTab>
-                            <TabsTab value="Chat">Chat</TabsTab>
-                          </TabsList>
-                        </Tabs>
-                        <Button
-                          onClick={() => setCreating(false)}
-                          size="xs"
-                          variant="ghost"
-                        >
-                          Annuler
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <InputGroup>
-                        <InputGroupAddon>
-                          <HugeiconsIcon icon={Search01Icon} />
-                        </InputGroupAddon>
-                        <InputGroupInput
-                          aria-label="Rechercher un client"
-                          autoFocus
-                          onChange={(e) => setQuery(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key !== "Enter") return
-                            e.preventDefault()
-                            if (matches[0]) selectClient(matches[0].name)
-                            else if (q) startCreate()
-                          }}
-                          placeholder="Nom, téléphone ou nom de l'animal…"
-                          value={query}
-                        />
-                      </InputGroup>
-                      {matches.length > 0 && (
-                        <ul className="divide-y rounded-xl border">
-                          {matches.map((c, i) => (
-                            <li key={c.name}>
-                              <button
-                                className="flex w-full items-center gap-3 px-3 py-2 text-start hover:bg-accent"
-                                onClick={() => selectClient(c.name)}
-                                type="button"
-                              >
-                                <Avatar className="size-7">
-                                  <AvatarFallback className="text-[0.625rem]">
-                                    {c.initials}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <span className="min-w-0 flex-1">
-                                  <span className="block truncate text-sm font-medium">
-                                    {c.name}
-                                  </span>
-                                  <span className="block truncate text-xs text-muted-foreground">
-                                    {c.pets.map((p) => p.name).join(", ")} ·{" "}
-                                    {c.phone}
-                                  </span>
-                                </span>
-                                {i === 0 && (
-                                  <Badge variant="outline">Entrée</Badge>
-                                )}
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                      <Button onClick={startCreate} size="sm" variant="ghost">
-                        <HugeiconsIcon icon={UserAdd01Icon} />
-                        {q && matches.length === 0
-                          ? `Créer « ${query.trim()} »`
-                          : "Nouveau client"}
-                      </Button>
-                    </div>
+            </>
+          }
+          description={`${created.stay.pet} · ${shortDate(created.stay.arrival)} → ${shortDate(created.stay.departure)} · ${kennelLabel(created.stay.kennelId)} · ${formatAmount(stayAmount(created.stay, prices))}`}
+          title="Séjour créé"
+        >
+          <Badge size="lg" variant="success">
+            Créé en {created.seconds} s
+          </Badge>
+          {sms && (
+            <Badge size="lg" variant="info">
+              <HugeiconsIcon icon={SmsCodeIcon} />
+              Acompte de {formatAmount(stayDeposit(created.stay, prices))}{" "}
+              demandé au {phone}
+            </Badge>
+          )}
+        </FlowDone>
+      ) : steps.step === "client" ? (
+        <ClientStep onCreate={startCreate} onSelect={selectClient} />
+      ) : steps.step === "newClient" ? (
+        <NewClientStep
+          draft={draft}
+          onBack={steps.back}
+          onChange={setDraft}
+          onContinue={() => steps.next("dates")}
+        />
+      ) : steps.step === "pet" && client ? (
+        <PetStep
+          client={client}
+          onBack={steps.back}
+          onSelect={(name) => {
+            setPetName(name)
+            setOptions(null)
+            steps.next("dates")
+          }}
+          selected={petName}
+          title="Quel animal vient en pension ?"
+        />
+      ) : steps.step === "dates" || steps.step === "pet" ? (
+        <FlowScreen
+          description="Touchez le jour d'arrivée, puis celui du départ."
+          footer={
+            <Button
+              disabled={!datesSet}
+              onClick={() => steps.next("kennel")}
+              size="lg"
+            >
+              Continuer
+            </Button>
+          }
+          onBack={steps.back}
+          title={`Quand vient ${animal || "l'animal"} ?`}
+        >
+          <div className="grid grid-cols-7 gap-1 text-center">
+            {DAYS.slice(0, 7).map((d) => (
+              <span
+                className="pb-1 text-xs font-semibold text-muted-foreground"
+                key={d}
+              >
+                {weekdayOf(d).slice(0, 3)}
+              </span>
+            ))}
+            {DAYS.map((day) => {
+              const past = day < TODAY
+              const n = freeOn(day)
+              const edge = day === arrival || day === departure
+              const inside =
+                arrival !== null &&
+                departure !== null &&
+                day > arrival &&
+                day < departure
+              return (
+                <button
+                  className={cn(
+                    "flex h-14 flex-col items-center justify-center rounded-xl font-semibold transition-colors",
+                    past ? "pointer-events-none opacity-35" : "hover:bg-accent",
+                    inside && "rounded-none bg-primary/30",
+                    edge &&
+                      "bg-primary text-primary-foreground hover:bg-primary"
                   )}
-                </Step>
-
-                <Step done={datesSet} n={2} title="Dates">
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-7 gap-1 text-center">
-                      {DAYS.slice(0, 7).map((d) => (
-                        <span
-                          className="text-[0.625rem] text-muted-foreground uppercase"
-                          key={d}
-                        >
-                          {weekdayOf(d).slice(0, 3)}
-                        </span>
-                      ))}
-                      {DAYS.map((day) => {
-                        const past = day < TODAY
-                        const n = freeOn(day)
-                        const edge = day === arrival || day === departure
-                        const inside =
-                          arrival !== null &&
-                          departure !== null &&
-                          day > arrival &&
-                          day < departure
-                        return (
-                          <button
-                            className={cn(
-                              "flex h-11 flex-col items-center justify-center rounded-lg text-sm transition-colors",
-                              past
-                                ? "pointer-events-none opacity-35"
-                                : "hover:bg-accent",
-                              inside && "rounded-none bg-primary/30",
-                              edge &&
-                                "bg-primary font-semibold text-primary-foreground hover:bg-primary"
-                            )}
-                            disabled={past}
-                            key={day}
-                            onClick={() => pickDay(day)}
-                            type="button"
-                          >
-                            {dateOf(day).day}
-                            {!past && (
-                              <span
-                                className={cn(
-                                  "text-[0.5625rem] leading-none",
-                                  edge
-                                    ? "text-primary-foreground/70"
-                                    : n === 0
-                                      ? "text-destructive-foreground"
-                                      : n <= 3
-                                        ? "text-warning-foreground"
-                                        : "text-muted-foreground"
-                                )}
-                              >
-                                {n} libre{n > 1 && "s"}
-                              </span>
-                            )}
-                          </button>
-                        )
-                      })}
-                    </div>
-                    <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-                      {arrival === null ? (
-                        "Touchez le jour d'arrivée puis celui du départ."
-                      ) : (
-                        <>
-                          <span>Durée rapide :</span>
-                          {[1, 2, 3, 7, 14].map((n) => (
-                            <Button
-                              className={cn(
-                                departure === arrival + n &&
-                                  "border-primary bg-primary/30"
-                              )}
-                              key={n}
-                              onClick={() => setDeparture(arrival + n)}
-                              size="xs"
-                              variant="outline"
-                            >
-                              {n} nuit{n > 1 && "s"}
-                            </Button>
-                          ))}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </Step>
-
-                <Step
-                  done={Boolean(datesSet && kennelId)}
-                  n={3}
-                  title="Box et options"
+                  disabled={past}
+                  key={day}
+                  onClick={() => pickDay(day)}
+                  type="button"
                 >
-                  {!datesSet ? (
-                    <p className="text-sm text-muted-foreground">
-                      Le box se propose dès que les dates sont choisies.
-                    </p>
-                  ) : free.length === 0 ? (
-                    <Alert variant="error">
-                      <HugeiconsIcon icon={Alert02Icon} />
-                      <AlertTitle>Complet sur ces dates</AlertTitle>
-                      <AlertDescription>
-                        Aucun box {area === "Chenil" ? "chenil" : "chatterie"}{" "}
-                        libre. Proposez d&apos;autres dates ou la liste
-                        d&apos;attente.
-                      </AlertDescription>
-                    </Alert>
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="flex flex-wrap gap-2">
-                        {free.slice(0, 6).map((k) => (
-                          <Button
-                            className={cn(
-                              kennelId === k.id &&
-                                "border-primary bg-primary/30"
-                            )}
-                            key={k.id}
-                            onClick={() => setKennelChoice(k.id)}
-                            size="sm"
-                            variant="outline"
-                          >
-                            {kennelLabel(k.id)}
-                            {k.id === suggested && (
-                              <Badge size="sm" variant="success">
-                                {usual ? "Son box habituel" : "Suggéré"}
-                              </Badge>
-                            )}
-                          </Button>
-                        ))}
-                        {free.length > 6 && (
-                          <span className="self-center text-xs text-muted-foreground">
-                            +{free.length - 6} autres libres
-                          </span>
-                        )}
-                      </div>
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        {Object.entries(prices).map(
-                          ([option, { price, perNight }]) => (
-                            <Label
-                              className="flex items-center gap-2 rounded-lg border px-3 py-2 font-normal"
-                              key={option}
-                            >
-                              <Checkbox
-                                checked={chosenOptions.includes(option)}
-                                onCheckedChange={(checked) =>
-                                  setOptions(
-                                    checked
-                                      ? [...chosenOptions, option]
-                                      : chosenOptions.filter(
-                                          (o) => o !== option
-                                        )
-                                  )
-                                }
-                              />
-                              <span className="flex-1">{option}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {included.includes(option)
-                                  ? "Incluse"
-                                  : `${price} €${perNight ? "/nuit" : ""}`}
-                              </span>
-                            </Label>
-                          )
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </Step>
-              </div>
-
-              <aside className="space-y-4 md:sticky md:top-0 md:self-start">
-                <div className="space-y-3 rounded-2xl bg-muted/60 p-4">
-                  <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                    Récapitulatif
-                  </p>
-                  <div>
-                    <p className="font-heading text-lg font-semibold">
-                      {animal || "Animal ?"}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {[breed, owner].filter(Boolean).join(" · ") ||
-                        "Choisissez un client"}
-                    </p>
-                  </div>
-                  {datesSet && (
-                    <p className="text-sm">
-                      {shortDate(arrival)} → {shortDate(departure)}
-                      <span className="text-muted-foreground">
-                        {" "}
-                        · {departure - arrival} nuits
-                      </span>
-                      <br />
-                      <span className="text-muted-foreground">
-                        {kennelLabel(kennelId)}
-                      </span>
-                    </p>
-                  )}
-                  {draftStay && (
-                    <ul className="space-y-1 border-t pt-3 text-sm">
-                      {stayLines({ ...draftStay, kennelId }, prices).map(
-                        (line) => (
-                          <li
-                            className="flex justify-between gap-2"
-                            key={line.label}
-                          >
-                            <span className="text-muted-foreground">
-                              {line.label}
-                            </span>
-                            <span className="tabular-nums">
-                              {formatAmount(line.amount)}
-                            </span>
-                          </li>
-                        )
+                  {dateOf(day).day}
+                  {!past && (
+                    <span
+                      className={cn(
+                        "text-[0.625rem] leading-none font-normal",
+                        edge
+                          ? "text-primary-foreground/70"
+                          : n === 0
+                            ? "text-destructive-foreground"
+                            : n <= 3
+                              ? "text-warning-foreground"
+                              : "text-muted-foreground"
                       )}
-                      <li className="flex justify-between border-t pt-2 font-semibold">
-                        <span>Total</span>
-                        <span className="tabular-nums">
-                          {formatAmount(
-                            stayAmount({ ...draftStay, kennelId }, prices)
-                          )}
-                        </span>
-                      </li>
-                      <li className="flex justify-between text-muted-foreground">
-                        <span>Acompte 30 %</span>
-                        <span className="tabular-nums">
-                          {formatAmount(deposit)}
-                        </span>
-                      </li>
-                    </ul>
-                  )}
-                </div>
-
-                {stayQuote?.short && (
-                  <Alert variant="warning">
-                    <HugeiconsIcon icon={Alert02Icon} />
-                    <AlertTitle>
-                      Séjour minimum de {stayQuote.minStay} nuits
-                    </AlertTitle>
-                    <AlertDescription>
-                      Pour une arrivée pendant «{" "}
-                      {stayQuote.nights[0]?.period?.name} ».
-                    </AlertDescription>
-                  </Alert>
-                )}
-                {stayQuote && stayQuote.closed.length > 0 && (
-                  <Alert variant="warning">
-                    <HugeiconsIcon icon={Alert02Icon} />
-                    <AlertTitle>Fermé sur une partie du séjour</AlertTitle>
-                    <AlertDescription>
-                      {stayQuote.closed
-                        .map((n) => `${formatDate(n.date)} : ${n.closed}`)
-                        .join(" · ")}
-                    </AlertDescription>
-                  </Alert>
-                )}
-                {issues.length > 0 && (
-                  <Alert variant="warning">
-                    <HugeiconsIcon icon={Alert02Icon} />
-                    <AlertTitle>Vaccin à renouveler</AlertTitle>
-                    <AlertDescription>
-                      {issues
-                        .map(
-                          (v) => `${v.name} expiré le ${formatDate(v.expires)}`
-                        )
-                        .join(", ")}
-                      . Le rappeler au client, le SMS le mentionnera.
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                <div className="space-y-3 rounded-2xl border p-4">
-                  <Label className="flex items-center justify-between gap-2">
-                    <span className="flex items-center gap-2">
-                      <HugeiconsIcon className="size-4" icon={SmsCodeIcon} />
-                      Acompte par SMS
+                    >
+                      {n} libre{n > 1 && "s"}
                     </span>
-                    <Switch checked={sms} onCheckedChange={setSms} />
-                  </Label>
-                  {sms && smsText && (
-                    <div className="space-y-1">
-                      <p className="rounded-2xl rounded-bl-sm bg-primary/30 px-3 py-2 text-xs leading-relaxed">
-                        {smsText}
-                      </p>
-                      <p className="text-[0.6875rem] text-muted-foreground">
-                        Envoyé au {phone || "…"} avec lien de paiement
-                      </p>
-                    </div>
                   )}
-                </div>
-              </aside>
-            </DialogPanel>
-            <DialogFooter>
-              <Button onClick={() => setOpen(false)} variant="ghost">
-                Annuler
-              </Button>
-              <Button disabled={!ready} onClick={create}>
-                {sms ? "Créer et envoyer le SMS" : "Créer le séjour"}
-              </Button>
-            </DialogFooter>
-          </>
-        )}
-      </DialogPopup>
-    </Dialog>
+                </button>
+              )
+            })}
+          </div>
+          {arrival !== null && (
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {[1, 2, 3, 7, 14].map((n) => (
+                <Button
+                  key={n}
+                  onClick={() => setDeparture(arrival + n)}
+                  size="sm"
+                  variant={departure === arrival + n ? "default" : "secondary"}
+                >
+                  {n} nuit{n > 1 && "s"}
+                </Button>
+              ))}
+            </div>
+          )}
+          {datesSet && (
+            <p className="text-center text-lg font-semibold">
+              {shortDate(arrival)} → {shortDate(departure)} ·{" "}
+              {departure - arrival} nuit{departure - arrival > 1 && "s"}
+            </p>
+          )}
+          {periodAlerts}
+        </FlowScreen>
+      ) : steps.step === "kennel" ? (
+        <FlowScreen
+          description={
+            datesSet
+              ? `${shortDate(arrival)} → ${shortDate(departure)} · ${free.length} place${free.length > 1 ? "s" : ""} libre${free.length > 1 ? "s" : ""}`
+              : undefined
+          }
+          onBack={steps.back}
+          title={
+            area === "Chenil" ? "Dans quel box ?" : "Dans quelle chatterie ?"
+          }
+        >
+          {free.length === 0 ? (
+            <Alert variant="error">
+              <HugeiconsIcon icon={Alert02Icon} />
+              <AlertTitle>Complet sur ces dates</AlertTitle>
+              <AlertDescription>
+                Proposez d&apos;autres dates ou la liste d&apos;attente.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <div className="-mx-3 space-y-1">
+              {[...free]
+                .sort((a, b) =>
+                  a.id === suggested ? -1 : b.id === suggested ? 1 : 0
+                )
+                .slice(0, 8)
+                .map((k) => (
+                  <ChoiceRow
+                    aside={
+                      k.id === suggested && (
+                        <Badge variant="success">
+                          {usual ? "Son box habituel" : "Suggéré"}
+                        </Badge>
+                      )
+                    }
+                    description={k.area === "Chenil" ? "Chenil" : "Chatterie"}
+                    key={k.id}
+                    media={<FlowMedia>{k.label}</FlowMedia>}
+                    onClick={() => {
+                      setKennelChoice(k.id)
+                      steps.next(hasOptions ? "options" : "recap")
+                    }}
+                    selected={kennelId === k.id}
+                    title={kennelLabel(k.id)}
+                  />
+                ))}
+            </div>
+          )}
+        </FlowScreen>
+      ) : steps.step === "options" ? (
+        <FlowScreen
+          description="Cochez ce qui s'applique. Les prix viennent de votre catalogue."
+          footer={
+            <Button onClick={() => steps.next("recap")} size="lg">
+              Continuer
+            </Button>
+          }
+          onBack={steps.back}
+          title={`Des options pour ${animal} ?`}
+        >
+          <div className="space-y-2">
+            {Object.entries(prices).map(([option, { price, perNight }]) => (
+              <Label
+                className="flex items-center gap-4 rounded-2xl border p-4 font-normal has-data-checked:border-control has-data-checked:bg-accent"
+                key={option}
+              >
+                <Checkbox
+                  checked={chosenOptions.includes(option)}
+                  onCheckedChange={(checked) =>
+                    setOptions(
+                      checked
+                        ? [...chosenOptions, option]
+                        : chosenOptions.filter((o) => o !== option)
+                    )
+                  }
+                />
+                <span className="flex-1 font-semibold">{option}</span>
+                <span className="text-muted-foreground">
+                  {included.includes(option)
+                    ? "Incluse"
+                    : `${price} €${perNight ? " / nuit" : ""}`}
+                </span>
+              </Label>
+            ))}
+          </div>
+        </FlowScreen>
+      ) : (
+        <FlowScreen
+          description="Touchez une ligne pour la modifier."
+          footer={
+            <Button disabled={!ready} onClick={create} size="lg">
+              {sms ? "Créer et envoyer le SMS" : "Créer le séjour"}
+            </Button>
+          }
+          onBack={steps.back}
+          title="Vérifiez le séjour"
+        >
+          <div className="space-y-2">
+            <SummaryRow
+              label={[breed, owner].filter(Boolean).join(" · ")}
+              media={<FlowMedia>{animal.slice(0, 1)}</FlowMedia>}
+              onEdit={() => steps.edit(client ? "client" : "newClient")}
+              value={animal}
+            />
+            {datesSet && (
+              <SummaryRow
+                label={`${departure - arrival} nuit${departure - arrival > 1 ? "s" : ""}`}
+                media={
+                  <FlowMedia>
+                    <HugeiconsIcon icon={Calendar03Icon} />
+                  </FlowMedia>
+                }
+                onEdit={() => steps.edit("dates")}
+                value={`${shortDate(arrival)} → ${shortDate(departure)}`}
+              />
+            )}
+            <SummaryRow
+              label="Emplacement"
+              media={
+                <FlowMedia>
+                  <HugeiconsIcon icon={BedDoubleIcon} />
+                </FlowMedia>
+              }
+              onEdit={() => steps.edit("kennel")}
+              value={kennelLabel(kennelId)}
+            />
+            {hasOptions && (
+              <SummaryRow
+                label="Options"
+                media={
+                  <FlowMedia>
+                    <HugeiconsIcon icon={ClipboardIcon} />
+                  </FlowMedia>
+                }
+                onEdit={() => steps.edit("options")}
+                value={chosenOptions.join(", ") || "Aucune option"}
+              />
+            )}
+          </div>
+          {draftStay && (
+            <ul className="space-y-2 rounded-2xl border p-5">
+              {stayLines({ ...draftStay, kennelId }, prices).map((line) => (
+                <li className="flex justify-between gap-3" key={line.label}>
+                  <span className="text-muted-foreground">{line.label}</span>
+                  <span className="tabular-nums">
+                    {formatAmount(line.amount)}
+                  </span>
+                </li>
+              ))}
+              <li className="flex justify-between border-t pt-3 text-lg font-semibold">
+                <span>Total</span>
+                <span className="tabular-nums">
+                  {formatAmount(stayAmount({ ...draftStay, kennelId }, prices))}
+                </span>
+              </li>
+              <li className="flex justify-between text-muted-foreground">
+                <span>Acompte 30 %</span>
+                <span className="tabular-nums">{formatAmount(deposit)}</span>
+              </li>
+            </ul>
+          )}
+          {periodAlerts}
+          {issues.length > 0 && (
+            <Alert variant="warning">
+              <HugeiconsIcon icon={Alert02Icon} />
+              <AlertTitle>Vaccin à renouveler</AlertTitle>
+              <AlertDescription>
+                {issues
+                  .map((v) => `${v.name} expiré le ${formatDate(v.expires)}`)
+                  .join(", ")}
+                . Le rappeler au client, le SMS le mentionnera.
+              </AlertDescription>
+            </Alert>
+          )}
+          <div className="space-y-3 rounded-2xl border p-4">
+            <Label className="flex items-center justify-between gap-3 font-semibold">
+              <span className="flex items-center gap-2">
+                <HugeiconsIcon className="size-5" icon={SmsCodeIcon} />
+                Demander l&apos;acompte par SMS
+              </span>
+              <Switch checked={sms} onCheckedChange={setSms} />
+            </Label>
+            {sms && smsText && (
+              <div className="space-y-1">
+                <p className="rounded-2xl rounded-bl-sm bg-muted px-4 py-3 text-sm leading-relaxed">
+                  {smsText}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Envoyé au {phone || "…"} avec un lien de paiement
+                </p>
+              </div>
+            )}
+          </div>
+        </FlowScreen>
+      )}
+    </FlowDialog>
   )
 }

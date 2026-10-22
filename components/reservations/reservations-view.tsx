@@ -1,5 +1,7 @@
 "use client"
 
+import { NewAppointmentDialog } from "@/components/grooming/new-appointment-dialog"
+import { NewStayDialog } from "@/components/pension/new-stay-dialog"
 import {
   Calendar03Icon,
   CalendarAdd01Icon,
@@ -154,30 +156,27 @@ export function ReservationsView() {
   return (
     <PageShell
       actions={
-        <Menu>
-          <MenuTrigger render={<Button size="sm" />}>
-            <HugeiconsIcon icon={CalendarAdd01Icon} />
-            Nouvelle réservation
-          </MenuTrigger>
-          <MenuPopup align="end">
-            {activityNames.map((name) => (
-              <MenuLinkItem
-                key={name}
-                render={<Link href={activityHref[name]} />}
-              >
+        <>
+          <NewAppointmentDialog
+            trigger={
+              <Button variant="secondary">
                 <ActivityMark
-                  activity={name}
-                  className="size-4 text-[0.5rem]"
+                  activity="Toilettage"
+                  className="size-5 text-[0.625rem]"
                 />
-                {name === "Pension"
-                  ? "Séjour en pension"
-                  : name === "Toilettage"
-                    ? "Rendez-vous toilettage"
-                    : "Séance d'éducation"}
-              </MenuLinkItem>
-            ))}
-          </MenuPopup>
-        </Menu>
+                Rendez-vous
+              </Button>
+            }
+          />
+          <NewStayDialog
+            trigger={
+              <Button>
+                <HugeiconsIcon icon={CalendarAdd01Icon} />
+                Nouveau séjour
+              </Button>
+            }
+          />
+        </>
       }
       icon={ClipboardListIcon}
       title="Réservations"

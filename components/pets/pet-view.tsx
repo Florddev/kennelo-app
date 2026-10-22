@@ -157,7 +157,7 @@ export function PetView({ slug }: { slug: string }) {
             defaultClient={pet.owner.name}
             defaultPet={pet.name}
             trigger={
-              <Button size="sm">
+              <Button>
                 <HugeiconsIcon icon={CalendarAdd01Icon} />
                 Nouveau séjour
               </Button>

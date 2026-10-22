@@ -23,6 +23,8 @@ import {
   activityMeta,
   activityNames,
 } from "@/components/activity-mark"
+import { NewAppointmentDialog } from "@/components/grooming/new-appointment-dialog"
+import { NewStayDialog } from "@/components/pension/new-stay-dialog"
 import {
   type BoxStatus,
   boxes,
@@ -548,18 +550,22 @@ export function TodayView() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button render={<Link href="/pension/stays" />} size="lg">
-            <HugeiconsIcon icon={PlusSignIcon} />
-            Nouveau séjour
-          </Button>
-          <Button
-            render={<Link href="/grooming/appointments" />}
-            size="lg"
-            variant="secondary"
-          >
-            <HugeiconsIcon icon={Calendar03Icon} />
-            Nouveau rendez-vous
-          </Button>
+          <NewStayDialog
+            trigger={
+              <Button size="lg">
+                <HugeiconsIcon icon={PlusSignIcon} />
+                Nouveau séjour
+              </Button>
+            }
+          />
+          <NewAppointmentDialog
+            trigger={
+              <Button size="lg" variant="secondary">
+                <HugeiconsIcon icon={Calendar03Icon} />
+                Nouveau rendez-vous
+              </Button>
+            }
+          />
           <Button size="lg" variant="secondary">
             <HugeiconsIcon icon={PrinterIcon} />
             Feuille du jour

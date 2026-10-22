@@ -24,6 +24,7 @@ import {
 } from "@/components/activity-mark"
 import { relativeDate, shortDate } from "@/components/calendar"
 import { type Client, clients } from "@/components/clients/data"
+import { NewClientDialog } from "@/components/clients/new-client-dialog"
 import { invoiceTotal } from "@/components/invoices/data"
 import {
   reservationDate,
@@ -300,9 +301,11 @@ export function ClientsView() {
   const [query, setQuery] = useState("")
   const [openName, setOpenName] = useState<string | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [added, setAdded] = useState<Client[]>([])
+  const list = [...added, ...clients]
 
   const q = query.trim().toLowerCase()
-  const scoped = clients.filter(
+  const scoped = list.filter(
     (c) => activity === "all" || c.activities.includes(activity)
   )
   const rows = scoped.filter(
@@ -328,14 +331,19 @@ export function ClientsView() {
     <PageShell
       actions={
         <>
-          <Button className="max-sm:hidden" size="sm" variant="outline">
+          <Button className="max-sm:hidden" variant="outline">
             <HugeiconsIcon icon={Upload04Icon} />
             Importer
           </Button>
-          <Button size="sm">
-            <HugeiconsIcon icon={UserAdd01Icon} />
-            Nouveau client
-          </Button>
+          <NewClientDialog
+            onCreate={(client) => setAdded((l) => [client, ...l])}
+            trigger={
+              <Button>
+                <HugeiconsIcon icon={UserAdd01Icon} />
+                Nouveau client
+              </Button>
+            }
+          />
         </>
       }
       icon={UsersIcon}
@@ -551,7 +559,7 @@ export function ClientsView() {
       )}
 
       <ClientSheet
-        client={clients.find((c) => c.name === openName) ?? null}
+        client={list.find((c) => c.name === openName) ?? null}
         onOpenChange={setSheetOpen}
         open={sheetOpen}
       />

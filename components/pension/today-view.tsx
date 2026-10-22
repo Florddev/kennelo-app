@@ -66,7 +66,10 @@ const kennelStyles: Record<KennelStatus, { label: string; className: string }> =
     },
     departing: { className: "bg-amber-500 text-white", label: "Départ prévu" },
     free: { className: "bg-muted text-muted-foreground", label: "Libre" },
-    occupied: { className: "bg-pension text-pension-foreground", label: "Occupé" },
+    occupied: {
+      className: "bg-pension text-pension-foreground",
+      label: "Occupé",
+    },
   }
 
 const isPresent = (k: Kennel) =>
@@ -582,7 +585,7 @@ export function PensionTodayView() {
           </Button>
           <NewStayDialog
             trigger={
-              <Button size="sm">
+              <Button>
                 <HugeiconsIcon icon={CalendarAdd01Icon} />
                 Nouveau séjour
               </Button>

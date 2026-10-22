@@ -1,5 +1,6 @@
 "use client"
 
+import { NewAppointmentDialog } from "@/components/grooming/new-appointment-dialog"
 import {
   Alert02Icon,
   Calendar03Icon,
@@ -660,10 +661,14 @@ export function GroomingTodayView() {
   return (
     <ActivityDayPage
       actions={
-        <Button size="sm">
-          <HugeiconsIcon icon={CalendarAdd01Icon} />
-          Nouveau rendez-vous
-        </Button>
+        <NewAppointmentDialog
+          trigger={
+            <Button>
+              <HugeiconsIcon icon={CalendarAdd01Icon} />
+              Nouveau rendez-vous
+            </Button>
+          }
+        />
       }
       activity="Toilettage"
       aside={

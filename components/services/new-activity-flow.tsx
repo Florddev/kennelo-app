@@ -3,9 +3,7 @@
 import { activityColors, colorName } from "@/components/activity-mark"
 import {
   Cancel01Icon,
-  CheckmarkCircle02Icon,
   PlusSignIcon,
-  Tick02Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import Link from "next/link"
@@ -32,7 +30,7 @@ import {
 } from "@/components/services/data"
 import { ActivityDot, ActivityTag } from "@/components/services/service-form"
 import { members } from "@/components/settings/data"
-import { SettingsPage } from "@/components/settings/settings-ui"
+import { FlowDone, FlowPage, FlowScreen } from "@/components/flow/flow"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -157,6 +155,13 @@ const steps = [
   "Suppléments",
   "Récapitulatif",
 ]
+const questions = [
+  "Quelle activité ajoutez-vous ?",
+  "Comment accueillez-vous les animaux ?",
+  "Quels sont vos prix ?",
+  "Des suppléments à proposer ?",
+  "Tout est correct ?",
+]
 
 /* ——— Petits blocs ——— */
 
@@ -264,67 +269,11 @@ function Toggle({
   )
 }
 
-function Stepper({
-  step,
-  reached,
-  onStep,
-}: {
-  step: number
-  reached: number
-  onStep: (step: number) => void
-}) {
-  return (
-    <ol className="flex items-center gap-2">
-      {steps.map((label, i) => (
-        <li
-          className="flex flex-1 items-center gap-2 last:flex-none"
-          key={label}
-        >
-          <button
-            className="flex items-center gap-2 disabled:cursor-default"
-            disabled={i > reached}
-            onClick={() => onStep(i)}
-            type="button"
-          >
-            <span
-              className={cn(
-                "flex size-7 shrink-0 items-center justify-center rounded-full border text-xs font-semibold text-muted-foreground transition-colors",
-                i < step &&
-                  "border-transparent bg-primary text-primary-foreground",
-                i === step && "border-ring text-foreground ring-3 ring-ring/25"
-              )}
-            >
-              {i < step ? (
-                <HugeiconsIcon className="size-3.5" icon={Tick02Icon} />
-              ) : (
-                i + 1
-              )}
-            </span>
-            <span
-              className={cn(
-                "hidden text-sm whitespace-nowrap lg:inline",
-                i === step ? "font-medium" : "text-muted-foreground",
-                i === step && "inline"
-              )}
-            >
-              {label}
-            </span>
-          </button>
-          {i < steps.length - 1 && (
-            <span className="h-px min-w-3 flex-1 bg-border" />
-          )}
-        </li>
-      ))}
-    </ol>
-  )
-}
-
 /* ——— Parcours ——— */
 
 export function NewActivityFlow() {
   const catalog = useCatalog()
   const [step, setStep] = useState(0)
-  const [reached, setReached] = useState(0)
   const [metier, setMetier] = useState<MetierId | null>(null)
   const [name, setName] = useState("")
   const [color, setColor] = useState(colors[0])
@@ -428,7 +377,6 @@ export function NewActivityFlow() {
 
   const go = (next: number) => {
     setStep(next)
-    setReached((r) => Math.max(r, next))
   }
 
   const submit = () => {
@@ -510,45 +458,51 @@ export function NewActivityFlow() {
   if (created) {
     const count = (stay ? options.length : services.length) + reused.length
     return (
-      <SettingsPage
-        back={{ href: "/settings/activities", label: "Activités" }}
-        title="Activité créée"
-      >
-        <Frame>
-          <FramePanel className="space-y-4 py-10 text-center">
-            <HugeiconsIcon
-              className="mx-auto size-10 text-success"
-              icon={CheckmarkCircle02Icon}
-            />
-            <div className="space-y-1">
-              <p className="font-heading text-xl font-semibold">
-                {created} est prête
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {stay && `${places.reduce((n, p) => n + p.count, 0)} places · `}
-                {count} prestations en vente
-                {reused.length > 0 &&
-                  `, dont ${reused.length} reprises de vos autres activités`}
-              </p>
-            </div>
-            <Button render={<Link href="/settings/activities" />}>
+      <FlowPage closeHref="/settings/activities">
+        <FlowDone
+          actions={
+            <Button render={<Link href="/settings/activities" />} size="lg">
               Voir mes activités
             </Button>
-          </FramePanel>
-        </Frame>
-      </SettingsPage>
+          }
+          description={`${stay ? `${places.reduce((n, p) => n + p.count, 0)} places · ` : ""}${count} prestations en vente${reused.length > 0 ? `, dont ${reused.length} reprises de vos autres activités` : ""}.`}
+          title={`${created} est prête`}
+        />
+      </FlowPage>
     )
   }
 
   return (
-    <SettingsPage
-      back={{ href: "/settings/activities", label: "Activités" }}
-      description="Décrivez votre activité et ses prix : tout le reste se configure automatiquement."
-      title="Nouvelle activité"
+    <FlowPage
+      closeHref="/settings/activities"
+      progress={step / (steps.length - 1)}
     >
-      <Stepper onStep={go} reached={reached} step={step} />
-
-      <div className="space-y-6">
+      <FlowScreen
+        description={
+          step === 0
+            ? "Décrivez-la avec ses prix : tout le reste se règle automatiquement."
+            : undefined
+        }
+        eyebrow={`Étape ${step + 1} sur ${steps.length} · ${steps[step]}`}
+        footer={
+          step < steps.length - 1 ? (
+            <Button
+              disabled={!valid[step]}
+              onClick={() => go(step + 1)}
+              size="lg"
+            >
+              Continuer
+            </Button>
+          ) : (
+            <Button disabled={!valid.every(Boolean)} onClick={submit} size="lg">
+              Créer l&apos;activité
+            </Button>
+          )
+        }
+        onBack={step > 0 ? () => go(step - 1) : undefined}
+        title={questions[step]}
+        wide={step > 0 && step < steps.length - 1}
+      >
         {step === 0 && (
           <>
             {(["stay", "appointment"] as const).map((journey) => (
@@ -1281,27 +1235,8 @@ export function NewActivityFlow() {
             </FramePanel>
           </Frame>
         )}
-
-        <div className="flex items-center justify-between gap-3 border-t pt-5">
-          <Button
-            disabled={step === 0}
-            onClick={() => go(step - 1)}
-            variant="ghost"
-          >
-            Retour
-          </Button>
-          {step < steps.length - 1 ? (
-            <Button disabled={!valid[step]} onClick={() => go(step + 1)}>
-              Continuer
-            </Button>
-          ) : (
-            <Button disabled={!valid.every(Boolean)} onClick={submit}>
-              Créer l&apos;activité
-            </Button>
-          )}
-        </div>
-      </div>
-    </SettingsPage>
+      </FlowScreen>
+    </FlowPage>
   )
 }
 

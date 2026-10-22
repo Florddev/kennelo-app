@@ -1,5 +1,6 @@
 "use client"
 
+import { NewAppointmentDialog } from "@/components/grooming/new-appointment-dialog"
 import {
   Alert02Icon,
   ArrowLeft01Icon,
@@ -457,10 +458,15 @@ export function AppointmentsView() {
   return (
     <ActivityPage
       actions={
-        <Button size="sm">
-          <HugeiconsIcon icon={CalendarAdd01Icon} />
-          Nouveau rendez-vous
-        </Button>
+        <NewAppointmentDialog
+          onCreate={(booking) => setBookings((list) => [...list, booking])}
+          trigger={
+            <Button>
+              <HugeiconsIcon icon={CalendarAdd01Icon} />
+              Nouveau rendez-vous
+            </Button>
+          }
+        />
       }
       activity="Toilettage"
       className="max-w-7xl"
