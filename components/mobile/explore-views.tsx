@@ -19,6 +19,7 @@ import {
   Share08Icon,
   StarIcon,
   Tick02Icon,
+  QuoteDownIcon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
 import Link from "next/link"
@@ -86,6 +87,7 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer"
 import { Switch } from "@/components/ui/switch"
+import { Paws } from "@/components/site/doodles"
 import { cn } from "@/lib/utils"
 
 const activityText: Record<Activity, string> = {
@@ -416,16 +418,18 @@ function ResultRow({ venue, activity }: { venue: Venue; activity?: Activity }) {
   const price = from(venue, shown)
   return (
     <Link
-      className="flex gap-4 py-4 transition-opacity active:opacity-70"
+      className="flex gap-3 rounded-4xl bg-muted p-2.5 transition-transform active:scale-[0.98]"
       href={`/mobile/places/${venue.slug}`}
     >
-      <VenueCover
-        className="size-28 shrink-0 rounded-2xl"
-        sizes="112px"
-        venue={venue}
-      />
-      <span className="min-w-0 flex-1 space-y-1">
-        <span className="block truncate text-lg font-semibold">
+      <span className={cn("shrink-0 self-start rounded-3xl p-1", venue.tone)}>
+        <VenueCover
+          className="size-28 rounded-[1.25rem]"
+          sizes="112px"
+          venue={venue}
+        />
+      </span>
+      <span className="min-w-0 flex-1 space-y-1 py-1 pe-1">
+        <span className="line-clamp-2 font-display text-[1.75rem] leading-none text-balance">
           {venue.name}
         </span>
         <span className="flex flex-wrap items-center gap-x-1.5 text-muted-foreground">
@@ -762,7 +766,7 @@ export function MobileSearch({
         </h2>
       )}
 
-      <div className="-mt-2 divide-y px-4">
+      <div className="space-y-3 px-4">
         {(guided ? rest : list).map((v) => (
           <ResultRow activity={activity} key={v.slug} venue={v} />
         ))}
@@ -941,11 +945,17 @@ export function MobileVenue({ slug }: { slug: string }) {
       </Section>
 
       {venue.highlights.length > 0 && (
-        <Section title="Les plus">
-          <ul className="space-y-3 px-4">
+        <Section title={`Pourquoi ${venue.name} ?`}>
+          <ul
+            className={cn(
+              "relative mx-4 space-y-3 rounded-4xl p-5",
+              venue.tone
+            )}
+          >
+            <Paws className="absolute top-4 right-4 text-3xl text-current opacity-30" />
             {venue.highlights.map((h) => (
               <li className="flex gap-3" key={h}>
-                <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-white/70">
                   <HugeiconsIcon
                     className="size-4"
                     icon={Tick02Icon}
@@ -994,13 +1004,29 @@ export function MobileVenue({ slug }: { slug: string }) {
         />
       </Section>
 
-      <Section title={`${venue.reviews} avis · ${ratingText(venue.rating)}`}>
+      <Section
+        title={
+          <>
+            Leurs avis{" "}
+            <span className="ms-1 inline-block rounded-full bg-wise-forest px-3 py-0.5 align-middle font-display text-2xl text-wise-green">
+              {ratingText(venue.rating)}
+            </span>
+          </>
+        }
+      >
         <Carousel>
-          {reviewPool.map((r) => (
+          {reviewPool.map((r, i) => (
             <article
-              className="w-72 shrink-0 snap-start space-y-3 rounded-3xl bg-muted p-5"
+              className={cn(
+                "flex w-72 shrink-0 snap-start flex-col gap-3 rounded-4xl p-5",
+                i === 0 ? venue.tone : "bg-muted"
+              )}
               key={r.author}
             >
+              <HugeiconsIcon
+                className="size-7 opacity-50"
+                icon={QuoteDownIcon}
+              />
               <div className="flex gap-0.5" aria-label={`${r.rating} sur 5`}>
                 {[1, 2, 3, 4, 5].map((n) => (
                   <HugeiconsIcon
@@ -1015,12 +1041,12 @@ export function MobileVenue({ slug }: { slug: string }) {
                   />
                 ))}
               </div>
-              <p className="line-clamp-5 text-pretty">{r.text}</p>
-              <p className="text-sm text-muted-foreground">
-                <span className="font-semibold text-foreground">
-                  {r.author}
-                </span>{" "}
-                · {r.pet} · {dayMonth(r.date)}
+              <p className="line-clamp-5 font-heading text-xl leading-snug font-semibold text-pretty">
+                {r.text}
+              </p>
+              <p className="mt-auto text-sm opacity-80">
+                <span className="font-semibold">{r.author}</span> · {r.pet} ·{" "}
+                {dayMonth(r.date)}
               </p>
             </article>
           ))}

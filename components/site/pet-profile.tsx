@@ -115,7 +115,7 @@ function ProfileCard({
   return (
     <section className="space-y-3">
       <div className="flex items-end justify-between gap-4">
-        <h2 className="font-heading text-xl font-semibold">{title}</h2>
+        <h2 className="font-display text-4xl">{title}</h2>
         {edit && (
           <Link
             className="text-sm font-semibold text-link underline underline-offset-4"

@@ -12,10 +12,16 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react"
 import Link from "next/link"
 import { useState } from "react"
-import { type Activity, activityNames } from "@/components/activity-mark"
+import {
+  type Activity,
+  activityMeta,
+  activityNames,
+} from "@/components/activity-mark"
 import { venues } from "@/components/site/data"
+import { Paws, Sparkle } from "@/components/site/doodles"
 import {
   ActivityPill,
+  activityIcons,
   FavoriteButton,
   priceUnit,
   Rating,
@@ -52,9 +58,10 @@ const plain = (s: string) =>
   s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
 
 const chip =
-  "flex h-10 shrink-0 items-center gap-2 rounded-full px-4 font-semibold transition-colors"
+  "flex h-12 shrink-0 items-center gap-2 rounded-full px-5 font-semibold transition-colors"
 const chipOn = "bg-control text-control-foreground"
-const chipOff = "bg-secondary text-secondary-foreground hover:bg-neutral-hover"
+/** Sur le bandeau coloré. */
+const chipOff = "bg-white/60 hover:bg-white/85"
 
 export function SearchView({
   initialActivity,
@@ -112,187 +119,209 @@ export function SearchView({
   }
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-10 md:py-8">
-      <div className="space-y-4">
-        <label className="flex h-14 items-center gap-3 rounded-full border bg-card px-5 shadow-xs focus-within:ring-2 focus-within:ring-ring">
-          <HugeiconsIcon
-            className="size-5 shrink-0 text-muted-foreground"
-            icon={Search01Icon}
-          />
-          <input
-            aria-label="Rechercher"
-            className="h-full min-w-0 flex-1 bg-transparent text-lg outline-none placeholder:text-placeholder"
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Ville, code postal ou nom"
-            value={query}
-          />
-          {query && (
-            <Button
-              aria-label="Effacer"
-              onClick={() => setQuery("")}
-              size="icon-sm"
-              variant="ghost"
-            >
-              <HugeiconsIcon icon={Cancel01Icon} />
-            </Button>
-          )}
-        </label>
-        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0">
-          <button
-            aria-pressed={!activity}
-            className={cn(chip, !activity ? chipOn : chipOff)}
-            onClick={() => setActivity(null)}
-            type="button"
-          >
-            Tout
-          </button>
-          {activityNames.map((a) => (
+    <>
+      <section
+        className={cn(
+          "transition-colors duration-300",
+          activity ? activityMeta[activity].tint : "bg-muted"
+        )}
+      >
+        <div className="mx-auto w-full max-w-7xl px-4 pt-10 pb-8 md:px-10 md:pt-14 md:pb-10">
+          <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+            <h1 className="font-display text-6xl md:text-8xl">
+              {activity ?? "Tous les lieux"}
+              <Sparkle className="ms-2 inline size-10 align-top text-current opacity-40 md:size-14" />
+            </h1>
+            <p className="pb-2 text-lg font-semibold">Autour de Bordeaux</p>
+          </div>
+          <label className="mt-6 flex h-16 items-center gap-3 rounded-full bg-background px-6 text-foreground shadow-lg focus-within:ring-2 focus-within:ring-ring">
+            <HugeiconsIcon
+              className="size-6 shrink-0 text-muted-foreground"
+              icon={Search01Icon}
+            />
+            <input
+              aria-label="Rechercher"
+              className="h-full min-w-0 flex-1 bg-transparent text-lg outline-none placeholder:text-placeholder"
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Ville, code postal ou nom"
+              value={query}
+            />
+            {query && (
+              <Button
+                aria-label="Effacer"
+                onClick={() => setQuery("")}
+                size="icon-sm"
+                variant="ghost"
+              >
+                <HugeiconsIcon icon={Cancel01Icon} />
+              </Button>
+            )}
+          </label>
+          <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0">
             <button
-              aria-pressed={activity === a}
-              className={cn(chip, activity === a ? chipOn : chipOff)}
-              key={a}
-              onClick={() => setActivity(a)}
+              aria-pressed={!activity}
+              className={cn(chip, !activity ? chipOn : chipOff)}
+              onClick={() => setActivity(null)}
               type="button"
             >
-              {a}
+              Tout
             </button>
-          ))}
-          <span className="mx-1 w-px shrink-0 bg-border" />
-          {toggles.map((t) => {
-            const on = filters.includes(t.id)
-            return (
+            {activityNames.map((a) => (
               <button
-                aria-pressed={on}
-                className={cn(chip, on ? chipOn : chipOff)}
-                key={t.id}
-                onClick={() => toggle(t.id)}
+                aria-pressed={activity === a}
+                className={cn(chip, activity === a ? chipOn : chipOff)}
+                key={a}
+                onClick={() => setActivity(a)}
                 type="button"
               >
-                {on && <HugeiconsIcon className="size-4" icon={Tick02Icon} />}
-                {t.label}
+                <HugeiconsIcon className="size-5" icon={activityIcons[a]} />
+                {a}
               </button>
-            )
-          })}
-        </div>
-      </div>
-
-      <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_26rem]">
-        <div className={cn("space-y-4", mapOnMobile && "max-lg:hidden")}>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h1 className="font-heading text-2xl font-semibold">
-              {results.length} établissement{results.length > 1 && "s"}
-              <span className="font-normal text-muted-foreground">
-                {" "}
-                autour de Bordeaux
-              </span>
-            </h1>
-            <Menu>
-              <MenuTrigger render={<Button variant="secondary" />}>
-                <HugeiconsIcon icon={SortingDownIcon} />
-                {sorts[sort]}
-              </MenuTrigger>
-              <MenuPopup align="end">
-                <MenuRadioGroup
-                  onValueChange={(v) => setSort(v as Sort)}
-                  value={sort}
+            ))}
+            <span className="mx-1 w-px shrink-0 bg-current opacity-15" />
+            {toggles.map((t) => {
+              const on = filters.includes(t.id)
+              return (
+                <button
+                  aria-pressed={on}
+                  className={cn(chip, on ? chipOn : chipOff)}
+                  key={t.id}
+                  onClick={() => toggle(t.id)}
+                  type="button"
                 >
-                  {(Object.keys(sorts) as Sort[]).map((s) => (
-                    <MenuRadioItem key={s} value={s}>
-                      {sorts[s]}
-                    </MenuRadioItem>
-                  ))}
-                </MenuRadioGroup>
-              </MenuPopup>
-            </Menu>
+                  {on && <HugeiconsIcon className="size-4" icon={Tick02Icon} />}
+                  {t.label}
+                </button>
+              )
+            })}
           </div>
+        </div>
+      </section>
 
-          {results.length === 0 && (
-            <Empty className="rounded-3xl bg-muted py-16">
-              <EmptyHeader>
-                <EmptyTitle>Aucun établissement ne correspond</EmptyTitle>
-                <EmptyDescription>
-                  Essayez une autre ville ou retirez des filtres.
-                </EmptyDescription>
-              </EmptyHeader>
-              <Button onClick={reset}>Tout effacer</Button>
-            </Empty>
-          )}
+      <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-10 md:py-10">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_26rem]">
+          <div className={cn("space-y-4", mapOnMobile && "max-lg:hidden")}>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="font-display text-3xl">
+                {results.length} établissement{results.length > 1 && "s"}
+              </p>
+              <Menu>
+                <MenuTrigger render={<Button size="lg" variant="secondary" />}>
+                  <HugeiconsIcon icon={SortingDownIcon} />
+                  {sorts[sort]}
+                </MenuTrigger>
+                <MenuPopup align="end">
+                  <MenuRadioGroup
+                    onValueChange={(v) => setSort(v as Sort)}
+                    value={sort}
+                  >
+                    {(Object.keys(sorts) as Sort[]).map((s) => (
+                      <MenuRadioItem key={s} value={s}>
+                        {sorts[s]}
+                      </MenuRadioItem>
+                    ))}
+                  </MenuRadioGroup>
+                </MenuPopup>
+              </Menu>
+            </div>
 
-          {results.map(({ venue, price, shown }) => (
-            <div
-              className="relative flex gap-4 rounded-3xl border bg-card p-3 transition-colors hover:bg-accent"
-              key={venue.slug}
-              onMouseEnter={() => setHover(venue.slug)}
-              onMouseLeave={() => setHover(null)}
-            >
-              <Link
-                aria-label={venue.name}
-                className="absolute inset-0 z-0 rounded-3xl"
-                href={`/places/${venue.slug}`}
-              />
-              <VenueCover
-                className="size-28 shrink-0 rounded-2xl md:size-40"
-                venue={venue}
-              />
-              <FavoriteButton
-                className="absolute top-5 left-5 z-10 size-8"
-                slug={venue.slug}
-              />
-              <div className="pointer-events-none flex min-w-0 flex-1 flex-col py-1">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="truncate text-lg font-semibold">{venue.name}</p>
-                  <Rating className="mt-0.5" venue={venue} />
+            {results.length === 0 && (
+              <Empty className="rounded-4xl bg-muted py-16">
+                <Paws className="text-5xl" />
+                <EmptyHeader>
+                  <EmptyTitle>Aucun établissement ne correspond</EmptyTitle>
+                  <EmptyDescription>
+                    Essayez une autre ville ou retirez des filtres.
+                  </EmptyDescription>
+                </EmptyHeader>
+                <Button onClick={reset}>Tout effacer</Button>
+              </Empty>
+            )}
+
+            {results.map(({ venue, price, shown }) => (
+              <div
+                className="relative flex gap-4 rounded-4xl bg-muted p-3 transition-colors hover:bg-neutral-hover md:gap-5"
+                key={venue.slug}
+                onMouseEnter={() => setHover(venue.slug)}
+                onMouseLeave={() => setHover(null)}
+              >
+                <Link
+                  aria-label={venue.name}
+                  className="absolute inset-0 z-0 rounded-4xl"
+                  href={`/places/${venue.slug}`}
+                />
+                <div className={cn("shrink-0 rounded-3xl p-1.5", venue.tone)}>
+                  <VenueCover
+                    className="size-28 rounded-[1.25rem] md:size-44"
+                    venue={venue}
+                  />
                 </div>
-                <p className="truncate text-sm text-muted-foreground">
-                  {venue.city} · {String(venue.distance).replace(".", ",")} km ·{" "}
-                  {venue.response}
-                </p>
-                <div className="mt-2 flex flex-wrap gap-1.5 max-md:hidden">
-                  {venue.activities.map((a) => (
-                    <ActivityPill activity={a} key={a} />
-                  ))}
-                </div>
-                <div className="mt-auto flex flex-wrap items-end justify-between gap-x-3 pt-2">
-                  <p className="flex items-center gap-1 text-sm text-muted-foreground">
-                    {venue.instant && (
-                      <HugeiconsIcon className="size-4" icon={FlashIcon} />
-                    )}
-                    {venue.instant ? "Réservation immédiate" : "Sur demande"}
-                  </p>
-                  {price !== undefined && (
-                    <p>
-                      <span className="text-lg font-semibold">
-                        Dès {euros(price)}
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        {priceUnit[shown]}
-                      </span>
+                <FavoriteButton
+                  className="absolute top-6 left-6 z-10 size-8"
+                  slug={venue.slug}
+                />
+                <div className="pointer-events-none flex min-w-0 flex-1 flex-col py-2 pe-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="truncate font-display text-3xl md:text-4xl">
+                      {venue.name}
                     </p>
-                  )}
+                    <Rating
+                      className="shrink-0 rounded-full bg-background px-3 py-1"
+                      venue={venue}
+                    />
+                  </div>
+                  <p className="truncate text-muted-foreground">
+                    {venue.city} · {String(venue.distance).replace(".", ",")} km
+                    · {venue.response}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-1.5 max-md:hidden">
+                    {venue.activities.map((a) => (
+                      <ActivityPill activity={a} key={a} />
+                    ))}
+                  </div>
+                  <div className="mt-auto flex flex-wrap items-end justify-between gap-x-3 pt-3">
+                    <p className="flex items-center gap-1.5 text-sm font-semibold">
+                      {venue.instant && (
+                        <HugeiconsIcon className="size-4" icon={FlashIcon} />
+                      )}
+                      {venue.instant ? "Réservation immédiate" : "Sur demande"}
+                    </p>
+                    {price !== undefined && (
+                      <p>
+                        <span className="text-muted-foreground">dès </span>
+                        <span className="text-xl font-semibold">
+                          {euros(price)}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {priceUnit[shown]}
+                        </span>
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+
+          <VenueMap
+            active={hover}
+            className={cn(
+              "h-[70svh] rounded-4xl lg:sticky lg:top-28 lg:h-[calc(100svh-9rem)]",
+              !mapOnMobile && "max-lg:hidden"
+            )}
+            items={results.map(({ venue, price }) => ({ price, venue }))}
+          />
         </div>
 
-        <VenueMap
-          active={hover}
-          className={cn(
-            "h-[70svh] lg:sticky lg:top-28 lg:h-[calc(100svh-9rem)]",
-            !mapOnMobile && "max-lg:hidden"
-          )}
-          items={results.map(({ venue, price }) => ({ price, venue }))}
-        />
+        <Button
+          className="fixed bottom-24 left-1/2 z-30 -translate-x-1/2 bg-control text-control-foreground shadow-lg hover:bg-control/90 lg:hidden"
+          onClick={() => setMapOnMobile((m) => !m)}
+          size="lg"
+        >
+          <HugeiconsIcon icon={mapOnMobile ? Menu01Icon : MapsIcon} />
+          {mapOnMobile ? "Liste" : "Carte"}
+        </Button>
       </div>
-
-      <Button
-        className="fixed bottom-24 left-1/2 z-30 -translate-x-1/2 bg-control text-control-foreground shadow-lg hover:bg-control/90 lg:hidden"
-        onClick={() => setMapOnMobile((m) => !m)}
-        size="lg"
-      >
-        <HugeiconsIcon icon={mapOnMobile ? Menu01Icon : MapsIcon} />
-        {mapOnMobile ? "Liste" : "Carte"}
-      </Button>
-    </div>
+    </>
   )
 }

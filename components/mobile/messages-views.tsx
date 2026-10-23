@@ -27,7 +27,6 @@ import {
 import {
   activityIcons,
   bookingDates,
-  VenueLogo,
 } from "@/components/site/site-ui"
 import { cn } from "@/lib/utils"
 
@@ -211,13 +210,15 @@ export function MobileThread({ slug }: { slug: string }) {
           />
         }
         back="/mobile/messages"
-        className="border-b"
+        className={cn("[&>a]:bg-white/60", venue.tone)}
         title={
           <span className="flex items-center gap-3">
-            <VenueLogo className="size-10 text-base" venue={venue} />
+            <VenueAvatar className="size-11 bg-white/60" venue={venue} />
             <span className="min-w-0">
-              <span className="block truncate">{venue.name}</span>
-              <span className="block truncate text-sm font-normal text-muted-foreground">
+              <span className="block truncate font-display text-2xl leading-none">
+                {venue.name}
+              </span>
+              <span className="block truncate text-sm opacity-80">
                 {venue.response}
               </span>
             </span>

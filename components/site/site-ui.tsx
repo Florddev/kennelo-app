@@ -42,6 +42,7 @@ import {
   DialogPopup,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Paws, Sparkle } from "@/components/site/doodles"
 import { cn } from "@/lib/utils"
 
 export const activityIcons: Record<Activity, IconSvgElement> = {
@@ -110,7 +111,7 @@ export function SectionHead({
   return (
     <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
       <div className="min-w-0 space-y-0.5">
-        <h2 className="font-heading text-2xl font-semibold">{title}</h2>
+        <h2 className="font-display text-4xl text-balance">{title}</h2>
         {description && <p className="text-muted-foreground">{description}</p>}
       </div>
       {action}
@@ -668,11 +669,103 @@ export function RowsCard({
   return (
     <div
       className={cn(
-        "divide-y overflow-hidden rounded-2xl border bg-card",
+        "divide-y overflow-hidden rounded-3xl border bg-card",
         className
       )}
     >
       {children}
     </div>
+  )
+}
+
+/** Cinq étoiles, pleines jusqu'à la note. */
+export function Stars({ n, className }: { n: number; className?: string }) {
+  return (
+    <span className={cn("flex gap-0.5", className)}>
+      {Array.from({ length: 5 }, (_, i) => (
+        <HugeiconsIcon
+          className={cn(
+            "size-4",
+            i < n ? "[&_path]:fill-current" : "text-muted-foreground/40"
+          )}
+          icon={StarIcon}
+          key={i}
+        />
+      ))}
+    </span>
+  )
+}
+
+/** Grand titre de section des pages vitrines, avec ses boutons à droite. */
+export function SectionTitle({
+  title,
+  description,
+  action,
+  className,
+}: {
+  title: ReactNode
+  description?: ReactNode
+  action?: ReactNode
+  className?: string
+}) {
+  return (
+    <div
+      className={cn(
+        "flex flex-wrap items-end justify-between gap-x-6 gap-y-4",
+        className
+      )}
+    >
+      <div className="min-w-0 space-y-2">
+        <h2 className="relative font-display text-5xl text-balance md:text-6xl">
+          {title}
+        </h2>
+        {description && (
+          <p className="max-w-xl text-lg text-muted-foreground">
+            {description}
+          </p>
+        )}
+      </div>
+      {action && <div className="flex flex-wrap gap-2">{action}</div>}
+    </div>
+  )
+}
+
+/** En-tête des pages du site : très grand titre, un petit dessin, les actions à droite. */
+export function PageHeader({
+  title,
+  description,
+  action,
+  doodle = "sparkle",
+  className,
+}: {
+  title: ReactNode
+  description?: ReactNode
+  action?: ReactNode
+  doodle?: "sparkle" | "paws" | false
+  className?: string
+}) {
+  return (
+    <header
+      className={cn(
+        "flex flex-wrap items-end justify-between gap-x-6 gap-y-4",
+        className
+      )}
+    >
+      <div className="min-w-0 space-y-3">
+        <h1 className="font-display text-6xl text-balance md:text-8xl">
+          {title}
+          {doodle === "sparkle" && (
+            <Sparkle className="ms-2 inline size-10 align-top md:size-14" />
+          )}
+          {doodle === "paws" && <Paws className="ms-3 text-4xl md:text-5xl" />}
+        </h1>
+        {description && (
+          <p className="max-w-xl text-lg text-muted-foreground">
+            {description}
+          </p>
+        )}
+      </div>
+      {action && <div className="flex flex-wrap gap-2">{action}</div>}
+    </header>
   )
 }

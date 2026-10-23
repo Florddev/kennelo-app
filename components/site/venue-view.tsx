@@ -10,8 +10,8 @@ import {
   Location01Icon,
   Message01Icon,
   SecurityCheckIcon,
+  QuoteDownIcon,
   Share08Icon,
-  StarIcon,
   Tick02Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -35,6 +35,8 @@ import {
   Rating,
   RowsCard,
   SectionHead,
+  SectionTitle,
+  Stars,
   useFrom,
   Photo,
   PhotoDialog,
@@ -42,6 +44,7 @@ import {
   VenueLogo,
   VenueMap,
 } from "@/components/site/site-ui"
+import { Paws, Sparkle } from "@/components/site/doodles"
 import {
   adjusted,
   euros,
@@ -113,7 +116,13 @@ function PriceRow({
 }
 
 /** Ce que l'établissement propose pour l'activité choisie, avec ses prix. */
-export function Offers({ venue, activity }: { venue: Venue; activity: Activity }) {
+export function Offers({
+  venue,
+  activity,
+}: {
+  venue: Venue
+  activity: Activity
+}) {
   const catalog = useCatalog()
   const id = catalogIds[activity]
   const entries = (catalog.offers[id] ?? []).flatMap((offer) => {
@@ -286,23 +295,6 @@ function Gallery({ venue }: { venue: Venue }) {
   )
 }
 
-function Stars({ n }: { n: number }) {
-  return (
-    <span className="flex gap-0.5">
-      {Array.from({ length: 5 }, (_, i) => (
-        <HugeiconsIcon
-          className={cn(
-            "size-4",
-            i < n ? "[&_path]:fill-current" : "text-muted-foreground/40"
-          )}
-          icon={StarIcon}
-          key={i}
-        />
-      ))}
-    </span>
-  )
-}
-
 export function VenueView({ slug }: { slug: string }) {
   const venue = venueOf(slug)!
   const from = useFrom()
@@ -384,8 +376,9 @@ export function VenueView({ slug }: { slug: string }) {
               </div>
             </header>
 
-            <section className="space-y-4">
-              <SectionHead
+            <section className="space-y-6">
+              <SectionTitle
+                className="md:[&_h2]:text-5xl"
                 description="Tarifs indicatifs, le prix exact est calculé à la réservation"
                 title="Prestations et prix"
               />
@@ -394,22 +387,65 @@ export function VenueView({ slug }: { slug: string }) {
                 value={activity}
                 venue={venue}
               />
-              <Offers activity={activity} venue={venue} />
+              <div
+                className={cn(
+                  "grid gap-6",
+                  venue.photos[2] && "md:grid-cols-[13rem_minmax(0,1fr)]"
+                )}
+              >
+                {venue.photos[2] && (
+                  <div
+                    className={cn(
+                      "h-fit rounded-4xl p-2.5 max-md:hidden md:sticky md:top-28",
+                      venue.tone
+                    )}
+                  >
+                    <Photo
+                      alt=""
+                      className="aspect-3/4 rounded-3xl"
+                      sizes="208px"
+                      src={venue.photos[2]}
+                    />
+                  </div>
+                )}
+                <Offers activity={activity} venue={venue} />
+              </div>
             </section>
 
-            <section className="space-y-4">
-              <SectionHead title="À propos" />
-              <p className="text-lg">{venue.about}</p>
-              <ul className="grid gap-3 sm:grid-cols-2">
-                {venue.highlights.map((h) => (
-                  <li className="flex items-center gap-3" key={h}>
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                      <HugeiconsIcon className="size-4" icon={Tick02Icon} />
-                    </span>
-                    {h}
-                  </li>
-                ))}
-              </ul>
+            <section className="space-y-8">
+              <div className="grid items-center gap-8 sm:grid-cols-[minmax(0,1fr)_14rem]">
+                <div className="space-y-6">
+                  <h2 className="font-display text-5xl text-balance">
+                    Pourquoi {venue.name} ?
+                  </h2>
+                  <p className="text-lg">{venue.about}</p>
+                  <ul className="grid gap-3">
+                    {venue.highlights.map((h) => (
+                      <li className="flex items-center gap-3" key={h}>
+                        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                          <HugeiconsIcon className="size-4" icon={Tick02Icon} />
+                        </span>
+                        {h}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                {venue.photos[1] && (
+                  <div className="relative max-sm:hidden">
+                    <Paws className="absolute -top-10 -left-6 z-10 text-5xl" />
+                    <div
+                      className={cn("rotate-2 rounded-4xl p-2.5", venue.tone)}
+                    >
+                      <Photo
+                        alt=""
+                        className="aspect-3/4 rounded-3xl"
+                        sizes="224px"
+                        src={venue.photos[1]}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
               <div className="flex items-center gap-4 rounded-3xl bg-muted p-5">
                 <Avatar className="size-14">
                   <AvatarFallback className="bg-background text-lg font-semibold">
@@ -456,24 +492,44 @@ export function VenueView({ slug }: { slug: string }) {
             </section>
 
             <section className="space-y-6">
-              <div className="flex items-end gap-4">
-                <p className="font-display text-7xl">
-                  {ratingText(venue.rating)}
-                </p>
-                <div className="pb-1">
-                  <Stars n={Math.round(venue.rating)} />
-                  <p className="mt-1 text-muted-foreground">
-                    {venue.reviews} avis de propriétaires
-                  </p>
+              <div className="flex flex-wrap items-end justify-between gap-4">
+                <h2 className="font-display text-5xl">
+                  Leurs avis <Sparkle className="inline size-9 align-top" />
+                </h2>
+                <div className="flex items-center gap-3 rounded-full bg-muted py-2 ps-2 pe-5">
+                  <span className="rounded-full bg-wise-forest px-4 py-1.5 font-display text-3xl text-wise-green">
+                    {ratingText(venue.rating)}
+                  </span>
+                  <span>
+                    <Stars
+                      className="text-warning"
+                      n={Math.round(venue.rating)}
+                    />
+                    <span className="text-sm text-muted-foreground">
+                      {venue.reviews} avis de propriétaires
+                    </span>
+                  </span>
                 </div>
               </div>
               <div className="grid gap-4 md:grid-cols-2">
-                {reviews.map((r) => (
-                  <div
-                    className="space-y-3 rounded-3xl bg-muted p-5"
+                {reviews.map((r, i) => (
+                  <figure
+                    className={cn(
+                      "flex flex-col justify-between gap-6 rounded-4xl p-6",
+                      i === 0 ? venue.tone : "bg-muted"
+                    )}
                     key={r.author}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="space-y-3">
+                      <HugeiconsIcon
+                        className="size-8 opacity-60"
+                        icon={QuoteDownIcon}
+                      />
+                      <blockquote className="font-heading text-xl leading-snug font-semibold text-pretty">
+                        {r.text}
+                      </blockquote>
+                    </div>
+                    <figcaption className="flex items-center gap-3">
                       <Avatar className="size-10">
                         <AvatarFallback className="bg-background font-semibold">
                           {r.author[0]}
@@ -481,14 +537,13 @@ export function VenueView({ slug }: { slug: string }) {
                       </Avatar>
                       <div className="min-w-0 flex-1">
                         <p className="font-semibold">{r.author}</p>
-                        <p className="truncate text-sm text-muted-foreground">
+                        <p className="truncate text-sm opacity-70">
                           {r.pet} · {formatDate(r.date)}
                         </p>
                       </div>
-                    </div>
-                    <Stars n={r.rating} />
-                    <p>{r.text}</p>
-                  </div>
+                      <Stars n={r.rating} />
+                    </figcaption>
+                  </figure>
                 ))}
               </div>
             </section>
@@ -564,6 +619,51 @@ export function VenueView({ slug }: { slug: string }) {
             </Button>
           </aside>
         </div>
+
+        <section
+          className={cn(
+            "relative mt-16 overflow-hidden rounded-4xl p-8 md:mt-24 md:p-12",
+            venue.tone
+          )}
+        >
+          <Sparkle className="absolute top-6 right-6 size-14 text-current opacity-30" />
+          <div className="flex flex-col items-center gap-8 md:flex-row md:gap-12">
+            {venue.photos.length > 0 && (
+              <div className="flex -space-x-6">
+                {venue.photos.slice(0, 3).map((p) => (
+                  <Photo
+                    alt=""
+                    className="size-24 rounded-full border-4 border-white md:size-32"
+                    key={p}
+                    sizes="128px"
+                    src={p}
+                  />
+                ))}
+              </div>
+            )}
+            <div className="min-w-0 flex-1 space-y-6 text-center md:text-start">
+              <h2 className="font-display text-5xl text-balance md:text-6xl">
+                On vous attend chez {venue.name}
+              </h2>
+              <div className="flex flex-wrap justify-center gap-3 md:justify-start">
+                <Button
+                  className="border-wise-forest bg-wise-forest text-wise-green hover:border-wise-forest hover:bg-wise-forest/90"
+                  render={<Link href={bookHref} />}
+                  size="xl"
+                >
+                  Réserver
+                </Button>
+                <Button
+                  className="border-transparent bg-white/60 text-current hover:bg-white/80"
+                  render={<Link href={`/me/messages?venue=${venue.slug}`} />}
+                  size="xl"
+                >
+                  Poser une question
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
 
       <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-4 border-t bg-background px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:hidden">

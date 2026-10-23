@@ -47,6 +47,7 @@ import {
   VenueLogo,
 } from "@/components/site/site-ui"
 import { dayMonth, euros, todayIso } from "@/components/services/data"
+import { Paws, Sparkle } from "@/components/site/doodles"
 import { cn } from "@/lib/utils"
 
 /* ——— La coque de l'app ——— */
@@ -211,10 +212,12 @@ export function MobileShell({ children }: { children: ReactNode }) {
 export function TabHeader({
   title,
   eyebrow,
+  doodle = "sparkle",
   children,
 }: {
   title: ReactNode
   eyebrow?: ReactNode
+  doodle?: "sparkle" | "paws" | false
   children?: ReactNode
 }) {
   return (
@@ -225,7 +228,13 @@ export function TabHeader({
             {eyebrow}
           </p>
         )}
-        <h1 className="font-display text-5xl">{title}</h1>
+        <h1 className="font-display text-5xl">
+          {title}
+          {doodle === "sparkle" && (
+            <Sparkle className="ms-1 inline size-8 align-top" />
+          )}
+          {doodle === "paws" && <Paws className="ms-2 text-3xl" />}
+        </h1>
       </div>
       {children}
     </header>
@@ -305,7 +314,7 @@ export function Section({
   return (
     <section className={cn("space-y-3", className)}>
       <div className="flex items-center justify-between gap-4 px-4">
-        <h2 className="font-heading text-xl font-semibold">{title}</h2>
+        <h2 className="font-display text-3xl text-balance">{title}</h2>
         {href && (
           <Link
             className="flex min-h-11 items-center font-semibold text-link underline underline-offset-4"
@@ -351,7 +360,7 @@ export function Rows({
   return (
     <div
       className={cn(
-        "mx-4 divide-y overflow-hidden rounded-3xl border bg-card",
+        "mx-4 divide-y-2 divide-background overflow-hidden rounded-3xl bg-muted",
         className
       )}
     >
@@ -402,7 +411,7 @@ export function Row({
   )
   const cls = cn(
     "flex min-h-18 w-full items-center gap-4 px-4 py-3 text-start transition-colors",
-    (href || onClick) && "active:bg-accent",
+    (href || onClick) && "active:bg-neutral-hover",
     className
   )
   if (href)
@@ -430,7 +439,7 @@ export function IconDot({
   return (
     <span
       className={cn(
-        "flex size-12 shrink-0 items-center justify-center rounded-full bg-secondary [&_svg]:size-6",
+        "flex size-12 shrink-0 items-center justify-center rounded-full bg-background [&_svg]:size-6",
         className
       )}
     >

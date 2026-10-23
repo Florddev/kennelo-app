@@ -106,7 +106,7 @@ function Card({
       className={cn("space-y-4 rounded-3xl border bg-card p-6", className)}
     >
       <div className="flex items-center justify-between gap-4">
-        <h2 className="font-heading text-xl font-semibold">{title}</h2>
+        <h2 className="font-display text-4xl">{title}</h2>
         {action}
       </div>
       {children}
@@ -631,9 +631,7 @@ export function BookingDetail({ id }: { id: string }) {
       <div className="grid gap-6 lg:grid-cols-3">
         {notes.map((n) => (
           <section className="space-y-3 lg:col-span-2" key={n.id}>
-            <h2 className="font-heading text-xl font-semibold">
-              Le mot de {venue.name}
-            </h2>
+            <h2 className="font-display text-4xl">Le mot de {venue.name}</h2>
             <ReportCard hideHeader note={n} />
           </section>
         ))}

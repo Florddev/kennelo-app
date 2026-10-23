@@ -34,7 +34,13 @@ import {
   type VaxStatus,
   vaxStatus,
 } from "@/components/site/data"
-import { PetAvatar, Photo, PhotoButton } from "@/components/site/site-ui"
+import {
+  PageHeader,
+  PetAvatar,
+  Photo,
+  PhotoButton,
+  SitePage,
+} from "@/components/site/site-ui"
 import {
   type Coat,
   newId,
@@ -77,23 +83,25 @@ const speciesIcon = (species: MyPet["species"]) =>
 export function PetsView() {
   const { pets } = useSite()
   return (
-    <SettingsPage
-      action={
-        <Button render={<Link href="/me/pets/new" />}>
-          <HugeiconsIcon icon={PlusSignIcon} />
-          Ajouter
-        </Button>
-      }
-      description="Leur fiche est envoyée à chaque réservation : plus besoin de tout réexpliquer."
-      title="Mes animaux"
-    >
-      <div className="grid gap-4 sm:grid-cols-2">
+    <SitePage className="space-y-10 md:py-14">
+      <PageHeader
+        action={
+          <Button render={<Link href="/me/pets/new" />} size="lg">
+            <HugeiconsIcon icon={PlusSignIcon} />
+            Ajouter
+          </Button>
+        }
+        description="Leur fiche est envoyée à chaque réservation : plus besoin de tout réexpliquer."
+        doodle="paws"
+        title="Mes animaux"
+      />
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {pets.map((pet) => {
           const alerts = petAlerts(pet)
           return (
             <Link
               className={cn(
-                "relative flex flex-col overflow-hidden rounded-3xl p-3 transition-transform hover:scale-[0.98]",
+                "relative flex flex-col overflow-hidden rounded-4xl p-3 transition-transform hover:scale-[0.98]",
                 pet.tone
               )}
               href={`/me/pets/${pet.id}`}
@@ -102,12 +110,12 @@ export function PetsView() {
               {pet.photo ? (
                 <Photo
                   alt={pet.name}
-                  className="aspect-4/3 rounded-2xl"
-                  sizes="(min-width: 640px) 320px, 100vw"
+                  className="aspect-4/3 rounded-3xl"
+                  sizes="(min-width: 640px) 360px, 100vw"
                   src={pet.photo}
                 />
               ) : (
-                <span className="flex aspect-4/3 items-center justify-center rounded-2xl bg-white/40">
+                <span className="flex aspect-4/3 items-center justify-center rounded-3xl bg-white/40">
                   <HugeiconsIcon
                     className="size-20 opacity-40"
                     icon={speciesIcon(pet.species)}
@@ -130,7 +138,7 @@ export function PetsView() {
           )
         })}
         <Link
-          className="flex min-h-72 flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          className="flex min-h-72 flex-col items-center justify-center gap-3 rounded-4xl border-2 border-dashed font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           href="/me/pets/new"
         >
           <span className="flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground">
@@ -139,7 +147,7 @@ export function PetsView() {
           Ajouter un animal
         </Link>
       </div>
-    </SettingsPage>
+    </SitePage>
   )
 }
 

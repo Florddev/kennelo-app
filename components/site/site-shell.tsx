@@ -16,7 +16,7 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import type { ReactNode } from "react"
-import { me, useSite } from "@/components/site/data"
+import { me, useSite, venues } from "@/components/site/data"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -122,6 +122,9 @@ function Header() {
           ))}
         </nav>
         <div className="ms-auto flex items-center gap-2">
+          <Button className="max-lg:hidden" render={<Link href="/search" />}>
+            Réserver
+          </Button>
           <Button
             aria-label="Messages"
             className="relative"
@@ -175,40 +178,84 @@ function BottomNav() {
   )
 }
 
+const footerLinks = [
+  {
+    links: [
+      ["Pension", "/search?activity=Pension"],
+      ["Toilettage", "/search?activity=Toilettage"],
+      ["Éducation", "/search?activity=%C3%89ducation"],
+      ["Près de chez moi", "/search"],
+    ],
+    title: "Découvrir",
+  },
+  {
+    links: [
+      ["Mes réservations", "/me/bookings"],
+      ["Mes animaux", "/me/pets"],
+      ["Messages", "/me/messages"],
+      ["Favoris", "/me/favorites"],
+    ],
+    title: "Mon espace",
+  },
+  {
+    links: [
+      ["Espace professionnel", "/today"],
+      ["Nos offres", "/settings/billing"],
+    ],
+    title: "Professionnels",
+  },
+  {
+    links: [...new Set(venues.map((v) => v.city))].map((city) => [
+      city,
+      `/search?q=${encodeURIComponent(city)}`,
+    ]),
+    title: "Villes",
+  },
+]
+
 function Footer() {
   return (
-    <footer className="mt-12 bg-wise-forest text-white max-md:pb-20">
-      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 md:grid-cols-[2fr_1fr_1fr] md:px-10">
-        <div className="space-y-3">
-          <p className="font-display text-4xl text-wise-green">Kennelo</p>
-          <p className="max-w-sm text-white/70">
-            Pensions, toilettage et éducation près de chez vous. Réservez en
-            quelques minutes, payez en toute sécurité.
-          </p>
+    <footer className="mt-12 overflow-hidden bg-wise-forest text-white max-md:pb-20">
+      <div className="mx-auto max-w-6xl px-4 pt-14 md:px-10 md:pt-20">
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_repeat(4,1fr)]">
+          <div className="space-y-5">
+            <p className="max-w-xs text-lg text-white/80">
+              Pensions, toilettage et éducation près de chez vous. Réservez en
+              quelques minutes, payez en toute sécurité.
+            </p>
+            <Button render={<Link href="/search" />} size="lg">
+              Trouver un établissement
+            </Button>
+          </div>
+          {footerLinks.map((col) => (
+            <div className="space-y-3" key={col.title}>
+              <p className="font-semibold text-wise-green">{col.title}</p>
+              <ul className="space-y-2">
+                {col.links.map(([label, href]) => (
+                  <li key={label}>
+                    <Link
+                      className="text-white/70 hover:text-white"
+                      href={href}
+                    >
+                      {label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
-        <div className="space-y-2">
-          <p className="font-semibold text-wise-green">Propriétaires</p>
-          <Link className="block text-white/70 hover:text-white" href="/search">
-            Trouver un établissement
-          </Link>
-          <Link
-            className="block text-white/70 hover:text-white"
-            href="/me/pets"
-          >
-            Mes animaux
-          </Link>
-        </div>
-        <div className="space-y-2">
-          <p className="font-semibold text-wise-green">Professionnels</p>
-          <Link className="block text-white/70 hover:text-white" href="/today">
-            Espace professionnel
-          </Link>
-          <Link
-            className="block text-white/70 hover:text-white"
-            href="/settings/billing"
-          >
-            Nos offres
-          </Link>
+        <p
+          aria-hidden
+          className="mt-14 -mb-[0.1em] text-center font-display text-[clamp(5rem,22vw,17rem)] leading-[0.85] text-wise-green select-none"
+        >
+          Kennelo
+        </p>
+      </div>
+      <div className="border-t border-white/15">
+        <div className="mx-auto flex max-w-6xl flex-wrap justify-between gap-2 px-4 py-5 text-sm text-white/60 md:px-10">
+          <span>© 2026 Kennelo · Fait à Bordeaux</span>
+          <span>Mentions légales · Confidentialité</span>
         </div>
       </div>
     </footer>

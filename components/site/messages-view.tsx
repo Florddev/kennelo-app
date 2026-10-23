@@ -11,6 +11,7 @@ import {
   type Venue,
   venueOf,
 } from "@/components/site/data"
+import { Photo } from "@/components/site/site-ui"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -29,7 +30,16 @@ function VenueDot({ venue, className }: { venue: Venue; className?: string }) {
         className
       )}
     >
-      {venue.name[0]}
+      {venue.photos[0] ? (
+        <Photo
+          alt=""
+          className="size-[88%] rounded-full"
+          sizes="96px"
+          src={venue.photos[0]}
+        />
+      ) : (
+        venue.name[0]
+      )}
     </span>
   )
 }
@@ -70,7 +80,7 @@ export function ClientMessages({ initialVenue }: { initialVenue?: string }) {
           openSlug && "max-md:hidden"
         )}
       >
-        <h1 className="px-4 pt-6 pb-4 font-heading text-3xl font-semibold md:px-0 md:pt-0">
+        <h1 className="px-4 pt-6 pb-4 font-display text-6xl md:px-0 md:pt-0">
           Messages
         </h1>
         <div className="flex-1 space-y-1 overflow-y-auto px-2 md:px-0">
@@ -82,8 +92,8 @@ export function ClientMessages({ initialVenue }: { initialVenue?: string }) {
               <button
                 aria-current={shown?.slug === v.slug ? "true" : undefined}
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-2xl p-3 text-start transition-colors hover:bg-accent",
-                  shown?.slug === v.slug && "md:bg-accent"
+                  "flex w-full items-center gap-3 rounded-3xl p-3 text-start transition-colors hover:bg-muted",
+                  shown?.slug === v.slug && "md:bg-muted"
                 )}
                 key={t.venue}
                 onClick={() => setOpenSlug(v.slug)}
@@ -129,7 +139,12 @@ export function ClientMessages({ initialVenue }: { initialVenue?: string }) {
       >
         {shown ? (
           <>
-            <header className="flex items-center gap-3 border-b px-4 py-3 md:px-0 md:pt-0">
+            <header
+              className={cn(
+                "flex items-center gap-3 px-4 py-3 md:rounded-4xl md:px-5 md:py-4",
+                shown.tone
+              )}
+            >
               <Button
                 aria-label="Retour"
                 className="md:hidden"
@@ -139,16 +154,16 @@ export function ClientMessages({ initialVenue }: { initialVenue?: string }) {
               >
                 <HugeiconsIcon icon={ArrowLeft01Icon} />
               </Button>
-              <VenueDot className="size-10 text-lg" venue={shown} />
+              <VenueDot className="size-12 bg-white/60 text-xl" venue={shown} />
               <div className="min-w-0 flex-1">
-                <p className="truncate font-semibold">{shown.name}</p>
-                <p className="text-sm text-muted-foreground">
+                <p className="truncate font-display text-3xl">{shown.name}</p>
+                <p className="text-sm font-semibold opacity-80">
                   {shown.response}
                 </p>
               </div>
               <Button
+                className="border-transparent bg-white/60 text-current hover:bg-white/85"
                 render={<Link href={`/places/${shown.slug}`} />}
-                variant="secondary"
               >
                 Voir
               </Button>

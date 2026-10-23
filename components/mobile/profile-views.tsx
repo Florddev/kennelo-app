@@ -30,6 +30,7 @@ import {
   useLargeText,
 } from "@/components/mobile/mobile-ui"
 import { isUpcoming, me, useSite, venueOf } from "@/components/site/data"
+import { Paws, Squiggle } from "@/components/site/doodles"
 import { Switch } from "@/components/ui/switch"
 
 function SwitchRow({
@@ -74,21 +75,20 @@ export function MobileProfile() {
       <TabHeader title="Profil" />
 
       <Link
-        className="mx-4 flex items-center gap-4 rounded-3xl bg-muted p-4 active:bg-neutral-hover"
+        className="relative mx-4 flex items-center gap-4 overflow-hidden rounded-4xl bg-wise-forest p-5 text-white active:opacity-90"
         href="/mobile/profile/settings"
       >
-        <span className="flex size-18 shrink-0 items-center justify-center rounded-full bg-wise-forest font-display text-3xl text-wise-green">
+        <Squiggle className="absolute -right-10 -bottom-12 w-40" />
+        <span className="relative flex size-18 shrink-0 items-center justify-center rounded-full bg-wise-green font-display text-3xl text-wise-forest">
           {me.first[0]}
           {me.last[0]}
         </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-2xl font-semibold">
+        <span className="relative min-w-0 flex-1">
+          <span className="block font-display text-4xl leading-none text-wise-green">
             {me.first} {me.last}
           </span>
-          <span className="block truncate text-muted-foreground">
-            {me.email}
-          </span>
-          <span className="mt-1 block font-semibold text-link underline underline-offset-4">
+          <span className="mt-1 block truncate text-white/70">{me.email}</span>
+          <span className="mt-1 block font-semibold underline underline-offset-4">
             Modifier mes informations
           </span>
         </span>
@@ -214,7 +214,11 @@ export function MobileFavorites() {
   const list = favorites.flatMap((slug) => venueOf(slug) ?? [])
   return (
     <div className="space-y-6 pb-6">
-      <TopBar back="/mobile/profile" title="Mes favoris" />
+      <TopBar back="/mobile/profile" />
+      <h1 className="px-4 font-display text-6xl">
+        Favoris
+        <Paws className="ms-2 text-4xl" />
+      </h1>
       {list.length ? (
         <div className="space-y-8 px-4">
           {list.map((v) => (

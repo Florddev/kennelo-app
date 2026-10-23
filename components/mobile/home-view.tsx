@@ -22,7 +22,6 @@ import {
   Rows,
   Section,
   Segmented,
-  TabHeader,
   TopBar,
 } from "@/components/mobile/mobile-ui"
 import {
@@ -35,7 +34,9 @@ import {
   vaxStatus,
   venueOf,
 } from "@/components/site/data"
+import { Sparkle, Squiggle } from "@/components/site/doodles"
 import { activityIcons, Photo } from "@/components/site/site-ui"
+import { explorePhotos } from "@/components/site/venues"
 import { dayMonth, shortIso, todayIso } from "@/components/services/data"
 import { cn } from "@/lib/utils"
 
@@ -138,16 +139,55 @@ export function MobileHome() {
 
   return (
     <div className="space-y-8">
-      <TabHeader eyebrow={todayLabel} title={`Bonjour ${me.first}`}>
-        <Link
-          aria-label="Mon profil"
-          className="flex size-12 shrink-0 items-center justify-center rounded-full bg-secondary text-lg font-semibold"
-          href="/mobile/profile"
-        >
-          {me.first[0]}
-          {me.last[0]}
-        </Link>
-      </TabHeader>
+      <header className="px-4 pt-[calc(env(safe-area-inset-top)+1rem)]">
+        <div className="relative overflow-hidden rounded-4xl bg-wise-forest p-5 text-white">
+          <Squiggle className="absolute -right-12 -bottom-14 w-48" />
+          <div className="relative flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="font-semibold text-white/70 first-letter:uppercase">
+                {todayLabel}
+              </p>
+              <h1 className="mt-1 font-display text-6xl leading-[0.9] text-wise-green">
+                Bonjour {me.first}
+              </h1>
+            </div>
+            <Link
+              aria-label="Mon profil"
+              className="flex size-12 shrink-0 items-center justify-center rounded-full bg-wise-green text-lg font-semibold text-wise-forest"
+              href="/mobile/profile"
+            >
+              {me.first[0]}
+              {me.last[0]}
+            </Link>
+          </div>
+          <div className="relative mt-5 flex flex-wrap gap-2">
+            {[
+              {
+                href: "/mobile/bookings",
+                text: `${later.length + (next ? 1 : 0)} à venir`,
+              },
+              {
+                href: "/mobile/pets",
+                text: `${site.pets.length} ${site.pets.length > 1 ? "animaux" : "animal"}`,
+              },
+              {
+                href: "/mobile/messages",
+                text: unread
+                  ? `${unread} message${unread > 1 ? "s" : ""} à lire`
+                  : "Messages",
+              },
+            ].map((c) => (
+              <Link
+                className="flex min-h-11 items-center rounded-full bg-white/10 px-4 font-semibold active:bg-white/20"
+                href={c.href}
+                key={c.href}
+              >
+                {c.text}
+              </Link>
+            ))}
+          </div>
+        </div>
+      </header>
 
       {next ? (
         <BookingCard booking={next} href={`/mobile/bookings/${next.id}`} />
@@ -160,14 +200,22 @@ export function MobileHome() {
           {activityNames.map((a) => (
             <Link
               className={cn(
-                "flex min-h-28 flex-col justify-between gap-3 rounded-3xl p-4 transition-transform active:scale-95",
+                "relative flex flex-col gap-2 rounded-3xl p-1.5 pb-3 transition-transform active:scale-95",
                 activityMeta[a].tint
               )}
               href={`/mobile/search?activity=${encodeURIComponent(a)}`}
               key={a}
             >
-              <HugeiconsIcon className="size-8" icon={activityIcons[a]} />
-              <span className="leading-tight font-semibold">{a}</span>
+              <Photo
+                alt=""
+                className="aspect-square rounded-[1.25rem]"
+                sizes="128px"
+                src={explorePhotos.tiles[a]}
+              />
+              <span className="absolute top-3 left-3 flex size-9 items-center justify-center rounded-full bg-white/85">
+                <HugeiconsIcon className="size-5" icon={activityIcons[a]} />
+              </span>
+              <span className="px-1.5 leading-tight font-semibold">{a}</span>
               <span className="sr-only">{activityVerb[a]}</span>
             </Link>
           ))}
@@ -281,8 +329,11 @@ export function MobileBookings() {
           />
         }
         back="/mobile"
-        title="Réservations"
       />
+      <h1 className="px-4 font-display text-6xl">
+        Réservations
+        <Sparkle className="ms-1 inline size-9 align-top" />
+      </h1>
       <Segmented
         onChange={setView}
         options={[

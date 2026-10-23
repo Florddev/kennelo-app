@@ -318,6 +318,16 @@ export const explorePhotos = {
     photo("1574158622682-e40e69881006"),
     photo("1537151625747-768eb6cf92b2"),
   ],
+  /** Bandeau de photos sous le titre, la troisième au centre. */
+  strip: [
+    photo("1587300003388-59208cc962cb"),
+    photo("1573865526739-10659fec78a5"),
+    photo("1552053831-71594a27632d"),
+    photo("1518791841217-8f162f1e1131"),
+    photo("1583511655857-d19b40a7a54e"),
+  ],
+  why: photo("1517849845537-4d257902454a"),
+  band: [photo("1514888286974-6c03e2ca1dba"), photo("1561037404-61cd46aa615b")],
   tiles: {
     Éducation: [photo("1503256207526-0d5d80fa2f47")][0],
     Pension: [photo("1581888227599-779811939961")][0],

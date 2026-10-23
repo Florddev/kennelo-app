@@ -18,6 +18,7 @@ import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
 import Link from "next/link"
 import type { ReactNode } from "react"
 import { BookingHero } from "@/components/site/booking-detail"
+import { Squiggle } from "@/components/site/doodles"
 import {
   ageOf,
   isUpcoming,
@@ -29,6 +30,7 @@ import {
 } from "@/components/site/data"
 import {
   BookingRow,
+  PageHeader,
   PetAvatar,
   Photo,
   RowsCard,
@@ -88,10 +90,10 @@ function Panel({
 }) {
   return (
     <section
-      className={cn("space-y-4 rounded-3xl border bg-card p-6", className)}
+      className={cn("space-y-5 rounded-4xl bg-muted p-6 md:p-8", className)}
     >
       <div className="flex items-center justify-between gap-4">
-        <h2 className="font-heading text-xl font-semibold">{title}</h2>
+        <h2 className="font-display text-4xl">{title}</h2>
         {action}
       </div>
       {children}
@@ -180,23 +182,56 @@ export function AccountHome() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 px-4 py-6 md:px-10 md:py-10">
-      <header className="flex flex-wrap items-center gap-4">
-        <Avatar className="size-16">
-          <AvatarFallback className="bg-secondary text-xl font-semibold">
-            {me.first[0]}
-            {me.last[0]}
-          </AvatarFallback>
-        </Avatar>
-        <div className="min-w-0 flex-1">
-          <h1 className="font-heading text-3xl font-semibold md:text-4xl">
-            Bonjour {me.first}
-          </h1>
-          <p className="text-muted-foreground">{me.email}</p>
+      <header className="relative overflow-hidden rounded-4xl bg-wise-forest p-6 text-white md:p-10">
+        <Squiggle className="absolute -right-10 -bottom-20 w-52 md:w-72" />
+        <div className="relative flex flex-wrap items-center gap-5">
+          <Avatar className="size-20">
+            <AvatarFallback className="bg-wise-green text-2xl font-semibold text-wise-forest">
+              {me.first[0]}
+              {me.last[0]}
+            </AvatarFallback>
+          </Avatar>
+          <div className="min-w-0 flex-1">
+            <h1 className="font-display text-6xl text-wise-green md:text-8xl">
+              Bonjour {me.first}
+            </h1>
+            <p className="text-lg text-white/70">{me.email}</p>
+          </div>
+          <Button
+            className="border-transparent bg-white/10 text-white hover:bg-white/20"
+            render={<Link href="/me/settings" />}
+            size="lg"
+          >
+            <HugeiconsIcon icon={Settings01Icon} />
+            Paramètres
+          </Button>
         </div>
-        <Button render={<Link href="/me/settings" />} variant="secondary">
-          <HugeiconsIcon icon={Settings01Icon} />
-          Paramètres
-        </Button>
+        <div className="relative mt-8 flex flex-wrap gap-2">
+          {[
+            {
+              href: "/me/bookings",
+              text: `${upcoming.length} réservation${upcoming.length > 1 ? "s" : ""} à venir`,
+            },
+            {
+              href: "/me/pets",
+              text: `${site.pets.length} ${site.pets.length > 1 ? "animaux" : "animal"}`,
+            },
+            {
+              href: "/me/messages",
+              text: unread
+                ? `${unread} message${unread > 1 ? "s" : ""} à lire`
+                : "Aucun message à lire",
+            },
+          ].map((c) => (
+            <Link
+              className="flex h-11 items-center rounded-full bg-white/10 px-5 font-semibold transition-colors hover:bg-white/20"
+              href={c.href}
+              key={c.href}
+            >
+              {c.text}
+            </Link>
+          ))}
+        </div>
       </header>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -218,7 +253,7 @@ export function AccountHome() {
               {todo.map((t) => (
                 <li key={t.title}>
                   <Link
-                    className="flex items-center gap-3 rounded-2xl p-2 transition-colors hover:bg-accent"
+                    className="flex items-center gap-3 rounded-2xl p-2 transition-colors hover:bg-background"
                     href={t.href}
                   >
                     <span
@@ -280,7 +315,7 @@ export function AccountHome() {
               </Link>
             ))}
             <Link
-              className="flex min-h-48 flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              className="flex min-h-48 flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-foreground/15 font-semibold text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
               href="/me/pets/new"
             >
               <span className="flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground">
@@ -383,16 +418,17 @@ export function BookingsView() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8 px-4 py-6 md:px-10 md:py-10">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <h1 className="font-heading text-3xl font-semibold md:text-4xl">
-          Réservations
-        </h1>
-        <Button render={<Link href="/search" />}>
-          <HugeiconsIcon icon={PlusSignIcon} />
-          Réserver
-        </Button>
-      </div>
+    <div className="mx-auto max-w-4xl space-y-12 px-4 py-8 md:px-10 md:py-14">
+      <PageHeader
+        action={
+          <Button render={<Link href="/search" />} size="lg">
+            <HugeiconsIcon icon={PlusSignIcon} />
+            Réserver
+          </Button>
+        }
+        description={`${later.length + (next ? 1 : 0)} à venir · ${past.length} passée${past.length > 1 ? "s" : ""}`}
+        title="Réservations"
+      />
 
       {next ? (
         <BookingHero booking={next} compact href={`/me/bookings/${next.id}`} />
@@ -401,8 +437,8 @@ export function BookingsView() {
       )}
 
       {later.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="font-heading text-xl font-semibold">Aussi à venir</h2>
+        <section className="space-y-4">
+          <h2 className="font-display text-4xl">Aussi à venir</h2>
           <RowsCard>
             {later.map((b) => (
               <BookingRow booking={b} key={b.id} />
@@ -413,7 +449,7 @@ export function BookingsView() {
 
       {groups.length > 0 && (
         <section className="space-y-6">
-          <h2 className="font-heading text-xl font-semibold">Historique</h2>
+          <h2 className="font-display text-4xl">Historique</h2>
           {groups.map((g) => (
             <div className="space-y-2" key={g.label}>
               <p className="font-semibold text-muted-foreground first-letter:uppercase">
@@ -438,15 +474,12 @@ export function FavoritesView() {
   const { favorites } = useSite()
   const list = favorites.flatMap((slug) => venueOf(slug) ?? [])
   return (
-    <SitePage className="space-y-8">
-      <div className="space-y-2">
-        <h1 className="font-heading text-3xl font-semibold md:text-4xl">
-          Favoris
-        </h1>
-        <p className="text-muted-foreground">
-          Les adresses que vous avez gardées de côté.
-        </p>
-      </div>
+    <SitePage className="space-y-10 md:py-14">
+      <PageHeader
+        description="Les adresses que vous avez gardées de côté."
+        doodle="paws"
+        title="Favoris"
+      />
       {list.length ? (
         <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3">
           {list.map((venue) => (
@@ -454,7 +487,7 @@ export function FavoritesView() {
           ))}
         </div>
       ) : (
-        <Empty className="rounded-3xl bg-muted py-16">
+        <Empty className="rounded-4xl bg-muted py-16">
           <EmptyHeader>
             <EmptyTitle>Aucun favori</EmptyTitle>
             <EmptyDescription>
