@@ -1,16 +1,9 @@
 "use client"
 
-import {
-  BedDoubleIcon,
-  CalendarAdd01Icon,
-  Clock01Icon,
-  EuroCircleIcon,
-  Moon02Icon,
-  Search01Icon,
-} from "@hugeicons/core-free-icons"
+import { CalendarAdd01Icon, Search01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { useState } from "react"
-import { shortDate, TODAY } from "@/components/calendar"
+import { shortDate } from "@/components/calendar"
 import {
   type Stay,
   type StayStatus,
@@ -24,12 +17,7 @@ import {
   StaySheet,
   stayStatusMeta,
 } from "@/components/pension/stay-sheet"
-import {
-  ActivityPage,
-  Bar,
-  formatAmount,
-  Kpi,
-} from "@/components/today/widgets"
+import { ActivityPage, Bar, formatAmount } from "@/components/today/widgets"
 import { Badge } from "@/components/ui/badge"
 import { NewStayDialog } from "@/components/pension/new-stay-dialog"
 import { Button } from "@/components/ui/button"
@@ -57,10 +45,6 @@ const filters: { value: Filter; label: string }[] = [
   { label: "Tous", value: "all" },
 ]
 
-// October runs from offset -18 (1 Oct.) to offset 12 (31 Oct.).
-const octoberNights = (s: Stay) =>
-  Math.max(0, Math.min(s.departure, 13) - Math.max(s.arrival, -18))
-
 const sortKey = (s: Stay) =>
   s.status === "done"
     ? -s.departure
@@ -87,13 +71,6 @@ export function StaysView() {
     )
     .sort((a, b) => sortKey(a) - sortKey(b))
 
-  const booked = stays.filter((s) => s.status !== "pending")
-  const nights = booked.reduce((sum, s) => sum + octoberNights(s), 0)
-  const upcomingRevenue = booked
-    .filter((s) => s.status !== "done")
-    .reduce((sum, s) => sum + stayAmount(s), 0)
-  const averageNights =
-    booked.reduce((sum, s) => sum + s.departure - s.arrival, 0) / booked.length
   const openStay = stays.find((s) => s.id === openId) ?? null
 
   return (
@@ -112,29 +89,6 @@ export function StaysView() {
       activity="Pension"
       title="Séjours"
     >
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi icon={BedDoubleIcon} label="En cours" value={count("ongoing")}>
-          {
-            stays.filter((s) => s.departure === TODAY && s.status === "ongoing")
-              .length
-          }{" "}
-          départs aujourd&apos;hui
-        </Kpi>
-        <Kpi icon={Clock01Icon} label="À confirmer" value={count("pending")}>
-          Demandes en attente de réponse
-        </Kpi>
-        <Kpi icon={Moon02Icon} label="Nuitées en octobre" value={nights}>
-          Durée moyenne {averageNights.toFixed(1).replace(".", ",")} nuits
-        </Kpi>
-        <Kpi
-          icon={EuroCircleIcon}
-          label="À facturer"
-          value={formatAmount(upcomingRevenue)}
-        >
-          Séjours en cours et à venir
-        </Kpi>
-      </div>
-
       <div className="flex flex-wrap items-center gap-3">
         <Tabs
           onValueChange={(value) => setFilter(value as Filter)}

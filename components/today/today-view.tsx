@@ -1,61 +1,52 @@
 "use client"
 
 import {
-  Alert02Icon,
   ArrowRight01Icon,
-  BedDoubleIcon,
   Calendar03Icon,
-  ChartIncreaseIcon,
-  EuroCircleIcon,
+  Call02Icon,
+  Clock01Icon,
+  CloudAngledRainIcon,
   Login03Icon,
   Logout03Icon,
+  PackageIcon,
   PlusSignIcon,
   PrinterIcon,
+  ScissorIcon,
   SunCloud01Icon,
-  Tick02Icon,
+  UserGroupIcon,
+  UserRemove01Icon,
 } from "@hugeicons/core-free-icons"
-import { HugeiconsIcon } from "@hugeicons/react"
+import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
 import Link from "next/link"
 import { useState } from "react"
 import {
   type Activity,
-  ActivityMark,
   activityMeta,
   activityNames,
 } from "@/components/activity-mark"
+import { hourOf } from "@/components/agenda/agenda"
+import { appointments, salonBookings, stock } from "@/components/grooming/data"
 import { NewAppointmentDialog } from "@/components/grooming/new-appointment-dialog"
+import { kennels, stayMovements, stays } from "@/components/pension/data"
 import { NewStayDialog } from "@/components/pension/new-stay-dialog"
+import { Squiggle } from "@/components/site/doodles"
+import { activityIcons } from "@/components/site/site-ui"
+import { NOW, team, timeline } from "@/components/today/data"
 import {
-  type BoxStatus,
-  boxes,
-  careTasks,
-  type Movement,
-  movements as initialMovements,
-  NOW,
-  revenue,
-  team,
-  timeline,
-  todos,
-  week,
-} from "@/components/today/data"
-import {
-  formatAmount,
+  type Attention,
+  AttentionList,
   formatHour,
-  Kpi,
   PageBody,
-  Widget,
+  Section,
 } from "@/components/today/widgets"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Avatar, AvatarFallback, AvatarGroup } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
 import {
-  Progress,
-  ProgressIndicator,
-  ProgressTrack,
-} from "@/components/ui/progress"
-import { Tabs, TabsList, TabsTab } from "@/components/ui/tabs"
+  forecast,
+  puppies,
+  reports,
+  sessions,
+} from "@/components/training/data"
+import { Avatar, AvatarFallback, AvatarGroup } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 const DAY_START = 8
@@ -66,111 +57,103 @@ const hours = Array.from(
 )
 const pct = (hour: number) => ((hour - DAY_START) / (DAY_END - DAY_START)) * 100
 
-const boxStyles: Record<BoxStatus, { label: string; className: string }> = {
-  arriving: {
-    className:
-      "border-2 border-dashed border-pension-strong text-pension-strong",
-    label: "Arrivée prévue",
-  },
-  cleaning: {
-    className: "bg-wise-blue/70 text-wise-charcoal",
-    label: "Nettoyage",
-  },
-  departing: {
-    className: "bg-warning text-warning-foreground",
-    label: "Départ prévu",
-  },
-  free: { className: "bg-muted text-muted-foreground", label: "Libre" },
-  occupied: {
-    className: "bg-pension text-pension-foreground",
-    label: "Occupé",
-  },
-}
+/** Bouton secondaire sur le bandeau vert foncé. */
+const onForest = "border-transparent bg-white/10 text-white hover:bg-white/20"
 
+const plural = (n: number, word: string) => `${n} ${word}${n > 1 ? "s" : ""}`
+
+/** Les trois activités côte à côte, dans le même planning. */
 function DayTimeline() {
   return (
-    <div className="-mx-4 overflow-x-auto px-4">
-      <div className="min-w-[720px]">
-        <div className="flex">
-          <div className="w-28 shrink-0" />
-          <div className="relative h-5 flex-1 text-[0.6875rem] text-muted-foreground">
-            {hours.map((hour) => (
-              <span
-                className="absolute -translate-x-1/2"
-                key={hour}
-                style={{ left: `${pct(hour)}%` }}
-              >
-                {hour}h
-              </span>
-            ))}
-          </div>
-        </div>
-        <div className="relative">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-y-0 start-28 end-0"
-          >
-            {hours.map((hour) => (
-              <span
-                className="absolute inset-y-0 w-px bg-border/60"
-                key={hour}
-                style={{ left: `${pct(hour)}%` }}
-              />
-            ))}
-          </div>
-          {activityNames.map((activity) => (
-            <div className="flex items-center border-t py-2" key={activity}>
-              <div className="flex w-28 shrink-0 items-center gap-2 text-sm font-medium">
-                <ActivityMark activity={activity} />
-                {activity}
-              </div>
-              <div className="relative h-8 flex-1">
-                {timeline
-                  .filter((event) => event.activity === activity)
-                  .map((event) => {
-                    const live = event.start <= NOW && NOW < event.end
-                    return (
-                      <div
-                        className={cn(
-                          "absolute inset-y-0 flex items-center gap-1 overflow-hidden rounded-md px-1.5 text-xs font-medium text-white",
-                          activityMeta[activity].color,
-                          event.end <= NOW && "opacity-40",
-                          live &&
-                            "ring-2 ring-control ring-offset-1 ring-offset-background"
-                        )}
-                        key={event.label}
-                        style={{
-                          left: `${pct(event.start)}%`,
-                          width: `calc(${pct(event.end) - pct(event.start)}% - 2px)`,
-                        }}
-                        title={`${event.label} · ${formatHour(event.start)} – ${formatHour(event.end)}`}
-                      >
-                        {event.kind && (
-                          <HugeiconsIcon
-                            className="size-3 shrink-0"
-                            icon={
-                              event.kind === "arrival"
-                                ? Login03Icon
-                                : Logout03Icon
-                            }
-                          />
-                        )}
-                        <span className="truncate">{event.label}</span>
-                      </div>
-                    )
-                  })}
-              </div>
+    <div className="rounded-3xl bg-muted p-4 md:p-5">
+      <div className="-mx-4 overflow-x-auto px-4 md:-mx-5 md:px-5">
+        <div className="min-w-[720px]">
+          <div className="flex">
+            <div className="w-36 shrink-0" />
+            <div className="relative h-6 flex-1 text-sm font-semibold text-muted-foreground tabular-nums">
+              {hours.map((hour) => (
+                <span
+                  className="absolute -translate-x-1/2"
+                  key={hour}
+                  style={{ left: `${pct(hour)}%` }}
+                >
+                  {hour}h
+                </span>
+              ))}
             </div>
-          ))}
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-y-0 start-28 end-0"
-          >
+          </div>
+          <div className="relative">
             <div
-              className="absolute inset-y-0 w-0.5 -translate-x-1/2 bg-control"
-              style={{ left: `${pct(NOW)}%` }}
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-y-0 start-36 end-0"
             >
-              <span className="absolute -top-1 left-1/2 size-2 -translate-x-1/2 rounded-full bg-control" />
+              {hours.map((hour) => (
+                <span
+                  className="absolute inset-y-0 w-0.5 bg-background"
+                  key={hour}
+                  style={{ left: `${pct(hour)}%` }}
+                />
+              ))}
+            </div>
+            {activityNames.map((activity) => (
+              <div
+                className="flex items-center border-t-2 border-background py-2.5"
+                key={activity}
+              >
+                <div className="flex w-36 shrink-0 items-center gap-2 font-semibold">
+                  <HugeiconsIcon
+                    className="size-5"
+                    icon={activityIcons[activity]}
+                  />
+                  {activity}
+                </div>
+                <div className="relative h-10 flex-1">
+                  {timeline
+                    .filter((event) => event.activity === activity)
+                    .map((event) => {
+                      const live = event.start <= NOW && NOW < event.end
+                      return (
+                        <div
+                          className={cn(
+                            "absolute inset-y-0 z-1 flex items-center gap-1 overflow-hidden rounded-full px-3 text-sm font-semibold",
+                            activityMeta[activity].tint,
+                            event.end <= NOW && "opacity-50",
+                            live && "ring-2 ring-control"
+                          )}
+                          key={event.label}
+                          style={{
+                            left: `${pct(event.start)}%`,
+                            width: `calc(${pct(event.end) - pct(event.start)}% - 3px)`,
+                          }}
+                          title={`${event.label} · ${formatHour(event.start)} – ${formatHour(event.end)}`}
+                        >
+                          {event.kind && (
+                            <HugeiconsIcon
+                              className="size-3.5 shrink-0"
+                              icon={
+                                event.kind === "arrival"
+                                  ? Login03Icon
+                                  : Logout03Icon
+                              }
+                            />
+                          )}
+                          <span className="truncate">{event.label}</span>
+                        </div>
+                      )
+                    })}
+                </div>
+              </div>
+            ))}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-y-0 start-36 end-0"
+            >
+              <div
+                className="absolute inset-y-0 w-0.5 -translate-x-1/2 bg-control"
+                style={{ left: `${pct(NOW)}%` }}
+              >
+                <span className="absolute -top-1 left-1/2 size-2 -translate-x-1/2 rounded-full bg-control" />
+              </div>
             </div>
           </div>
         </div>
@@ -179,520 +162,325 @@ function DayTimeline() {
   )
 }
 
-function MovementsCard({
-  movements,
-  onComplete,
-  className,
+/** Une activité en un coup d'œil, dans sa couleur ; un clic pour y aller. */
+function ActivityCard({
+  activity,
+  href,
+  figure,
+  label,
+  lines,
+  todo,
 }: {
-  movements: Movement[]
-  onComplete: (id: string) => void
-  className?: string
+  activity: Activity
+  href: string
+  figure: string
+  label: string
+  lines: { icon: IconSvgElement; text: string }[]
+  todo?: string
 }) {
-  const [tab, setTab] = useState<Movement["type"]>("arrival")
-  const count = (type: Movement["type"]) =>
-    movements.filter((m) => m.type === type).length
-  const done = movements.filter((m) => m.status === "done").length
   return (
-    <Widget
-      action={
-        <Tabs
-          onValueChange={(value) => setTab(value as Movement["type"])}
-          value={tab}
-        >
-          <TabsList size="sm">
-            <TabsTab className="gap-1.5" value="arrival">
-              Arrivées
-              <span className="text-muted-foreground">{count("arrival")}</span>
-            </TabsTab>
-            <TabsTab className="gap-1.5" value="departure">
-              Départs
-              <span className="text-muted-foreground">
-                {count("departure")}
-              </span>
-            </TabsTab>
-          </TabsList>
-        </Tabs>
-      }
-      className={className}
-      description={`${done} sur ${movements.length} effectués`}
-      title="Arrivées & départs"
+    <Link
+      className={cn(
+        "group flex flex-col gap-5 rounded-4xl p-5 transition-[filter] hover:brightness-[0.97] md:p-6",
+        activityMeta[activity].tint
+      )}
+      href={href}
     >
-      <ul className="divide-y">
-        {movements
-          .filter((m) => m.type === tab)
-          .map((m) => (
-            <li
-              className="flex items-center gap-4 py-3 first:pt-0 last:pb-0"
-              key={m.id}
-            >
-              <Avatar className="size-12">
-                <AvatarFallback className="bg-muted text-sm font-semibold">
-                  {m.initials}
-                </AvatarFallback>
-              </Avatar>
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-semibold">
-                  {m.pet}{" "}
-                  <span className="font-normal text-muted-foreground">
-                    · {m.breed}
-                  </span>
-                </p>
-                <p className="truncate text-sm text-muted-foreground">
-                  <span className="tabular-nums">{m.time}</span> · {m.client} ·{" "}
-                  {m.box}
-                </p>
-              </div>
-              {m.status === "done" ? (
-                <Badge variant="success">
-                  <HugeiconsIcon icon={Tick02Icon} />
-                  {m.type === "arrival" ? "Arrivée validée" : "Départ validé"}
-                </Badge>
-              ) : (
-                <div className="flex shrink-0 items-center gap-2">
-                  {m.status === "late" && (
-                    <Badge variant="error">En retard</Badge>
-                  )}
-                  <Button
-                    onClick={() => onComplete(m.id)}
-                    size="sm"
-                    variant="secondary"
-                  >
-                    {m.type === "arrival" ? "Enregistrer" : "Valider le départ"}
-                  </Button>
-                </div>
-              )}
-            </li>
-          ))}
-      </ul>
-    </Widget>
-  )
-}
-
-function CareCard() {
-  const [tasks, setTasks] = useState(careTasks)
-  const done = tasks.filter((task) => task.done).length
-  return (
-    <Widget
-      description={`${done} sur ${tasks.length} effectués`}
-      title="Soins & traitements"
-    >
-      <Progress
-        aria-label="Soins effectués"
-        className="mb-4"
-        value={(done / tasks.length) * 100}
-      >
-        <ProgressTrack>
-          <ProgressIndicator className="bg-pension-strong" />
-        </ProgressTrack>
-      </Progress>
-      <ul className="space-y-4">
-        {tasks.map((task) => (
-          <li key={task.id}>
-            <label className="flex cursor-pointer items-start gap-3">
-              <Checkbox
-                checked={task.done}
-                className="mt-0.5"
-                onCheckedChange={(checked) =>
-                  setTasks((list) =>
-                    list.map((t) =>
-                      t.id === task.id ? { ...t, done: checked } : t
-                    )
-                  )
-                }
-              />
-              <span className="min-w-0 flex-1">
-                <span
-                  className={cn(
-                    "block",
-                    task.done && "text-muted-foreground line-through"
-                  )}
-                >
-                  <span className="font-medium">{task.pet}</span> · {task.task}
-                </span>
-                <span className="block text-sm text-muted-foreground">
-                  {task.time} · {task.box}
-                </span>
-              </span>
-            </label>
-          </li>
-        ))}
-      </ul>
-    </Widget>
-  )
-}
-
-function BoxesCard() {
-  const countOf = (status: BoxStatus) =>
-    boxes.filter((box) => box.status === status).length
-  return (
-    <Widget
-      action={
-        <Button
-          render={<Link href="/pension/planning" />}
-          size="xs"
-          variant="ghost"
-        >
-          Planning
-          <HugeiconsIcon icon={ArrowRight01Icon} />
-        </Button>
-      }
-      description={`${countOf("occupied") + countOf("departing")} animaux présents`}
-      title="Occupation des box"
-    >
-      <div className="grid grid-cols-6 gap-1.5">
-        {boxes.map((box) => (
-          <span
-            className={cn(
-              "flex aspect-square items-center justify-center rounded-md text-xs font-medium tabular-nums",
-              boxStyles[box.status].className
-            )}
-            key={box.number}
-            title={`Box ${box.number} · ${boxStyles[box.status].label}`}
+      <div className="flex items-center justify-between gap-3">
+        <span className="flex items-center gap-2 font-display text-3xl">
+          <HugeiconsIcon className="size-6" icon={activityIcons[activity]} />
+          {activity}
+        </span>
+        <span className="flex size-10 items-center justify-center rounded-full bg-white/60 transition-transform group-hover:translate-x-0.5">
+          <HugeiconsIcon className="size-5" icon={ArrowRight01Icon} />
+        </span>
+      </div>
+      <div>
+        <p className="font-display text-6xl leading-none tabular-nums">
+          {figure}
+        </p>
+        <p className="mt-1 font-semibold">{label}</p>
+      </div>
+      <ul className="space-y-2">
+        {lines.map((line) => (
+          <li
+            className="flex items-center gap-2.5 rounded-2xl bg-white/50 px-3 py-2.5"
+            key={line.text}
           >
-            {box.number}
-          </span>
-        ))}
-      </div>
-      <ul className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-        {(Object.keys(boxStyles) as BoxStatus[]).map((status) => (
-          <li className="flex items-center gap-1.5" key={status}>
-            <span
-              className={cn("size-2.5 rounded-sm", boxStyles[status].className)}
-            />
-            <span className="flex-1 text-muted-foreground">
-              {boxStyles[status].label}
-            </span>
-            <span className="font-medium tabular-nums">{countOf(status)}</span>
+            <HugeiconsIcon className="size-5 shrink-0" icon={line.icon} />
+            {line.text}
           </li>
         ))}
       </ul>
-    </Widget>
-  )
-}
-
-function RevenueCard() {
-  const total = revenue.reduce((sum, r) => sum + r.amount, 0)
-  const max = Math.max(...week.map((d) => d.amount))
-  const todayIndex = week.findIndex((d) => d.today)
-  return (
-    <Widget description="Prévisionnel du jour" title="Chiffre d'affaires">
-      <div className="flex items-baseline gap-2">
-        <span className="font-heading text-2xl font-semibold tabular-nums">
-          {formatAmount(total)}
+      {todo && (
+        <span className="mt-auto w-fit rounded-full bg-wise-forest px-3 py-1 text-sm font-semibold text-wise-green">
+          {todo}
         </span>
-        <span className="flex items-center gap-1 text-xs font-medium text-pension-strong">
-          <HugeiconsIcon className="size-3.5" icon={ChartIncreaseIcon} />
-          +12 %
-        </span>
-      </div>
-      <div className="mt-3 flex h-2 gap-0.5 overflow-hidden rounded-full">
-        {revenue.map((r) => (
-          <span
-            className={activityMeta[r.activity].color}
-            key={r.activity}
-            style={{ width: `${(r.amount / total) * 100}%` }}
-          />
-        ))}
-      </div>
-      <ul className="mt-3 space-y-1.5 text-sm">
-        {revenue.map((r) => (
-          <li className="flex items-center gap-2" key={r.activity}>
-            <ActivityMark
-              activity={r.activity}
-              className="size-4 rounded text-[0.5rem]"
-            />
-            <span className="flex-1">{r.activity}</span>
-            <span className="text-xs text-muted-foreground tabular-nums">
-              {Math.round((r.amount / total) * 100)} %
-            </span>
-            <span className="w-16 text-end font-medium tabular-nums">
-              {formatAmount(r.amount)}
-            </span>
-          </li>
-        ))}
-      </ul>
-      <div className="mt-4 border-t pt-4">
-        <p className="mb-2 text-xs text-muted-foreground">Cette semaine</p>
-        <div className="flex items-end gap-1.5">
-          {week.map((d, i) => (
-            <div
-              className="flex flex-1 flex-col items-center gap-1"
-              key={d.day}
-            >
-              <div
-                className={cn(
-                  "w-full rounded-sm",
-                  d.today
-                    ? "bg-pension-strong"
-                    : i < todayIndex
-                      ? "bg-pension/60"
-                      : "bg-muted"
-                )}
-                style={{ height: `${(d.amount / max) * 64}px` }}
-                title={formatAmount(d.amount)}
-              />
-              <span
-                className={cn(
-                  "text-[0.625rem] text-muted-foreground",
-                  d.today && "font-semibold text-foreground"
-                )}
-              >
-                {d.day}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </Widget>
-  )
-}
-
-function TodoCard() {
-  const [items, setItems] = useState(todos)
-  const remaining = items.filter((todo) => !todo.done).length
-  return (
-    <Widget description={`${remaining} restantes`} title="À faire">
-      <ul className="space-y-4">
-        {items.map((todo) => (
-          <li className="flex items-start gap-3" key={todo.id}>
-            <Checkbox
-              aria-label={todo.label}
-              checked={todo.done}
-              className="mt-0.5"
-              onCheckedChange={(checked) =>
-                setItems((list) =>
-                  list.map((t) =>
-                    t.id === todo.id ? { ...t, done: checked } : t
-                  )
-                )
-              }
-            />
-            <div className="min-w-0 flex-1 space-y-1">
-              <p
-                className={cn(
-                  todo.done && "text-muted-foreground line-through"
-                )}
-              >
-                {todo.label}
-              </p>
-              <Badge variant="outline">
-                {todo.tag in activityMeta && (
-                  <ActivityMark
-                    activity={todo.tag as Activity}
-                    className="size-3 rounded-sm text-[0.4375rem]"
-                  />
-                )}
-                {todo.tag}
-              </Badge>
-            </div>
-            {todo.href && !todo.done && (
-              <Button
-                aria-label="Ouvrir"
-                render={<Link href={todo.href} />}
-                size="icon-xs"
-                variant="ghost"
-              >
-                <HugeiconsIcon icon={ArrowRight01Icon} />
-              </Button>
-            )}
-          </li>
-        ))}
-      </ul>
-    </Widget>
+      )}
+    </Link>
   )
 }
 
 export function TodayView() {
-  const [movements, setMovements] = useState(initialMovements)
-  const arrivals = movements.filter((m) => m.type === "arrival").length
-  const done = movements.filter((m) => m.status === "done").length
-  const late = movements.filter((m) => m.status === "late").length
-  const present = boxes.filter(
-    (box) => box.status === "occupied" || box.status === "departing"
+  const [handled, setHandled] = useState<string[]>([])
+  const handle = (id: string) => setHandled((list) => [...list, id])
+
+  // Pension
+  const present = kennels.filter(
+    (k) => k.status === "occupied" || k.status === "departing"
   ).length
-  const appointments = (activity: Activity) =>
-    timeline.filter((event) => event.activity === activity).length
+  const arrivals = stayMovements.filter((m) => m.type === "arrival")
+  const departures = stayMovements.filter((m) => m.type === "departure")
+  const late = stayMovements.filter((m) => m.status === "late")
+  const nextArrival = arrivals.find((m) => m.status === "expected")
+  const stayRequests = stays.filter((s) => s.status === "pending").length
+
+  // Toilettage
+  const onTable = appointments.find((a) => a.status === "in-progress")
+  const nextGrooming = appointments.find(
+    (a) => a.status === "upcoming" || a.status === "checked-in"
+  )
+  const groomingRequests = salonBookings.filter(
+    (b) => b.status === "pending"
+  ).length
+  const low = stock.filter((item) => item.level < 25)
+
+  // Éducation
+  const liveSession = sessions.find((s) => s.start <= NOW && NOW < s.end)
+  const nextSession = sessions.find((s) => s.start > NOW)
+  const absent = puppies.filter((p) => !p.present)
+  const toWrite = reports.filter(
+    (r) => !r.sent && !(r.after !== undefined && NOW < r.after)
+  ).length
+  const rainy = sessions.flatMap((s) => {
+    const rain = forecast.find(
+      (f) => f.sky === "rain" && s.start <= f.hour && f.hour < s.end
+    )
+    return rain ? [{ hour: rain.hour, session: s }] : []
+  })
+
+  /** Seulement l'urgent du jour ; le reste attend dans chaque activité. */
+  const attention: Attention[] = [
+    ...late.map((m) => ({
+      actions: (
+        <>
+          <Button className="bg-background" variant="outline">
+            <HugeiconsIcon icon={Call02Icon} />
+            Appeler {m.owner.split(" ")[0]}
+          </Button>
+          <Button render={<Link href="/pension/today" />}>
+            Valider le départ
+          </Button>
+        </>
+      ),
+      detail: `Pension · prévu à ${formatHour(hourOf(m.time))} · ${m.kennel} · ${m.owner}`,
+      icon: Logout03Icon,
+      id: `late-${m.id}`,
+      title: `Départ de ${m.pet} · en retard`,
+      tone: "bg-destructive-soft text-destructive",
+    })),
+    ...absent.map((p) => ({
+      actions: (
+        <Button onClick={() => handle(`absent-${p.id}`)}>
+          Proposer un rattrapage
+        </Button>
+      ),
+      detail: `Éducation · ${p.owner} n'a pas prévenu`,
+      icon: UserRemove01Icon,
+      id: `absent-${p.id}`,
+      title: `${p.name} absent ${liveSession ? `au ${liveSession.title.toLowerCase()}` : "aujourd'hui"}`,
+      tone: activityMeta["Éducation"].tint,
+    })),
+    ...(low.length
+      ? [
+          {
+            actions: (
+              <Button onClick={() => handle("stock")}>
+                <HugeiconsIcon icon={PackageIcon} />
+                Commander
+              </Button>
+            ),
+            detail: `Toilettage · ${low.map((item) => `${item.label} ${item.level} %`).join(" · ")}`,
+            icon: PackageIcon,
+            id: "stock",
+            title: `${plural(low.length, "produit")} presque vide${low.length > 1 ? "s" : ""}`,
+            tone: activityMeta.Toilettage.tint,
+          },
+        ]
+      : []),
+    ...rainy.map(({ hour, session }) => ({
+      actions: (
+        <Button onClick={() => handle(`rain-${session.id}`)}>
+          Prévenir {session.owner?.split(" ")[0] ?? "les familles"}
+        </Button>
+      ),
+      detail: `Éducation · ${session.place} : prévoir l'intérieur ou décaler`,
+      icon: CloudAngledRainIcon,
+      id: `rain-${session.id}`,
+      title: `Pluie à ${formatHour(hour)} · ${session.title}`,
+      tone: activityMeta["Éducation"].tint,
+    })),
+  ].filter((item) => !handled.includes(item.id))
 
   return (
     <PageBody>
-      <section className="space-y-6">
-        <div className="flex flex-wrap items-end justify-between gap-6">
-          <div className="space-y-3">
-            <p className="text-sm font-semibold text-muted-foreground">
-              Mercredi 21 octobre
-            </p>
-            <h1 className="font-display text-6xl md:text-7xl">Bonjour</h1>
-            <p className="max-w-xl text-lg text-muted-foreground">
-              {present} animaux en pension, {movements.length} arrivées et
-              départs, et{" "}
-              {appointments("Toilettage") + appointments("Éducation")}{" "}
-              rendez-vous au programme aujourd&apos;hui.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex h-10 items-center gap-2 rounded-full bg-muted px-4 text-sm font-semibold">
-              <HugeiconsIcon className="size-5" icon={SunCloud01Icon} />
-              16 °C
-              <span className="font-normal text-muted-foreground">
-                · Promenades idéales jusqu&apos;à 16h
-              </span>
+      <section className="relative overflow-hidden rounded-4xl bg-wise-forest p-6 text-white md:p-10">
+        <Squiggle className="absolute -right-10 -bottom-12 w-56 md:w-96" />
+        <div className="relative space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="font-semibold text-white/70">Mercredi 21 octobre</p>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex h-10 items-center gap-2 rounded-full bg-white/10 px-4 text-sm font-semibold">
+                <HugeiconsIcon className="size-5" icon={SunCloud01Icon} />
+                16 °C
+                <span className="font-normal text-white/70">
+                  · Promenades idéales jusqu&apos;à 16h
+                </span>
+              </div>
+              <AvatarGroup aria-label="Équipe du jour">
+                {team.map((member) => (
+                  <Avatar
+                    className="size-10"
+                    key={member.name}
+                    title={`${member.name} · ${member.role} · ${member.hours}`}
+                  >
+                    <AvatarFallback className="bg-white/15 text-xs font-semibold text-white">
+                      {member.initials}
+                    </AvatarFallback>
+                  </Avatar>
+                ))}
+              </AvatarGroup>
             </div>
-            <AvatarGroup aria-label="Équipe du jour">
-              {team.map((member) => (
-                <Avatar
-                  className="size-10"
-                  key={member.name}
-                  title={`${member.name} · ${member.role} · ${member.hours}`}
-                >
-                  <AvatarFallback className="text-xs font-semibold">
-                    {member.initials}
-                  </AvatarFallback>
-                </Avatar>
-              ))}
-            </AvatarGroup>
           </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <NewStayDialog
-            trigger={
-              <Button size="lg">
-                <HugeiconsIcon icon={PlusSignIcon} />
-                Nouveau séjour
-              </Button>
-            }
-          />
-          <NewAppointmentDialog
-            trigger={
-              <Button size="lg" variant="secondary">
-                <HugeiconsIcon icon={Calendar03Icon} />
-                Nouveau rendez-vous
-              </Button>
-            }
-          />
-          <Button size="lg" variant="secondary">
-            <HugeiconsIcon icon={PrinterIcon} />
-            Feuille du jour
-          </Button>
+          <div className="space-y-3">
+            <h1 className="font-display text-7xl leading-[0.9] text-wise-green md:text-9xl">
+              Bonjour
+            </h1>
+            <p className="max-w-xl text-lg text-white/80">
+              {present} animaux en pension,{" "}
+              {plural(appointments.length, "toilettage")} et{" "}
+              {plural(sessions.length, "séance")} d&apos;éducation
+              aujourd&apos;hui.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <NewStayDialog
+              trigger={
+                <Button size="lg">
+                  <HugeiconsIcon icon={PlusSignIcon} />
+                  Nouveau séjour
+                </Button>
+              }
+            />
+            <NewAppointmentDialog
+              trigger={
+                <Button className={onForest} size="lg">
+                  <HugeiconsIcon icon={Calendar03Icon} />
+                  Nouveau rendez-vous
+                </Button>
+              }
+            />
+            <Button className={onForest} size="lg">
+              <HugeiconsIcon icon={PrinterIcon} />
+              Feuille du jour
+            </Button>
+          </div>
         </div>
       </section>
 
-      <Alert variant="warning">
-        <HugeiconsIcon icon={Alert02Icon} />
-        <AlertTitle>2 points d&apos;attention</AlertTitle>
-        <AlertDescription>
-          <ul className="list-disc space-y-0.5 ps-4">
-            <li>
-              Pixel (box 14) devait partir à 10h : pas de nouvelles de Nina
-              Robert pour le moment.
-            </li>
-            <li>
-              Rocky (toilettage 14h) a la peau sensible : shampoing
-              hypoallergénique uniquement.
-            </li>
-          </ul>
-        </AlertDescription>
-      </Alert>
+      <Section count={attention.length || undefined} title="À traiter">
+        <AttentionList items={attention} />
+      </Section>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Kpi
-          icon={BedDoubleIcon}
-          label="Pensionnaires"
-          value={
-            <>
-              {present}
-              <span className="text-base text-muted-foreground">
-                {" "}
-                / {boxes.length}
-              </span>
-            </>
-          }
-        >
-          <Progress
-            aria-label="Taux d'occupation"
-            className="gap-1"
-            value={(present / boxes.length) * 100}
-          >
-            <ProgressTrack>
-              <ProgressIndicator className="bg-pension-strong" />
-            </ProgressTrack>
-          </Progress>
-          <p className="mt-1.5">
-            {Math.round((present / boxes.length) * 100)} % d&apos;occupation
-          </p>
-        </Kpi>
-        <Kpi
-          icon={Login03Icon}
-          label="Arrivées · Départs"
-          value={`${arrivals} · ${movements.length - arrivals}`}
-        >
-          {done} effectués
-          {late > 0 && (
-            <span className="text-destructive-foreground">
-              {" "}
-              · {late} en retard
-            </span>
-          )}
-        </Kpi>
-        <Kpi
-          icon={Calendar03Icon}
-          label="Rendez-vous"
-          value={appointments("Toilettage") + appointments("Éducation")}
-        >
-          <span className="flex flex-wrap gap-x-3 gap-y-1">
-            {(["Toilettage", "Éducation"] as const).map((activity) => (
-              <span className="flex items-center gap-1" key={activity}>
-                <ActivityMark
-                  activity={activity}
-                  className="size-3.5 rounded-sm text-[0.5rem]"
-                />
-                {appointments(activity)} {activity.toLowerCase()}
-              </span>
-            ))}
-          </span>
-        </Kpi>
-        <Kpi
-          icon={EuroCircleIcon}
-          label="CA prévu"
-          value={formatAmount(revenue.reduce((s, r) => s + r.amount, 0))}
-        >
-          <span className="flex items-center gap-1 text-pension-strong">
-            <HugeiconsIcon className="size-3.5" icon={ChartIncreaseIcon} />
-            +12 % vs mercredi dernier
-          </span>
-        </Kpi>
-      </div>
+      <Section title="Vos activités">
+        <div className="grid gap-4 md:grid-cols-3">
+          <ActivityCard
+            activity="Pension"
+            figure={`${present}/${kennels.length}`}
+            href="/pension/today"
+            label="box occupés ce soir"
+            lines={[
+              {
+                icon: Login03Icon,
+                text: nextArrival
+                  ? `Prochaine arrivée : ${nextArrival.pet} à ${formatHour(hourOf(nextArrival.time))}`
+                  : `${plural(arrivals.length, "arrivée")} aujourd'hui`,
+              },
+              {
+                icon: Logout03Icon,
+                text: `${plural(departures.length, "départ")}${late.length ? ` · ${late.length} en retard` : ""}`,
+              },
+            ]}
+            todo={
+              stayRequests
+                ? `${plural(stayRequests, "demande")} à confirmer`
+                : undefined
+            }
+          />
+          <ActivityCard
+            activity="Toilettage"
+            figure={String(appointments.length)}
+            href="/grooming/today"
+            label="rendez-vous aujourd'hui"
+            lines={[
+              {
+                icon: ScissorIcon,
+                text: onTable
+                  ? `${onTable.pet} sur la table · fin ${formatHour(onTable.end)}`
+                  : "Table libre",
+              },
+              {
+                icon: Clock01Icon,
+                text: nextGrooming
+                  ? `Prochain : ${nextGrooming.pet} à ${formatHour(nextGrooming.start)}`
+                  : "Plus de rendez-vous",
+              },
+            ]}
+            todo={
+              groomingRequests
+                ? `${plural(groomingRequests, "demande")} en ligne`
+                : undefined
+            }
+          />
+          <ActivityCard
+            activity="Éducation"
+            figure={String(sessions.length)}
+            href="/training/today"
+            label="séances aujourd'hui"
+            lines={[
+              {
+                icon: UserGroupIcon,
+                text: liveSession
+                  ? `${liveSession.title} en cours · fin ${formatHour(liveSession.end)}`
+                  : "Aucune séance en cours",
+              },
+              {
+                icon: Clock01Icon,
+                text: nextSession
+                  ? `Prochaine : ${nextSession.dog ?? nextSession.title} à ${formatHour(nextSession.start)}`
+                  : "Plus de séance",
+              },
+            ]}
+            todo={
+              toWrite
+                ? `${toWrite} compte${toWrite > 1 ? "s" : ""}-rendu${toWrite > 1 ? "s" : ""} à envoyer`
+                : undefined
+            }
+          />
+        </div>
+      </Section>
 
-      <Widget
+      <Section
         action={
-          <Badge variant="outline">
-            <span className="size-1.5 rounded-full bg-control" />
+          <span className="flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-sm font-semibold">
+            <span className="size-2 rounded-full bg-control" />
             Maintenant · {formatHour(NOW)}
-          </Badge>
+          </span>
         }
-        description="Toutes activités confondues"
-        title="Planning de la journée"
+        title="Le fil de la journée"
       >
         <DayTimeline />
-      </Widget>
-
-      <div className="grid gap-4 lg:grid-cols-3">
-        <MovementsCard
-          className="lg:col-span-2"
-          movements={movements}
-          onComplete={(id) =>
-            setMovements((list) =>
-              list.map((m) => (m.id === id ? { ...m, status: "done" } : m))
-            )
-          }
-        />
-        <CareCard />
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <BoxesCard />
-        <RevenueCard />
-        <TodoCard />
-      </div>
+      </Section>
     </PageBody>
   )
 }

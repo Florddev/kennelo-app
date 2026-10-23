@@ -132,9 +132,7 @@ export function StatsView() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-sm text-muted-foreground">Octobre 2026</p>
-          <h2 className="font-heading text-2xl font-semibold">
-            Vue d&apos;ensemble
-          </h2>
+          <h2 className="font-display text-4xl">Vue d&apos;ensemble</h2>
         </div>
         <Tabs
           onValueChange={(value) => setPeriod(String(value))}

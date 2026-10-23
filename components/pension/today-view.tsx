@@ -1,19 +1,12 @@
 "use client"
 
 import {
-  hourOf,
-  NowCard,
-  Timeline,
-  type TimelineItem,
-} from "@/components/agenda/agenda"
-import {
   Alert02Icon,
   ArrowRight01Icon,
-  BedDoubleIcon,
+  CalendarAdd01Icon,
   Call02Icon,
   Camera01Icon,
   CleaningBucketIcon,
-  CalendarAdd01Icon,
   Login03Icon,
   Logout03Icon,
   MedicineBottle01Icon,
@@ -25,7 +18,9 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react"
 import Link from "next/link"
 import { useState } from "react"
+import { hourOf } from "@/components/agenda/agenda"
 import { shortDate } from "@/components/calendar"
+import { CheckFlow } from "@/components/pension/check-flow"
 import {
   type Kennel,
   type KennelStatus,
@@ -36,20 +31,24 @@ import {
   type StayMovement,
   stayMovements,
   stayProgress,
+  stays as initialStays,
 } from "@/components/pension/data"
+import { NewStayDialog } from "@/components/pension/new-stay-dialog"
+import { stayRequests } from "@/components/pension/requests"
 import { careTasks, NOW } from "@/components/today/data"
-import { formatHour } from "@/components/today/widgets"
 import {
   ActivityDayPage,
+  type Attention,
+  AttentionList,
   Bar,
   formatAmount,
-  Kpi,
-  Widget,
+  formatHour,
+  Section,
+  type Task,
+  TaskList,
 } from "@/components/today/widgets"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { CheckFlow } from "@/components/pension/check-flow"
-import { NewStayDialog } from "@/components/pension/new-stay-dialog"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -68,7 +67,7 @@ const kennelStyles: Record<KennelStatus, { label: string; className: string }> =
       className: "bg-warning text-warning-foreground",
       label: "Départ prévu",
     },
-    free: { className: "bg-muted text-muted-foreground", label: "Libre" },
+    free: { className: "bg-background text-muted-foreground", label: "Libre" },
     occupied: {
       className: "bg-pension text-pension-foreground",
       label: "Occupé",
@@ -95,7 +94,7 @@ function KennelTile({
   return (
     <button
       className={cn(
-        "flex min-h-16 flex-col justify-between rounded-lg p-1.5 text-start text-xs transition-shadow",
+        "flex min-h-16 flex-col justify-between rounded-xl p-1.5 text-start text-xs transition-shadow",
         kennelStyles[kennel.status].className,
         selected && "ring-2 ring-ring ring-offset-2 ring-offset-background"
       )}
@@ -198,22 +197,21 @@ function KennelMap({
   const countOf = (status: KennelStatus) =>
     kennels.filter((k) => k.status === status).length
   return (
-    <Widget
+    <Section
       action={
         <Button
           render={<Link href="/pension/planning" />}
           size="sm"
           variant="ghost"
         >
-          Planning des box
+          Calendrier
           <HugeiconsIcon icon={ArrowRight01Icon} />
         </Button>
       }
       className={className}
-      description={`${kennels.filter(isPresent).length} pensionnaires sur ${kennels.length} places`}
       title="Plan du chenil"
     >
-      <div className="space-y-4">
+      <div className="space-y-4 rounded-3xl bg-muted p-4">
         {(["Chenil", "Chatterie"] as const).map((area) => (
           <div key={area}>
             <p className="mb-2 text-xs font-semibold text-muted-foreground">
@@ -251,63 +249,11 @@ function KennelMap({
             </li>
           ))}
         </ul>
-        <div className="rounded-xl border bg-muted/40 p-3">
+        <div className="rounded-2xl bg-background p-3">
           <KennelDetail kennel={selected} />
         </div>
       </div>
-    </Widget>
-  )
-}
-
-function NewsCard() {
-  const [news, setNews] = useState(ownerNews)
-  const sent = news.filter((n) => n.sent).length
-  return (
-    <Widget
-      description={`${sent} sur ${news.length} envoyées`}
-      title="Nouvelles aux propriétaires"
-    >
-      <ul className="divide-y">
-        {news.map((n) => (
-          <li
-            className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0"
-            key={n.id}
-          >
-            <Avatar className="size-10">
-              <AvatarFallback className="text-xs">{n.initials}</AvatarFallback>
-            </Avatar>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm">
-                <span className="font-semibold">{n.pet}</span>
-                <span className="text-muted-foreground"> · {n.owner}</span>
-              </p>
-              <p className="truncate text-sm text-muted-foreground">
-                « {n.note} »
-              </p>
-            </div>
-            {n.sent ? (
-              <Badge variant="success">
-                <HugeiconsIcon icon={Tick02Icon} />
-                Envoyée
-              </Badge>
-            ) : (
-              <Button
-                onClick={() =>
-                  setNews((list) =>
-                    list.map((i) => (i.id === n.id ? { ...i, sent: true } : i))
-                  )
-                }
-                size="sm"
-                variant="outline"
-              >
-                <HugeiconsIcon icon={Camera01Icon} />
-                Photo
-              </Button>
-            )}
-          </li>
-        ))}
-      </ul>
-    </Widget>
+    </Section>
   )
 }
 
@@ -349,31 +295,37 @@ const cleaning = [
   },
 ]
 
-const filters = [
-  { label: "Arrivées & départs", value: "moves" },
-  { label: "Soins", value: "care" },
-  { label: "Repas", value: "meals" },
-  { label: "Sorties", value: "outings" },
-  { label: "Ménage", value: "cleaning" },
+/** La journée découpée en moments, pour ne voir que ce qui compte maintenant. */
+const moments = [
+  { from: 0, label: "Matin", to: 12 },
+  { from: 12, label: "Midi", to: 14 },
+  { from: 14, label: "Après-midi", to: 18 },
+  { from: 18, label: "Soir", to: 24 },
 ]
+
+const momentOf = (hour: number) =>
+  Math.max(
+    0,
+    moments.findIndex((m) => hour >= m.from && hour < m.to)
+  )
 
 export function PensionTodayView() {
   const [kennels, setKennels] = useState(initialKennels)
   const [movements, setMovements] = useState(stayMovements)
   const [meals, setMeals] = useState(initialMeals)
+  const [stays, setStays] = useState(initialStays)
+  const [newsSent, setNewsSent] = useState(false)
   const [done, setDone] = useState<Record<string, boolean>>(() =>
     Object.fromEntries([...careTasks, ...cleaning].map((t) => [t.id, t.done]))
   )
+  const [moment, setMoment] = useState(() => momentOf(NOW))
   const [flowId, setFlowId] = useState<string | null>(null)
   const [flowOpen, setFlowOpen] = useState(false)
   const present = kennels.filter(isPresent).length
-  const count = (type: StayMovement["type"]) =>
-    movements.filter((m) => m.type === type)
-  const doneOf = (type: StayMovement["type"]) =>
-    count(type).filter((m) => m.status === "done").length
-  const late = movements.filter((m) => m.status === "late").length
-  const pendingCare = careTasks.filter((t) => !done[t.id])
+  const arrivals = movements.filter((m) => m.type === "arrival")
+  const departures = movements.filter((m) => m.type === "departure")
   const diets = kennels.filter((k) => k.diet && k.status !== "free")
+  const news = ownerNews.filter((n) => !n.sent)
   const toggle = (id: string) => setDone((d) => ({ ...d, [id]: true }))
   const openFlow = (m: StayMovement) => {
     setFlowId(m.id)
@@ -390,49 +342,91 @@ export function PensionTodayView() {
     setKennels((list) => list.map((k) => (k.id === id ? { ...k, status } : k)))
   }
 
-  const items: TimelineItem[] = [
-    ...movements.map((m) => {
-      const arrival = m.type === "arrival"
-      return {
-        action: {
-          label: arrival ? "Enregistrer l'arrivée" : "Valider le départ",
-          onClick: () => openFlow(m),
-        },
-        detail: [
-          m.kennel,
-          m.owner,
-          arrival
-            ? m.checks?.join(", ")
-            : m.balance
+  const attention: Attention[] = [
+    ...movements
+      .filter((m) => m.status === "late")
+      .map((m) => {
+        const arrival = m.type === "arrival"
+        return {
+          actions: (
+            <>
+              <Button className="bg-background" variant="outline">
+                <HugeiconsIcon icon={Call02Icon} />
+                Appeler {m.owner.split(" ")[0]}
+              </Button>
+              <Button onClick={() => openFlow(m)}>
+                {arrival ? "Enregistrer l'arrivée" : "Valider le départ"}
+              </Button>
+            </>
+          ),
+          detail: [
+            `Prévu à ${formatHour(hourOf(m.time))}`,
+            m.kennel,
+            m.owner,
+            !arrival && m.balance
               ? `reste ${formatAmount(m.balance)} à régler`
               : undefined,
-        ]
-          .filter(Boolean)
-          .join(" · "),
-        done: m.status === "done",
-        icon: arrival ? Login03Icon : Logout03Icon,
-        id: m.id,
-        kind: "moves",
-        late: m.status === "late",
-        time: hourOf(m.time),
-        title: `${arrival ? "Arrivée" : "Départ"} de ${m.pet}`,
-        tone: "bg-pension text-pension-foreground",
-      }
+          ]
+            .filter(Boolean)
+            .join(" · "),
+          icon: arrival ? Login03Icon : Logout03Icon,
+          id: m.id,
+          title: `${arrival ? "Arrivée" : "Départ"} de ${m.pet} · en retard`,
+          tone: "bg-destructive-soft text-destructive",
+        }
+      }),
+    ...stayRequests(stays, {
+      decline: (id) => setStays((list) => list.filter((s) => s.id !== id)),
+      update: (id, patch) =>
+        setStays((list) =>
+          list.map((s) => (s.id === id ? { ...s, ...patch } : s))
+        ),
     }),
+  ]
+
+  /** Arrivées et départs ; un retard reste en haut, dans « À traiter ». */
+  const moveTasks = (list: StayMovement[]): Task[] =>
+    list
+      .filter((m) => m.status !== "late")
+      .map((m) => {
+        const arrival = m.type === "arrival"
+        return {
+          action: {
+            label: arrival ? "Enregistrer" : "Valider",
+            onClick: () => openFlow(m),
+          },
+          detail: [
+            m.kennel,
+            m.owner,
+            !arrival && m.balance
+              ? `reste ${formatAmount(m.balance)}`
+              : undefined,
+          ]
+            .filter(Boolean)
+            .join(" · "),
+          done: m.status === "done",
+          icon: arrival ? Login03Icon : Logout03Icon,
+          id: m.id,
+          time: hourOf(m.time),
+          title: m.pet,
+          tone: "bg-pension text-pension-foreground",
+        }
+      })
+
+  const dayTasks: Task[] = [
     ...careTasks.map((t) => ({
       action: { label: "C'est fait", onClick: () => toggle(t.id) },
       detail: `${t.task} · ${t.box}`,
       done: done[t.id],
       icon: MedicineBottle01Icon,
       id: t.id,
-      kind: "care",
       time: hourOf(t.time),
       title: `Soin de ${t.pet}`,
       tone: "bg-wise-pink text-wise-purple",
     })),
     ...meals.map((meal) => ({
       action: {
-        label: "Repas servi",
+        label: "Servi",
         onClick: () =>
           setMeals((list) =>
             list.map((m) => (m.id === meal.id ? { ...m, served: m.total } : m))
@@ -442,7 +436,6 @@ export function PensionTodayView() {
       done: meal.served === meal.total,
       icon: Restaurant01Icon,
       id: meal.id,
-      kind: "meals",
       time: meal.start,
       title: `Repas du ${meal.label.toLowerCase()}`,
       tone: "bg-wise-yellow text-wise-gold",
@@ -452,7 +445,6 @@ export function PensionTodayView() {
       done: o.end <= NOW,
       icon: WalkingIcon,
       id: o.id,
-      kind: "outings",
       time: o.start,
       title: o.label,
       tone: "bg-wise-green text-wise-forest",
@@ -463,18 +455,27 @@ export function PensionTodayView() {
       done: done[c.id],
       icon: CleaningBucketIcon,
       id: c.id,
-      kind: "cleaning",
       time: c.time,
       title: c.label,
       tone: "bg-wise-blue text-wise-charcoal",
     })),
+    {
+      action: { label: "Envoyer", onClick: () => setNewsSent(true) },
+      detail: `${news.map((n) => n.pet).join(", ")} attendent une photo`,
+      done: newsSent || news.length === 0,
+      icon: Camera01Icon,
+      id: "news",
+      time: 17,
+      title: "Nouvelles aux propriétaires",
+      tone: "bg-background",
+    },
   ]
-  const now = items
-    .filter((i) => !i.done && i.action)
-    .sort(
-      (a, b) => Number(b.late ?? 0) - Number(a.late ?? 0) || a.time - b.time
-    )[0]
-  const nowMove = movements.find((m) => m.id === now?.id)
+  const tasksOf = (i: number) =>
+    dayTasks
+      .filter((t) => momentOf(t.time ?? 0) === i)
+      .sort((a, b) => (a.time ?? 0) - (b.time ?? 0))
+  const momentTasks = tasksOf(moment)
+  const left = (list: Task[]) => list.filter((t) => !t.done).length
 
   return (
     <ActivityDayPage
@@ -510,112 +511,87 @@ export function PensionTodayView() {
       }
       summary={
         <>
-          {present} pensionnaires, {count("arrival").length} arrivées et{" "}
-          {count("departure").length} départs prévus.
+          {present} pensionnaires sur {kennels.length} places, {arrivals.length}{" "}
+          arrivées et {departures.length} départs aujourd&apos;hui.
         </>
       }
     >
-      {now && (
-        <NowCard
-          actions={
-            <>
-              {nowMove?.status === "late" && (
-                <Button size="lg" variant="secondary">
-                  <HugeiconsIcon icon={Call02Icon} />
-                  Appeler {nowMove.owner.split(" ")[0]}
-                </Button>
-              )}
-              <Button onClick={now.action?.onClick} size="lg">
-                {now.action?.label}
-              </Button>
-            </>
-          }
-          detail={now.detail}
-          eyebrow={
-            now.late
-              ? `En retard · prévu à ${formatHour(now.time)}`
-              : `À faire maintenant · ${formatHour(now.time)}`
-          }
-          media={
-            <span
-              className={cn(
-                "flex size-14 shrink-0 items-center justify-center rounded-full",
-                now.late ? "bg-destructive-soft text-destructive" : now.tone
-              )}
-            >
-              <HugeiconsIcon className="size-7" icon={now.icon} />
-            </span>
-          }
-          title={now.title}
+      <Section count={attention.length || undefined} title="À traiter">
+        <AttentionList
+          items={attention}
+          limit={3}
+          moreHref="/pension/planning"
         />
-      )}
+      </Section>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Kpi
-          icon={BedDoubleIcon}
-          label="Pensionnaires"
-          value={
-            <>
-              {present}
-              <span className="text-base text-muted-foreground">
-                {" "}
-                / {kennels.length}
-              </span>
-            </>
-          }
-        >
-          <Bar
-            className="bg-pension-strong"
-            label="Taux d'occupation"
-            value={(present / kennels.length) * 100}
+      <div className="grid items-start gap-8 md:grid-cols-2">
+        <Section count={left(moveTasks(arrivals))} title="Arrivées">
+          <TaskList
+            empty="Tout le monde est arrivé"
+            tasks={moveTasks(arrivals)}
           />
-          <p className="mt-1.5">
-            {Math.round((present / kennels.length) * 100)} % d&apos;occupation
-          </p>
-        </Kpi>
-        <Kpi
-          icon={Login03Icon}
-          label="Arrivées"
-          value={`${doneOf("arrival")} / ${count("arrival").length}`}
-        >
-          {count("arrival").length - doneOf("arrival")} encore attendues
-        </Kpi>
-        <Kpi
-          icon={Logout03Icon}
-          label="Départs"
-          value={`${doneOf("departure")} / ${count("departure").length}`}
-        >
-          {late > 0 ? (
-            <span className="text-destructive-foreground">
-              {late} en retard
-            </span>
-          ) : (
-            "Tous dans les temps"
-          )}
-        </Kpi>
-        <Kpi
-          icon={MedicineBottle01Icon}
-          label="Soins à faire"
-          value={pendingCare.length}
-        >
-          {pendingCare[0]
-            ? `Prochain à ${pendingCare[0].time.replace(":", "h")} · ${pendingCare[0].pet}`
-            : "Tous faits"}
-        </Kpi>
+        </Section>
+        <Section count={left(moveTasks(departures))} title="Départs">
+          <TaskList
+            empty="Tous les départs sont faits"
+            tasks={moveTasks(departures)}
+          />
+        </Section>
       </div>
 
-      <div className="grid items-start gap-6 lg:grid-cols-3">
-        <Widget
+      <div className="grid items-start gap-8 lg:grid-cols-3">
+        <Section
           className="lg:col-span-2"
-          description="Tout ce qui est prévu aujourd'hui, dans l'ordre"
-          title="Programme de la journée"
+          action={
+            <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
+              <div
+                aria-label="Moment de la journée"
+                className="flex w-max gap-1 rounded-full bg-muted p-1"
+                role="tablist"
+              >
+                {moments.map((m, i) => {
+                  const count = left(tasksOf(i))
+                  return (
+                    <button
+                      aria-selected={i === moment}
+                      className={cn(
+                        "flex h-11 items-center gap-2 rounded-full px-4 font-semibold transition-colors",
+                        i === moment
+                          ? "bg-background shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                      key={m.label}
+                      onClick={() => setMoment(i)}
+                      role="tab"
+                      type="button"
+                    >
+                      {m.label}
+                      {count > 0 ? (
+                        <span className="rounded-full bg-control px-2 text-xs text-control-foreground tabular-nums">
+                          {count}
+                        </span>
+                      ) : (
+                        <HugeiconsIcon className="size-4" icon={Tick02Icon} />
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          }
+          title="La journée"
         >
-          <Timeline filters={filters} items={items} />
-        </Widget>
-        <div className="space-y-6">
-          <KennelMap kennels={kennels} />
-          <NewsCard />
-        </div>
+          <TaskList
+            empty={
+              momentTasks.length
+                ? "Tout est fait pour ce moment"
+                : "Rien de prévu pour ce moment"
+            }
+            key={moment}
+            tasks={momentTasks}
+          />
+        </Section>
+        <KennelMap kennels={kennels} />
       </div>
 
       <CheckFlow

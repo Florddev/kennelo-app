@@ -6,12 +6,10 @@ import {
   TimeGrid,
 } from "@/components/agenda/agenda"
 import { NewAppointmentDialog } from "@/components/grooming/new-appointment-dialog"
+import { bookingRequests } from "@/components/grooming/requests"
 import {
   Alert02Icon,
-  Calendar03Icon,
   CalendarAdd01Icon,
-  Clock01Icon,
-  EuroCircleIcon,
   SmartPhone01Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -30,11 +28,10 @@ import {
 } from "@/components/grooming/data"
 import {
   ActivityPage,
-  Bar,
+  AttentionList,
   formatAmount,
   formatHour,
-  Kpi,
-  Widget,
+  Section,
 } from "@/components/today/widgets"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -52,7 +49,6 @@ import {
 
 const OPEN = 9
 const CLOSE = 18
-const OPEN_HOURS_PER_WEEK = 5 * 8
 const LAST_DAY = 13
 /** Le salon est fermé le lundi. */
 const isClosed = (day: number) => day % 7 === 0
@@ -93,9 +89,6 @@ const statusMeta: Record<
     variant: "warning",
   },
 }
-
-const isBooked = (b: SalonBooking) =>
-  b.status !== "cancelled" && b.status !== "no-show"
 
 function BookingList({
   days,
@@ -310,12 +303,6 @@ export function AppointmentsView() {
   const monday = mondayOf(focus)
   const week = Array.from({ length: 6 }, (_, i) => monday + i)
   const days = view === "day" ? [focus] : week
-  const inWeek = bookings.filter((b) => week.includes(b.day))
-  const booked = inWeek.filter(isBooked)
-  const bookedHours = booked.reduce((sum, b) => sum + b.end - b.start, 0)
-  const revenue = booked.reduce((sum, b) => sum + b.price, 0)
-  const pending = bookings.filter((b) => b.status === "pending")
-  const lost = inWeek.filter((b) => !isBooked(b)).length
   const openBooking = bookings.find((b) => b.id === openId) ?? null
   const step = view === "day" ? 1 : 7
 
@@ -327,6 +314,7 @@ export function AppointmentsView() {
     setBookings((list) => list.map((b) => (b.id === id ? { ...b, status } : b)))
   const add = (booking: SalonBooking) =>
     setBookings((list) => [...list, booking])
+  const requests = bookingRequests(bookings, { open, setStatus })
 
   return (
     <ActivityPage
@@ -342,92 +330,13 @@ export function AppointmentsView() {
         />
       }
       activity="Toilettage"
-      className="max-w-7xl"
-      title="Rendez-vous"
+      title="Calendrier"
     >
-      {pending.length > 0 && (
-        <Widget
-          description="Demandes faites en ligne : répondez pour bloquer le créneau"
-          title={`${pending.length} demande${pending.length > 1 ? "s" : ""} à confirmer`}
-        >
-          <ul className="-mx-2 -my-2">
-            {pending.map((b) => (
-              <li
-                className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl p-2"
-                key={b.id}
-              >
-                <button
-                  className="flex min-w-0 flex-1 items-center gap-4 text-start"
-                  onClick={() => open(b.id)}
-                  type="button"
-                >
-                  <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-warning-soft text-sm font-semibold text-warning-foreground">
-                    {b.pet.slice(0, 2)}
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block truncate font-semibold">
-                      {b.pet}
-                      <span className="font-normal text-muted-foreground">
-                        {" "}
-                        · {b.owner}
-                      </span>
-                    </span>
-                    <span className="block truncate text-sm text-muted-foreground">
-                      {longDate(b.day)} à {formatHour(b.start)} · {b.service}
-                    </span>
-                  </span>
-                </button>
-                <div className="flex gap-2 max-sm:w-full">
-                  <Button
-                    className="max-sm:flex-1"
-                    onClick={() => setStatus(b.id, "cancelled")}
-                    variant="secondary"
-                  >
-                    Refuser
-                  </Button>
-                  <Button
-                    className="max-sm:flex-1"
-                    onClick={() => setStatus(b.id, "confirmed")}
-                  >
-                    Confirmer
-                  </Button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </Widget>
+      {requests.length > 0 && (
+        <Section count={requests.length} title="À traiter">
+          <AttentionList items={requests} />
+        </Section>
       )}
-
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Kpi icon={Calendar03Icon} label="Rendez-vous" value={booked.length}>
-          {lost > 0 ? `${lost} annulé ou absent` : "Aucune annulation"}
-        </Kpi>
-        <Kpi
-          icon={Clock01Icon}
-          label="Remplissage"
-          value={`${Math.round((bookedHours / OPEN_HOURS_PER_WEEK) * 100)} %`}
-        >
-          <Bar
-            className="bg-grooming-strong"
-            label="Remplissage de la semaine"
-            value={(bookedHours / OPEN_HOURS_PER_WEEK) * 100}
-          />
-          <p className="mt-1.5">
-            {formatHour(bookedHours)} sur {OPEN_HOURS_PER_WEEK}h ouvertes
-          </p>
-        </Kpi>
-        <Kpi
-          icon={EuroCircleIcon}
-          label="CA prévu"
-          value={formatAmount(revenue)}
-        >
-          Panier moyen{" "}
-          {formatAmount(Math.round(revenue / Math.max(1, booked.length)))}
-        </Kpi>
-        <Kpi icon={Alert02Icon} label="À confirmer" value={pending.length}>
-          Demandes en ligne en attente
-        </Kpi>
-      </div>
 
       <section className="space-y-4">
         <AgendaToolbar

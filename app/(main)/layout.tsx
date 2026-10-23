@@ -1,6 +1,5 @@
 import type * as React from "react"
 import { AppShell } from "@/components/app-shell"
-import { AppSidebar } from "@/components/app-sidebar"
 import { ToastProvider } from "@/components/ui/toast"
 
 export default function MainLayout({
@@ -10,7 +9,7 @@ export default function MainLayout({
 }) {
   return (
     <ToastProvider position="bottom-center">
-      <AppShell sidebar={<AppSidebar />}>{children}</AppShell>
+      <AppShell>{children}</AppShell>
     </ToastProvider>
   )
 }

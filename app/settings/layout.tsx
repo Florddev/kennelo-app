@@ -1,6 +1,6 @@
 import type * as React from "react"
 import { AppShell } from "@/components/app-shell"
-import { SettingsSidebar } from "@/components/settings-sidebar"
+import { SettingsNav } from "@/components/settings-nav"
 import { ToastProvider } from "@/components/ui/toast"
 
 export default function SettingsLayout({
@@ -10,7 +10,7 @@ export default function SettingsLayout({
 }) {
   return (
     <ToastProvider position="bottom-center">
-      <AppShell sidebar={<SettingsSidebar />}>{children}</AppShell>
+      <AppShell aside={<SettingsNav />}>{children}</AppShell>
     </ToastProvider>
   )
 }

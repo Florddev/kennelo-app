@@ -16,7 +16,11 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react"
 import Link from "next/link"
 import { useId, useState } from "react"
-import { type Activity, ActivityMark } from "@/components/activity-mark"
+import {
+  type Activity,
+  ActivityMark,
+  activityMeta,
+} from "@/components/activity-mark"
 import { ChatConversation } from "@/components/chat/chat-conversation"
 import { ChatDatePill } from "@/components/chat/chat-date-pill"
 import { ChatDeliveryIndicator } from "@/components/chat/chat-delivery-indicator"
@@ -236,17 +240,16 @@ function ClientAvatar({
   className?: string
 }) {
   return (
-    <span aria-hidden="true" className="relative shrink-0">
-      <Avatar className={cn("size-12", className)}>
-        <AvatarFallback className="font-semibold">{initials}</AvatarFallback>
-      </Avatar>
-      {activity && (
-        <ActivityMark
-          activity={activity}
-          className="absolute -inset-e-0.5 -bottom-0.5 size-5 ring-2 ring-background"
-        />
-      )}
-    </span>
+    <Avatar aria-hidden="true" className={cn("size-12 shrink-0", className)}>
+      <AvatarFallback
+        className={cn(
+          "font-semibold",
+          activity ? activityMeta[activity].tint : "bg-muted"
+        )}
+      >
+        {initials}
+      </AvatarFallback>
+    </Avatar>
   )
 }
 
@@ -263,7 +266,7 @@ function BookingRow({
   const status = bookingStatus[booking.status]
   return (
     <button
-      className="flex w-full items-center gap-3 rounded-2xl p-3 text-start transition-colors hover:bg-accent"
+      className="flex w-full items-center gap-3 p-3 text-start transition-colors hover:bg-accent"
       onClick={onClick}
       type="button"
     >
@@ -306,8 +309,8 @@ function ConversationRow({
     <button
       aria-current={active ? "true" : undefined}
       className={cn(
-        "flex w-full items-center gap-3 rounded-2xl p-3 text-start transition-colors hover:bg-accent",
-        active && "bg-accent"
+        "flex w-full items-center gap-3 rounded-3xl p-3 text-start transition-colors hover:bg-muted",
+        active && "md:bg-muted"
       )}
       onClick={onClick}
       type="button"
@@ -350,7 +353,7 @@ function ConversationRow({
             {lastPreview(c)}
           </span>
           {strong && (
-            <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground tabular-nums">
+            <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-control px-1.5 text-xs font-semibold text-control-foreground tabular-nums">
               {c.unread}
             </span>
           )}
@@ -371,9 +374,8 @@ function NewMessageDialog({
       onOpenChange={setOpen}
       open={open}
       trigger={
-        <Button>
+        <Button aria-label="Nouveau message" size="icon-lg">
           <HugeiconsIcon icon={PencilEdit02Icon} />
-          Nouveau
         </Button>
       }
     >
@@ -404,9 +406,9 @@ function ContextBanner({
   const ongoing = bookings.find((b) => b.status === "ongoing")
   if (pending)
     return (
-      <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-warning-soft p-3 ps-4">
+      <div className="flex flex-wrap items-center gap-3 rounded-3xl bg-muted p-3 ps-4">
         <button
-          className="flex min-w-0 flex-1 items-center gap-3 text-start"
+          className="flex min-w-0 grow basis-64 items-center gap-3 text-start"
           onClick={() => onOpen(pending.id)}
           type="button"
         >
@@ -428,9 +430,9 @@ function ContextBanner({
         </button>
         <div className="flex gap-2 max-sm:w-full">
           <Button
-            className="max-sm:flex-1"
+            className="bg-background max-sm:flex-1"
             onClick={() => onDecline(pending.id)}
-            variant="secondary"
+            variant="outline"
           >
             Refuser
           </Button>
@@ -446,7 +448,7 @@ function ContextBanner({
   if (ongoing)
     return (
       <button
-        className="flex w-full items-center gap-3 rounded-2xl bg-muted p-3 ps-4 text-start transition-colors hover:bg-neutral-hover"
+        className="flex w-full items-center gap-3 rounded-3xl bg-muted p-3 ps-4 text-start transition-colors hover:bg-neutral-hover"
         onClick={() => onOpen(ongoing.id)}
         type="button"
       >
@@ -485,7 +487,7 @@ function RoundAction({
       className="flex flex-col items-center gap-2 text-sm font-semibold"
       href={href}
     >
-      <span className="flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/88">
+      <span className="flex size-12 items-center justify-center rounded-full bg-muted transition-colors hover:bg-neutral-hover">
         <HugeiconsIcon className="size-5" icon={icon} />
       </span>
       {label}
@@ -509,14 +511,14 @@ function ClientPanel({
     { bookings: sorted.filter((b) => !isActive(b)), label: "Passées" },
   ]
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col items-center text-center">
+    <div className="space-y-6">
+      <div className="flex flex-col items-center pt-2 text-center">
         <Avatar className="size-20">
-          <AvatarFallback className="text-2xl font-semibold">
+          <AvatarFallback className="bg-muted text-2xl font-semibold">
             {conversation.initials}
           </AvatarFallback>
         </Avatar>
-        <p className="mt-3 text-xl font-semibold">{conversation.client}</p>
+        <p className="mt-3 font-display text-3xl">{conversation.client}</p>
         {client && (
           <p className="text-sm text-muted-foreground">
             {client.city} · client depuis {client.since}
@@ -546,50 +548,54 @@ function ClientPanel({
         />
       </div>
 
-      <section className="space-y-1">
-        <h3 className="px-3 text-sm font-semibold text-muted-foreground">
+      <section className="space-y-2">
+        <h3 className="px-1 text-sm font-semibold text-muted-foreground">
           Animaux
         </h3>
-        {conversation.pets.map((pet) => {
-          const [name, breed] = pet.split(" · ")
-          return (
-            <Link
-              className="flex items-center gap-3 rounded-2xl p-3 transition-colors hover:bg-accent"
-              href={petHref(name, conversation.client)}
-              key={pet}
-            >
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted font-semibold">
-                {name[0]}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-semibold">{name}</span>
-                <span className="block truncate text-sm text-muted-foreground">
-                  {breed}
+        <div className="divide-y-2 divide-background overflow-hidden rounded-3xl bg-muted">
+          {conversation.pets.map((pet) => {
+            const [name, breed] = pet.split(" · ")
+            return (
+              <Link
+                className="flex items-center gap-3 p-3 transition-colors hover:bg-accent"
+                href={petHref(name, conversation.client)}
+                key={pet}
+              >
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-background font-semibold">
+                  {name[0]}
                 </span>
-              </span>
-              <HugeiconsIcon
-                className="size-5 text-muted-foreground"
-                icon={ArrowRight01Icon}
-              />
-            </Link>
-          )
-        })}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-semibold">{name}</span>
+                  <span className="block truncate text-sm text-muted-foreground">
+                    {breed}
+                  </span>
+                </span>
+                <HugeiconsIcon
+                  className="size-5 text-muted-foreground"
+                  icon={ArrowRight01Icon}
+                />
+              </Link>
+            )
+          })}
+        </div>
       </section>
 
       {sections.map(
         (section) =>
           section.bookings.length > 0 && (
-            <section className="space-y-1" key={section.label}>
-              <h3 className="px-3 text-sm font-semibold text-muted-foreground">
+            <section className="space-y-2" key={section.label}>
+              <h3 className="px-1 text-sm font-semibold text-muted-foreground">
                 {section.label}
               </h3>
-              {section.bookings.map((booking) => (
-                <BookingRow
-                  booking={booking}
-                  key={booking.id}
-                  onClick={() => onOpenBooking(booking.id)}
-                />
-              ))}
+              <div className="divide-y-2 divide-background overflow-hidden rounded-3xl bg-muted">
+                {section.bookings.map((booking) => (
+                  <BookingRow
+                    booking={booking}
+                    key={booking.id}
+                    onClick={() => onOpenBooking(booking.id)}
+                  />
+                ))}
+              </div>
             </section>
           )
       )}
@@ -628,7 +634,9 @@ function BookingSheet({
                 activity={booking.activity}
                 className="mb-2 size-12 text-base"
               />
-              <SheetTitle>{booking.title}</SheetTitle>
+              <SheetTitle className="font-display text-3xl">
+                {booking.title}
+              </SheetTitle>
               <SheetDescription>
                 {booking.activity} · {booking.reference}
               </SheetDescription>
@@ -762,7 +770,11 @@ function MessageBubble({
       animateEntrance={message.id.startsWith("new-")}
       avatar={
         incoming ? (
-          <ClientAvatar className="size-8" initials={conversation.initials} />
+          <ClientAvatar
+            activity={activeActivities(conversation.bookings)[0]}
+            className="size-8 text-xs"
+            initials={conversation.initials}
+          />
         ) : undefined
       }
       bubbleProps={{
@@ -830,6 +842,8 @@ function ConversationPane({
   const { entries, bookings } = conversation
   const client = clients.find((c) => c.name === conversation.client)
   const firstName = conversation.client.split(" ")[0]
+  const activity = activeActivities(bookings)[0]
+  const onTint = "border-transparent bg-white/60 text-current hover:bg-white/80"
   const scroll = useChatScroll({
     itemCount: entries.length,
     layoutKey: conversation.typing ? "typing" : "idle",
@@ -894,26 +908,34 @@ function ConversationPane({
 
   return (
     <div className={cn("flex min-w-0 flex-1", className)}>
-      <section className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-18 shrink-0 items-center gap-3 border-b px-3 md:px-5">
+      <section className="flex min-w-0 flex-1 flex-col md:ps-6">
+        <header
+          className={cn(
+            "flex shrink-0 items-center gap-3 px-3 py-3 md:rounded-4xl md:px-5 md:py-4",
+            activity ? activityMeta[activity].tint : "bg-muted"
+          )}
+        >
           <Button
             aria-label="Retour aux conversations"
-            className="md:hidden"
+            className={cn("md:hidden", onTint)}
             onClick={onBack}
             size="icon"
-            variant="ghost"
           >
             <HugeiconsIcon icon={ArrowLeft01Icon} />
           </Button>
-          <ClientAvatar className="size-10" initials={conversation.initials} />
+          <Avatar aria-hidden="true" className="size-12 shrink-0">
+            <AvatarFallback className="bg-white/60 font-semibold">
+              {conversation.initials}
+            </AvatarFallback>
+          </Avatar>
           <div className="min-w-0 flex-1">
-            <p className="truncate font-semibold">{conversation.client}</p>
+            <p className="truncate font-display text-3xl leading-none">
+              {conversation.client}
+            </p>
             <p
               className={cn(
-                "truncate text-sm",
-                conversation.typing
-                  ? "font-semibold text-link"
-                  : "text-muted-foreground"
+                "mt-1 truncate text-sm",
+                conversation.typing ? "font-semibold" : "opacity-80"
               )}
             >
               {conversation.typing
@@ -924,29 +946,31 @@ function ConversationPane({
           {client && (
             <Button
               aria-label={`Appeler ${firstName}`}
+              className={onTint}
               render={<a href={`tel:${client.phone.replaceAll(" ", "")}`} />}
               size="icon"
-              variant="secondary"
             >
               <HugeiconsIcon icon={Call02Icon} />
             </Button>
           )}
           <Button
             aria-label="Infos du client"
-            className="xl:hidden"
+            className={cn("xl:hidden", onTint)}
             onClick={() => setInfoOpen(true)}
             size="icon"
-            variant="secondary"
           >
             <HugeiconsIcon icon={InformationCircleIcon} />
           </Button>
           <Button
             aria-label={panelOpen ? "Masquer les infos" : "Afficher les infos"}
             aria-pressed={panelOpen}
-            className="max-xl:hidden"
+            className={cn(
+              "max-xl:hidden",
+              onTint,
+              panelOpen && "bg-background hover:bg-background"
+            )}
             onClick={onTogglePanel}
             size="icon"
-            variant={panelOpen ? "secondary" : "ghost"}
           >
             <HugeiconsIcon icon={InformationCircleIcon} />
           </Button>
@@ -955,8 +979,8 @@ function ConversationPane({
         {bookings.some(
           (b) => b.status === "pending" || b.status === "ongoing"
         ) && (
-          <div className="shrink-0 px-3 pt-3 md:px-5">
-            <div className="mx-auto max-w-3xl">
+          <div className="shrink-0 px-3 pt-3 md:px-0">
+            <div>
               <ContextBanner
                 bookings={bookings}
                 onConfirm={(id) => answer(id, true)}
@@ -970,10 +994,11 @@ function ConversationPane({
         {entries.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
             <ClientAvatar
-              className="size-20"
+              activity={activity}
+              className="size-20 text-2xl"
               initials={conversation.initials}
             />
-            <p className="text-xl font-semibold">Écrivez à {firstName}</p>
+            <p className="font-display text-4xl">Écrivez à {firstName}</p>
             <p className="max-w-xs text-muted-foreground">
               Vos messages et ses réservations s&apos;afficheront ici, dans
               l&apos;ordre.
@@ -981,15 +1006,15 @@ function ConversationPane({
           </div>
         ) : (
           <ChatConversation
-            contentClassName="px-3 md:px-5"
+            contentClassName="px-3 md:px-0"
             jumpLabel="Derniers messages"
             label={`Conversation avec ${conversation.client}`}
             scroll={scroll}
           >
-            <div className="mx-auto max-w-3xl space-y-4 py-5">
+            <div className="space-y-4 py-5">
               {groupByDay(entries).map((group) => (
                 <section className="space-y-3" key={group.day}>
-                  <ChatDatePill className="h-7 border-0 bg-muted px-3 text-sm font-semibold">
+                  <ChatDatePill className="h-7 bg-background px-3 text-sm font-semibold">
                     {group.day}
                   </ChatDatePill>
                   {group.entries.map((entry, index) => {
@@ -1007,7 +1032,7 @@ function ConversationPane({
                         )}
                         {entry.kind === "booking" ? (
                           booking && (
-                            <div className="mx-auto w-full max-w-md rounded-2xl border bg-card">
+                            <div className="mx-auto w-full max-w-md overflow-hidden rounded-3xl bg-muted">
                               <BookingRow
                                 booking={booking}
                                 eyebrow={`${eventLabel(entry.event, booking)} · ${entry.time}`}
@@ -1039,8 +1064,8 @@ function ConversationPane({
           </ChatConversation>
         )}
 
-        <div className="shrink-0 px-3 pb-3 md:px-5 md:pb-5">
-          <div className="mx-auto max-w-3xl space-y-3">
+        <div className="shrink-0 px-3 pb-3 md:px-0 md:pb-0">
+          <div className="space-y-3">
             {replies.length > 0 && (
               <div
                 aria-label="Réponses rapides"
@@ -1049,7 +1074,7 @@ function ConversationPane({
               >
                 {replies.map((reply) => (
                   <button
-                    className="flex h-9 shrink-0 items-center gap-2 rounded-full bg-secondary ps-1.5 pe-4 text-sm font-semibold text-secondary-foreground transition-colors hover:bg-neutral-hover"
+                    className="flex h-10 shrink-0 items-center gap-2 rounded-full bg-muted ps-1.5 pe-4 text-sm font-semibold transition-colors hover:bg-neutral-hover"
                     key={reply.label}
                     onClick={() =>
                       setDraft([{ text: reply.text, type: "text" }])
@@ -1066,7 +1091,7 @@ function ConversationPane({
               </div>
             )}
             <Composer
-              className="[--composer-radius:var(--radius-2xl)]"
+              className="[--composer-radius:var(--radius-3xl)]"
               layout="adaptive"
               onSubmit={(value: ComposerValue) => {
                 const text = getComposerText(value).trim()
@@ -1152,7 +1177,7 @@ function ConversationPane({
       {panelOpen && (
         <aside
           aria-label={`Infos sur ${conversation.client}`}
-          className="w-80 shrink-0 overflow-y-auto border-s px-3 py-8 max-xl:hidden"
+          className="ms-6 w-72 shrink-0 overflow-y-auto border-s ps-6 max-xl:hidden 2xl:w-96"
         >
           {panel}
         </aside>
@@ -1163,7 +1188,7 @@ function ConversationPane({
           <SheetTitle className="sr-only">
             Infos sur {conversation.client}
           </SheetTitle>
-          <SheetPanel className="px-3 py-8">{panel}</SheetPanel>
+          <SheetPanel className="p-3">{panel}</SheetPanel>
         </SheetPopup>
       </Sheet>
 
@@ -1246,16 +1271,16 @@ export function MessagesView() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1">
+    <div className="flex min-h-0 flex-1 md:mx-auto md:w-full md:max-w-[110rem] md:px-10 md:py-6">
       <aside
         className={cn(
-          "flex w-full flex-col md:w-96 md:shrink-0 md:border-e",
+          "flex w-full flex-col md:w-96 md:shrink-0 md:border-e md:pe-4 xl:w-[28rem] 2xl:w-[32rem]",
           view === "chat" && "max-md:hidden"
         )}
       >
-        <div className="space-y-4 px-4 pt-6 pb-2 md:px-5">
+        <div className="space-y-4 px-4 pt-6 pb-2 md:px-0 md:pt-0">
           <div className="flex items-center justify-between gap-3">
-            <h1 className="font-heading text-3xl font-semibold">Messages</h1>
+            <h1 className="font-display text-6xl">Messages</h1>
             <NewMessageDialog onSelect={startWith} />
           </div>
           <InputGroup className="rounded-full">
@@ -1269,7 +1294,7 @@ export function MessagesView() {
               value={query}
             />
           </InputGroup>
-          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 md:-mx-5 md:px-5">
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 md:mx-0 md:px-0">
             {filters.map((f) => (
               <button
                 aria-pressed={filter === f.value}
@@ -1296,7 +1321,7 @@ export function MessagesView() {
 
         <nav
           aria-label="Conversations"
-          className="flex-1 overflow-y-auto px-1 pb-4 md:px-2"
+          className="flex-1 overflow-y-auto px-2 pb-4 md:px-0"
         >
           {shown.length === 0 && (
             <p className="p-6 text-center text-muted-foreground">

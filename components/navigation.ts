@@ -6,6 +6,7 @@ import {
   InboxIcon,
   LayoutPanelLeftIcon,
   MessageCircleIcon,
+  PawPrintIcon,
   ReceiptIcon,
   SunDimIcon,
   SunIcon,
@@ -21,33 +22,45 @@ export type NavItem = {
   short?: string
   icon: IconSvgElement
   href: string
+  /** Autres adresses qui rendent l'onglet actif. */
+  match?: string[]
   badge?: number
   dot?: boolean
 }
 
-export const mainNav: NavItem[] = [
+/** Onglets de la barre du haut ; les quatre premiers vont en bas sur mobile. */
+export const hostTabs: NavItem[] = [
   { href: "/today", icon: SunIcon, title: "Ma journée" },
   {
-    badge: inboxUnreadCount,
-    href: "/inbox",
-    icon: InboxIcon,
-    short: "Boîte",
-    title: "Boîte de réception",
+    href: "/pension/today",
+    icon: PawPrintIcon,
+    match: ["/pension", "/grooming", "/training"],
+    title: "Activités",
   },
+  { href: "/reservations", icon: ClipboardListIcon, title: "Réservations" },
+  { href: "/clients", icon: UsersIcon, title: "Clients" },
+  { href: "/billing", icon: ReceiptIcon, title: "Facturation" },
 ]
 
-export const organisationNav: NavItem[] = [
-  { href: "/reservations", icon: ClipboardListIcon, title: "Réservations" },
-  {
-    href: "/clients",
-    icon: UsersIcon,
-    short: "Clients",
-    title: "Clients & animaux",
-  },
-  { href: "/billing", icon: ReceiptIcon, title: "Facturation" },
-  { dot: true, href: "/messages", icon: MessageCircleIcon, title: "Messages" },
-  { href: "/statistics", icon: ChartNoAxesColumnIcon, title: "Statistiques" },
-]
+export const inboxLink: NavItem = {
+  badge: inboxUnreadCount,
+  href: "/inbox",
+  icon: InboxIcon,
+  title: "Boîte de réception",
+}
+
+export const messagesLink: NavItem = {
+  dot: true,
+  href: "/messages",
+  icon: MessageCircleIcon,
+  title: "Messages",
+}
+
+export const statsLink: NavItem = {
+  href: "/statistics",
+  icon: ChartNoAxesColumnIcon,
+  title: "Statistiques",
+}
 
 /** Une entrée par activité dans la barre latérale, ses pages en onglets. */
 export const activityNav: { name: Activity; base: string; items: NavItem[] }[] =
@@ -59,7 +72,7 @@ export const activityNav: { name: Activity; base: string; items: NavItem[] }[] =
         {
           href: "/pension/planning",
           icon: LayoutPanelLeftIcon,
-          title: "Planning des box",
+          title: "Calendrier",
         },
         { href: "/pension/stays", icon: ClipboardIcon, title: "Séjours" },
       ],
@@ -72,7 +85,7 @@ export const activityNav: { name: Activity; base: string; items: NavItem[] }[] =
         {
           href: "/grooming/appointments",
           icon: CalendarIcon,
-          title: "Rendez-vous",
+          title: "Calendrier",
         },
       ],
       name: "Toilettage",
@@ -89,3 +102,6 @@ export const activityNav: { name: Activity; base: string; items: NavItem[] }[] =
 
 export const isActive = (pathname: string, href: string) =>
   pathname === href || pathname.startsWith(`${href}/`)
+
+export const isTabActive = (pathname: string, item: NavItem) =>
+  [item.href, ...(item.match ?? [])].some((href) => isActive(pathname, href))

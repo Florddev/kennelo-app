@@ -2,11 +2,9 @@
 
 import { AgendaToolbar, type AgendaView } from "@/components/agenda/agenda"
 import {
-  BedDoubleIcon,
   CalendarAdd01Icon,
-  ChartIncreaseIcon,
-  Clock01Icon,
   Login03Icon,
+  Logout03Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { useState } from "react"
@@ -19,7 +17,6 @@ import {
   weekdayOf,
 } from "@/components/calendar"
 import {
-  findFreeKennel,
   type Kennel,
   kennels,
   type Stay,
@@ -30,7 +27,12 @@ import {
   StaySheet,
   stayStatusMeta,
 } from "@/components/pension/stay-sheet"
-import { ActivityPage, Bar, Kpi, Widget } from "@/components/today/widgets"
+import { stayRequests } from "@/components/pension/requests"
+import {
+  ActivityPage,
+  AttentionList,
+  Section,
+} from "@/components/today/widgets"
 import { Badge } from "@/components/ui/badge"
 import { NewStayDialog } from "@/components/pension/new-stay-dialog"
 import { Button } from "@/components/ui/button"
@@ -145,6 +147,115 @@ function KennelRow({
           />
         )}
       </div>
+    </div>
+  )
+}
+
+/** Les 5 semaines à venir, à partir du lundi de cette semaine. */
+const MONTH_START = 0
+const MONTH_DAYS = 35
+const monthLabel = `${dateOf(MONTH_START).day} ${dateOf(MONTH_START).month} – ${dateOf(MONTH_START + MONTH_DAYS - 1).day} ${dateOf(MONTH_START + MONTH_DAYS - 1).month}`
+
+/** Vue « Mois » : les places libres chaque jour, pour répondre vite au téléphone. */
+function MonthGrid({
+  stays,
+  onPick,
+}: {
+  stays: Stay[]
+  onPick: (day: number) => void
+}) {
+  const capacity = kennels.length
+  const days = Array.from({ length: MONTH_DAYS }, (_, i) => MONTH_START + i)
+  const booked = stays.filter((s) => s.status !== "pending")
+  return (
+    <div className="space-y-3">
+      <div className="overflow-hidden rounded-3xl border bg-card">
+        <div className="grid grid-cols-7 border-b bg-muted/50">
+          {days.slice(0, 7).map((d) => (
+            <span
+              className="py-2 text-center text-xs font-semibold text-muted-foreground"
+              key={d}
+            >
+              {weekdayOf(d)}
+            </span>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-1 p-1 md:gap-1.5 md:p-1.5">
+          {days.map((d) => {
+            const { day, month } = dateOf(d)
+            const past = d < TODAY
+            const taken = nightsOn(stays, d)
+            const free = capacity - taken
+            const arrivals = booked.filter((s) => s.arrival === d).length
+            const departures = booked.filter((s) => s.departure === d).length
+            return (
+              <button
+                aria-label={`${longDate(d)} · ${free} place${free > 1 ? "s" : ""} libre${free > 1 ? "s" : ""}`}
+                className={cn(
+                  "relative flex min-h-20 flex-col justify-between rounded-2xl p-1.5 text-start transition-[filter] hover:brightness-95 disabled:pointer-events-none md:min-h-28 md:p-3",
+                  past
+                    ? "bg-muted/40 text-muted-foreground"
+                    : occupancyClass(taken / capacity)
+                )}
+                disabled={past}
+                key={d}
+                onClick={() => onPick(d)}
+                type="button"
+              >
+                <span
+                  className={cn(
+                    "flex size-7 items-center justify-center rounded-full text-sm font-semibold tabular-nums",
+                    d === TODAY && "bg-background text-foreground"
+                  )}
+                >
+                  {day}
+                </span>
+                {day === 1 && (
+                  <span className="absolute top-2.5 left-10 text-xs font-semibold md:top-4 md:left-12">
+                    {month}
+                  </span>
+                )}
+                {!past && (
+                  <span className="space-y-1">
+                    <span className="block font-display text-2xl leading-none md:text-4xl">
+                      {free}
+                      <span className="ms-1 font-sans text-xs font-semibold normal-case max-md:hidden">
+                        {free === 0 ? "complet" : free > 1 ? "libres" : "libre"}
+                      </span>
+                    </span>
+                    {(arrivals > 0 || departures > 0) && (
+                      <span className="flex gap-2 text-xs font-semibold opacity-80 max-md:hidden">
+                        {arrivals > 0 && (
+                          <span className="flex items-center gap-0.5">
+                            <HugeiconsIcon
+                              className="size-3.5"
+                              icon={Login03Icon}
+                            />
+                            {arrivals}
+                          </span>
+                        )}
+                        {departures > 0 && (
+                          <span className="flex items-center gap-0.5">
+                            <HugeiconsIcon
+                              className="size-3.5"
+                              icon={Logout03Icon}
+                            />
+                            {departures}
+                          </span>
+                        )}
+                      </span>
+                    )}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+      <p className="text-sm text-muted-foreground">
+        Le chiffre indique les places libres : plus la case est foncée, plus la
+        pension est pleine. Touchez un jour pour voir les box.
+      </p>
     </div>
   )
 }
@@ -265,16 +376,9 @@ export function PlanningView() {
   const days = Array.from({ length: DAYS }, (_, i) => start + i)
   const visible = kennels.filter((k) => area === "Tous" || k.area === area)
   const capacity = kennels.length
-  const tonight = nightsOn(stays, TODAY)
-  const average =
-    days.reduce((sum, d) => sum + nightsOn(stays, d), 0) / (DAYS * capacity)
-  const arrivals = stays.filter(
-    (s) => s.status !== "pending" && s.arrival >= TODAY && s.arrival < TODAY + 7
-  ).length
-  const pending = stays.filter((s) => s.status === "pending")
-  const unplaced = pending.filter((s) => !s.kennelId)
   const openStay = stays.find((s) => s.id === openId) ?? null
   const isDay = view === "day"
+  const isMonth = view === "month"
 
   const open = (id: string) => {
     setOpenId(id)
@@ -283,6 +387,9 @@ export function PlanningView() {
   const update = (id: string, patch: Partial<Stay>) =>
     setStays((list) => list.map((s) => (s.id === id ? { ...s, ...patch } : s)))
   const add = (stay: Stay) => setStays((list) => [...list, stay])
+  const decline = (id: string) =>
+    setStays((list) => list.filter((s) => s.id !== id))
+  const requests = stayRequests(stays, { decline, open, update })
 
   return (
     <ActivityPage
@@ -298,130 +405,60 @@ export function PlanningView() {
         />
       }
       activity="Pension"
-      className="max-w-7xl"
-      title="Planning des box"
+      title="Calendrier"
     >
-      {unplaced.length > 0 && (
-        <Widget
-          description="Demandes reçues sans box attribué"
-          title={`${unplaced.length} séjour${unplaced.length > 1 ? "s" : ""} à placer`}
-        >
-          <ul className="-mx-2 -my-2">
-            {unplaced.map((s) => {
-              const free = findFreeKennel(stays, s)
-              return (
-                <li
-                  className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl p-2"
-                  key={s.id}
-                >
-                  <button
-                    className="flex min-w-0 flex-1 items-center gap-4 text-start"
-                    onClick={() => open(s.id)}
-                    type="button"
-                  >
-                    <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-warning-soft text-sm font-semibold text-warning-foreground">
-                      {s.pet.slice(0, 2)}
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block truncate font-semibold">
-                        {s.pet}
-                        <span className="font-normal text-muted-foreground">
-                          {" "}
-                          · {s.breed} · {s.owner}
-                        </span>
-                      </span>
-                      <span className="block truncate text-sm text-muted-foreground">
-                        {shortDate(s.arrival)} → {shortDate(s.departure)} ·{" "}
-                        {s.departure - s.arrival} nuits
-                        {s.options.length > 0 && ` · ${s.options.join(", ")}`}
-                      </span>
-                    </span>
-                  </button>
-                  {free ? (
-                    <Button
-                      className="max-sm:w-full"
-                      onClick={() => update(s.id, { kennelId: free.id })}
-                    >
-                      Placer dans le {kennelLabel(free.id).toLowerCase()}
-                    </Button>
-                  ) : (
-                    <Badge variant="error">Complet sur ces dates</Badge>
-                  )}
-                </li>
-              )
-            })}
-          </ul>
-        </Widget>
+      {requests.length > 0 && (
+        <Section count={requests.length} title="À traiter">
+          <AttentionList items={requests} />
+        </Section>
       )}
-
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Kpi
-          icon={BedDoubleIcon}
-          label="Cette nuit"
-          value={
-            <>
-              {tonight}
-              <span className="text-base text-muted-foreground">
-                {" "}
-                / {capacity}
-              </span>
-            </>
-          }
-        >
-          <Bar
-            className="bg-pension-strong"
-            label="Occupation cette nuit"
-            value={(tonight / capacity) * 100}
-          />
-          <p className="mt-1.5">{capacity - tonight} places libres ce soir</p>
-        </Kpi>
-        <Kpi
-          icon={ChartIncreaseIcon}
-          label="Occupation moyenne"
-          value={`${Math.round(average * 100)} %`}
-        >
-          Du {shortDate(start)} au {shortDate(start + DAYS - 1)}
-        </Kpi>
-        <Kpi icon={Login03Icon} label="Arrivées sur 7 jours" value={arrivals}>
-          Dont {stays.filter((s) => s.arrival === TODAY).length}{" "}
-          aujourd&apos;hui
-        </Kpi>
-        <Kpi icon={Clock01Icon} label="À confirmer" value={pending.length}>
-          {unplaced.length > 0
-            ? `${unplaced.length} demande à placer`
-            : "Toutes les demandes sont placées"}
-        </Kpi>
-      </div>
 
       <section className="space-y-4">
         <AgendaToolbar
-          atToday={isDay ? day === TODAY : start === TODAY - 1}
+          atToday={isMonth || (isDay ? day === TODAY : start === TODAY - 1)}
           label={
-            isDay
-              ? longDate(day)
-              : `${dateOf(start).day} ${dateOf(start).month} – ${dateOf(start + DAYS - 1).day} ${dateOf(start + DAYS - 1).month}`
+            isMonth
+              ? monthLabel
+              : isDay
+                ? longDate(day)
+                : `${dateOf(start).day} ${dateOf(start).month} – ${dateOf(start + DAYS - 1).day} ${dateOf(start + DAYS - 1).month}`
           }
-          nextDisabled={isDay ? day >= LAST : start + DAYS > LAST}
+          nextDisabled={isMonth || (isDay ? day >= LAST : start + DAYS > LAST)}
           onNext={() => (isDay ? setDay(day + 1) : setStart(start + DAYS))}
           onPrev={() => (isDay ? setDay(day - 1) : setStart(start - DAYS))}
           onToday={() => (isDay ? setDay(TODAY) : setStart(TODAY - 1))}
           onView={setView}
-          prevDisabled={isDay ? day <= FIRST : start - DAYS < FIRST}
+          prevDisabled={
+            isMonth || (isDay ? day <= FIRST : start - DAYS < FIRST)
+          }
           view={view}
-          views={["day", "week"]}
+          views={["day", "week", "month"]}
         >
-          <Tabs onValueChange={(value) => setArea(value as Area)} value={area}>
-            <TabsList>
-              {areas.map((a) => (
-                <TabsTab key={a} value={a}>
-                  {a}
-                </TabsTab>
-              ))}
-            </TabsList>
-          </Tabs>
+          {!isMonth && (
+            <Tabs
+              onValueChange={(value) => setArea(value as Area)}
+              value={area}
+            >
+              <TabsList>
+                {areas.map((a) => (
+                  <TabsTab key={a} value={a}>
+                    {a}
+                  </TabsTab>
+                ))}
+              </TabsList>
+            </Tabs>
+          )}
         </AgendaToolbar>
 
-        {isDay ? (
+        {isMonth ? (
+          <MonthGrid
+            onPick={(d) => {
+              setDay(d)
+              setView("day")
+            }}
+            stays={stays}
+          />
+        ) : isDay ? (
           <DayList
             day={day}
             kennels={visible}
@@ -431,7 +468,7 @@ export function PlanningView() {
           />
         ) : (
           <>
-            <div className="overflow-hidden rounded-2xl border bg-card">
+            <div className="overflow-hidden rounded-3xl border bg-card">
               <div className="overflow-x-auto">
                 <div className="min-w-[52rem]">
                   <div className="flex">

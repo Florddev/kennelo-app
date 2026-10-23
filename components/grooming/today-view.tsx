@@ -1,57 +1,48 @@
 "use client"
 
-import { NewAppointmentDialog } from "@/components/grooming/new-appointment-dialog"
 import {
   Alert02Icon,
-  PlusSignIcon,
-  Calendar03Icon,
   CalendarAdd01Icon,
   Call02Icon,
-  Clock01Icon,
   EuroCircleIcon,
   HairDryerIcon,
-  HourglassIcon,
   PackageIcon,
+  PlusSignIcon,
   ScissorIcon,
   SmartPhone01Icon,
   Tick02Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { useState } from "react"
+import { activityMeta } from "@/components/activity-mark"
+import { TODAY } from "@/components/calendar"
 import {
   appointments as initialAppointments,
   type GroomingAppointment,
   type GroomingStatus,
   groomingSteps,
-  productSales,
+  salonBookings,
   stock,
   waitlist,
 } from "@/components/grooming/data"
-import { TODAY } from "@/components/calendar"
+import { NewAppointmentDialog } from "@/components/grooming/new-appointment-dialog"
+import { bookingRequests } from "@/components/grooming/requests"
 import { NOW } from "@/components/today/data"
 import {
   ActivityDayPage,
-  Bar,
+  type Attention,
+  AttentionList,
   formatAmount,
   formatHour,
-  Kpi,
-  Widget,
+  Section,
 } from "@/components/today/widgets"
-import {
-  Alert,
-  AlertAction,
-  AlertDescription,
-  AlertTitle,
-} from "@/components/ui/alert"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Meter, MeterIndicator, MeterTrack } from "@/components/ui/meter"
 import { cn } from "@/lib/utils"
 
 const AGENDA_START = 9
 const AGENDA_END = 17
-const HOUR_PX = 56
+const HOUR_PX = 72
 const agendaHours = Array.from(
   { length: AGENDA_END - AGENDA_START + 1 },
   (_, i) => AGENDA_START + i
@@ -87,6 +78,11 @@ function freeSlots(list: GroomingAppointment[]) {
   return slots
 }
 
+/** Bouton principal sur une carte teintée, comme dans le bandeau. */
+const onTint =
+  "border-wise-forest bg-wise-forest text-wise-green hover:border-wise-forest hover:bg-wise-forest/90"
+
+/** L'animal en cours, en grand, dans la couleur du toilettage. */
 function GroomingTable({
   current,
   step,
@@ -102,104 +98,92 @@ function GroomingTable({
   onNext: () => void
   onInstall: (id: string) => void
 }) {
+  const tint = activityMeta.Toilettage.tint
   if (!current) {
     return (
-      <Widget description="Table 1 · Marc" title="Sur la table">
-        <div className="flex flex-wrap items-center gap-4">
-          <span className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-            <HugeiconsIcon icon={ScissorIcon} />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="font-semibold">Table libre</p>
-            <p className="text-sm text-muted-foreground">
-              {notified ??
-                (next
-                  ? `Prochain : ${next.pet} à ${formatHour(next.start)}`
-                  : "Plus de rendez-vous aujourd'hui")}
-            </p>
-          </div>
-          {next?.status === "checked-in" && (
-            <Button onClick={() => onInstall(next.id)} size="sm">
-              Installer {next.pet}
-            </Button>
-          )}
+      <div
+        className={cn(
+          "flex flex-wrap items-center gap-4 rounded-4xl p-5 md:p-6",
+          tint
+        )}
+      >
+        <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-white/60">
+          <HugeiconsIcon className="size-6" icon={ScissorIcon} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="font-display text-4xl">Table libre</p>
+          <p className="opacity-80">
+            {notified ??
+              (next
+                ? `Prochain : ${next.pet} à ${formatHour(next.start)}`
+                : "Plus de rendez-vous aujourd'hui")}
+          </p>
         </div>
-      </Widget>
+        {next?.status === "checked-in" && (
+          <Button
+            className={onTint}
+            onClick={() => onInstall(next.id)}
+            size="lg"
+          >
+            Installer {next.pet}
+          </Button>
+        )}
+      </div>
     )
   }
   const elapsed = Math.max(0, NOW - current.start)
   const last = step === groomingSteps.length - 1
   return (
-    <Widget
-      action={
-        <Badge variant="warning">
-          <span className="size-1.5 animate-pulse rounded-full bg-current" />
-          En cours
-        </Badge>
-      }
-      description="Table 1 · Marc"
-      title="Sur la table"
-    >
+    <div className={cn("space-y-5 rounded-4xl p-5 md:p-6", tint)}>
       <div className="flex flex-wrap items-start gap-4">
-        <Avatar className="size-12">
-          <AvatarFallback className="bg-grooming text-grooming-foreground">
-            {current.pet.slice(0, 2)}
-          </AvatarFallback>
-        </Avatar>
+        <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-white/60 text-lg font-semibold">
+          {current.pet.slice(0, 2)}
+        </span>
         <div className="min-w-0 flex-1">
-          <p className="font-heading text-lg font-semibold">
-            {current.pet}{" "}
-            <span className="text-sm font-normal text-muted-foreground">
-              · {current.breed} · {current.size.toLowerCase()} gabarit
-            </span>
+          <p className="flex items-center gap-2 text-sm font-semibold opacity-80">
+            <span className="size-2 animate-pulse rounded-full bg-current" />
+            Sur la table · Marc
           </p>
-          <p className="text-sm text-muted-foreground">
-            {current.services.map((s) => s.label).join(" + ")}
+          <p className="font-display text-5xl">{current.pet}</p>
+          <p className="opacity-80">
+            {current.breed} · {current.services.map((s) => s.label).join(" + ")}
           </p>
         </div>
-        <div className="text-end text-sm">
-          <p className="font-semibold tabular-nums">
+        <div className="text-end">
+          <p className="font-display text-4xl tabular-nums">
             {Math.round(elapsed * 60)} min
-            <span className="text-muted-foreground">
-              {" "}
-              / {Math.round(durationOf(current) * 60)} min
-            </span>
           </p>
-          <p className="text-xs text-muted-foreground">
-            Fin estimée {formatHour(current.end)}
+          <p className="text-sm opacity-80">
+            sur {Math.round(durationOf(current) * 60)} · fin{" "}
+            {formatHour(current.end)}
           </p>
         </div>
       </div>
 
-      <ol className="mt-5 grid grid-cols-5 gap-2">
+      <ol className="grid grid-cols-5 gap-2">
         {groomingSteps.map((label, i) => (
           <li className="space-y-1.5" key={label}>
             <span
               className={cn(
-                "block h-1.5 rounded-full",
+                "block h-2 rounded-full",
                 i < step
-                  ? "bg-grooming-strong"
+                  ? "bg-current"
                   : i === step
-                    ? "animate-pulse bg-grooming-strong/50"
-                    : "bg-muted"
+                    ? "animate-pulse bg-current/50"
+                    : "bg-white/50"
               )}
             />
             <span
               className={cn(
-                "flex items-center gap-1 text-xs",
-                i === step
-                  ? "font-semibold"
-                  : i > step && "text-muted-foreground"
+                "flex items-center gap-1 text-xs md:text-sm",
+                i === step ? "font-semibold" : i > step && "opacity-70"
               )}
             >
               {i < step && (
-                <HugeiconsIcon
-                  className="size-3 text-grooming-strong"
-                  icon={Tick02Icon}
-                />
+                <HugeiconsIcon className="size-3.5" icon={Tick02Icon} />
               )}
               {label === "Séchage" && i === step && (
-                <HugeiconsIcon className="size-3" icon={HairDryerIcon} />
+                <HugeiconsIcon className="size-3.5" icon={HairDryerIcon} />
               )}
               {label}
             </span>
@@ -207,15 +191,11 @@ function GroomingTable({
         ))}
       </ol>
 
-      <div className="mt-5 flex flex-wrap items-center gap-2 border-t pt-4">
-        <p className="min-w-0 flex-1 text-xs text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-3 border-t border-current/15 pt-4">
+        <p className="min-w-48 flex-1 text-sm opacity-80">
           {current.behaviour}
         </p>
-        <Button
-          onClick={onNext}
-          size="sm"
-          variant={last ? "default" : "outline"}
-        >
+        <Button className={onTint} onClick={onNext} size="lg">
           {last ? (
             <>
               <HugeiconsIcon icon={SmartPhone01Icon} />
@@ -226,128 +206,172 @@ function GroomingTable({
           )}
         </Button>
       </div>
-    </Widget>
+    </div>
   )
+}
+
+/** Couleur des rendez-vous : le rose du toilettage pour ce qui se passe au salon. */
+const blockStyles: Record<GroomingStatus, string> = {
+  "checked-in": "bg-wise-pink/60 text-wise-purple",
+  done: "bg-background/50 text-muted-foreground",
+  "in-progress": "bg-wise-pink text-wise-purple",
+  upcoming: "bg-background",
 }
 
 function SalonAgenda({
   appointments,
   selectedId,
+  offered,
   onSelect,
   onSlot,
+  onOffer,
   className,
 }: {
   appointments: GroomingAppointment[]
   selectedId: string
+  offered: string[]
   onSelect: (id: string) => void
   onSlot: (start: number) => void
+  onOffer: (id: string) => void
   className?: string
 }) {
   return (
-    <Widget
+    <Section
       action={
-        <Badge variant="outline">
-          <span className="size-1.5 rounded-full bg-control" />
+        <span className="flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-sm font-semibold">
+          <span className="size-2 rounded-full bg-control" />
           {formatHour(NOW)}
-        </Badge>
+        </span>
       }
       className={className}
-      description="Touchez un rendez-vous pour sa fiche, un créneau libre pour réserver"
-      title="Agenda du salon"
+      title="La journée"
     >
-      <div
-        className="relative ms-10"
-        style={{ height: (AGENDA_END - AGENDA_START) * HOUR_PX }}
-      >
-        {agendaHours.map((hour) => (
-          <div
-            className="absolute inset-x-0 border-t border-border/60"
-            key={hour}
-            style={{ top: top(hour) }}
-          >
-            <span className="absolute -start-10 -top-2 text-[0.6875rem] text-muted-foreground tabular-nums">
-              {hour}h
-            </span>
-          </div>
-        ))}
-
-        {freeSlots(appointments).map((slot) => (
-          <button
-            className="absolute inset-x-0 flex items-center justify-center gap-1.5 rounded-xl border-2 border-dashed text-sm font-semibold text-muted-foreground transition-colors hover:border-control hover:bg-accent hover:text-link disabled:pointer-events-none disabled:opacity-60"
-            disabled={slot.end <= NOW}
-            key={slot.start}
-            onClick={() => onSlot(Math.max(slot.start, Math.ceil(NOW * 2) / 2))}
-            style={{
-              height: (slot.end - slot.start) * HOUR_PX - 4,
-              top: top(slot.start) + 2,
-            }}
-            type="button"
-          >
-            <HugeiconsIcon className="size-4" icon={PlusSignIcon} />
-            Créneau libre · {formatDuration(slot.end - slot.start)}
-          </button>
-        ))}
-
-        {appointments.map((a) => (
-          <button
-            className={cn(
-              "absolute inset-x-0 flex gap-2 overflow-hidden rounded-xl border px-2.5 py-1.5 text-start text-xs transition-shadow",
-              a.status === "done" && "bg-muted text-muted-foreground",
-              a.status === "in-progress" &&
-                "border-grooming-strong bg-grooming text-grooming-foreground",
-              a.status === "checked-in" &&
-                "border-grooming-strong/40 bg-grooming/50",
-              a.status === "upcoming" &&
-                "border-s-4 border-s-grooming-strong bg-background",
-              a.id === selectedId &&
-                "ring-2 ring-ring ring-offset-2 ring-offset-background"
-            )}
-            key={a.id}
-            onClick={() => onSelect(a.id)}
-            style={{
-              height: durationOf(a) * HOUR_PX - 4,
-              top: top(a.start) + 2,
-            }}
-            type="button"
-          >
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold">
-                {a.pet}{" "}
-                <span className="font-normal opacity-70">· {a.breed}</span>
-              </p>
-              <p className="truncate opacity-80">
-                {range(a)} · {a.services.map((s) => s.label).join(", ")}
-              </p>
-            </div>
-            <div className="flex shrink-0 flex-col items-end gap-1">
-              <span className="font-semibold tabular-nums">
-                {formatAmount(priceOf(a))}
-              </span>
-              {a.alert && (
-                <HugeiconsIcon
-                  className="size-3.5 text-warning"
-                  icon={Alert02Icon}
-                />
-              )}
-              {a.status === "done" && (
-                <HugeiconsIcon className="size-3.5" icon={Tick02Icon} />
-              )}
-            </div>
-          </button>
-        ))}
-
+      <div className="rounded-3xl bg-muted p-4 md:p-5">
         <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -start-1 end-0 h-0.5 bg-control"
-          style={{ top: top(NOW) }}
+          className="relative ms-12"
+          style={{ height: (AGENDA_END - AGENDA_START) * HOUR_PX }}
         >
-          <span className="absolute -start-1 -top-[3px] size-2 rounded-full bg-control" />
+          {agendaHours.map((hour) => (
+            <div
+              className="absolute inset-x-0 border-t-2 border-background"
+              key={hour}
+              style={{ top: top(hour) }}
+            >
+              <span className="absolute -start-12 -top-3 text-sm font-semibold text-muted-foreground tabular-nums">
+                {hour}h
+              </span>
+            </div>
+          ))}
+
+          {freeSlots(appointments).map((slot) => {
+            const past = slot.end <= NOW
+            const waiting = waitlist.find(
+              (w) => w.slot === formatHour(slot.start)
+            )
+            return (
+              <div
+                className={cn(
+                  "absolute inset-x-0 flex items-center gap-2 rounded-2xl border-2 border-dashed border-foreground/15 pe-1.5 font-semibold text-muted-foreground",
+                  past && "opacity-60"
+                )}
+                key={slot.start}
+                style={{
+                  height: (slot.end - slot.start) * HOUR_PX - 4,
+                  top: top(slot.start) + 2,
+                }}
+              >
+                <button
+                  className="flex min-w-0 flex-1 items-center justify-center gap-1.5 self-stretch rounded-2xl transition-colors hover:bg-background/60 hover:text-foreground disabled:pointer-events-none"
+                  disabled={past}
+                  onClick={() =>
+                    onSlot(Math.max(slot.start, Math.ceil(NOW * 2) / 2))
+                  }
+                  type="button"
+                >
+                  <HugeiconsIcon className="size-4" icon={PlusSignIcon} />
+                  Libre · {formatDuration(slot.end - slot.start)}
+                </button>
+                {waiting &&
+                  !past &&
+                  (offered.includes(waiting.id) ? (
+                    <span className="flex items-center gap-1 pe-2 text-sm">
+                      <HugeiconsIcon className="size-4" icon={Tick02Icon} />
+                      Proposé à {waiting.pet}
+                    </span>
+                  ) : (
+                    <Button
+                      className="h-7 rounded-full bg-background"
+                      onClick={() => onOffer(waiting.id)}
+                      size="sm"
+                      title={`${waiting.pet} attend : ${waiting.request}`}
+                      variant="outline"
+                    >
+                      Proposer à {waiting.pet}
+                    </Button>
+                  ))}
+              </div>
+            )
+          })}
+
+          {appointments.map((a) => (
+            <button
+              className={cn(
+                "absolute inset-x-0 z-1 flex gap-3 overflow-hidden rounded-2xl px-3 py-1.5 text-start leading-snug transition-[filter] hover:brightness-95",
+                blockStyles[a.status],
+                a.id === selectedId && "ring-2 ring-control"
+              )}
+              key={a.id}
+              onClick={() => onSelect(a.id)}
+              style={{
+                height: durationOf(a) * HOUR_PX - 4,
+                top: top(a.start) + 2,
+              }}
+              type="button"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-semibold">
+                  {a.pet}{" "}
+                  <span className="font-normal opacity-70">· {a.breed}</span>
+                </p>
+                <p className="truncate text-sm opacity-80">
+                  {range(a)} · {a.services.map((x) => x.label).join(", ")}
+                </p>
+              </div>
+              <div className="flex shrink-0 flex-col items-end gap-1">
+                <span className="font-semibold tabular-nums">
+                  {formatAmount(priceOf(a))}
+                </span>
+                {a.alert && a.status !== "done" && (
+                  <HugeiconsIcon
+                    className="size-4 text-warning-foreground"
+                    icon={Alert02Icon}
+                  />
+                )}
+                {a.status === "done" && (
+                  <HugeiconsIcon className="size-4" icon={Tick02Icon} />
+                )}
+              </div>
+            </button>
+          ))}
+
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -start-1 end-0 z-0 h-0.5 bg-control"
+            style={{ top: top(NOW) }}
+          >
+            <span className="absolute -start-1 -top-[3px] size-2 rounded-full bg-control" />
+          </div>
         </div>
       </div>
-    </Widget>
+      <p className="text-sm text-muted-foreground">
+        Touchez un rendez-vous pour voir sa fiche, ou un créneau libre pour
+        réserver.
+      </p>
+    </Section>
   )
 }
 
+/** La fiche du rendez-vous choisi : ce qu'il faut savoir quand le client arrive. */
 function GroomingSheet({
   appointment: a,
   tableBusy,
@@ -359,83 +383,99 @@ function GroomingSheet({
   onStatus: (status: GroomingStatus) => void
   onPay: () => void
 }) {
+  const label = "text-xs font-semibold text-muted-foreground"
   return (
-    <Widget
+    <Section
       action={
-        <Badge variant={statusMeta[a.status].variant}>
+        <span className="rounded-full bg-muted px-3 py-1 text-sm font-semibold">
           {statusMeta[a.status].label}
-        </Badge>
+        </span>
       }
-      description={range(a)}
-      title={`Fiche de ${a.pet}`}
+      title={a.pet}
     >
-      <div className="space-y-4">
-        <div className="flex items-center gap-3">
-          <Avatar className="size-10">
-            <AvatarFallback>{a.initials}</AvatarFallback>
+      <div className="space-y-2 rounded-3xl bg-muted p-3 md:p-4">
+        <div className="flex items-center gap-3 rounded-2xl bg-background p-3">
+          <Avatar className="size-11">
+            <AvatarFallback className="bg-muted font-semibold">
+              {a.initials}
+            </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold">{a.owner}</p>
-            <p className="text-xs text-muted-foreground">
-              Dernière visite : {a.lastVisit.toLowerCase()}
+            <p className="truncate font-semibold">{a.owner}</p>
+            <p className="text-sm text-muted-foreground">
+              {range(a)} · dernière visite {a.lastVisit.toLowerCase()}
             </p>
           </div>
-          <Button aria-label="Appeler" size="icon-sm" variant="outline">
+          <Button
+            aria-label={`Appeler ${a.owner}`}
+            size="icon"
+            variant="secondary"
+          >
             <HugeiconsIcon icon={Call02Icon} />
           </Button>
         </div>
 
         {a.alert && (
-          <Alert variant="warning">
-            <HugeiconsIcon icon={Alert02Icon} />
-            <AlertDescription>{a.alert}</AlertDescription>
-          </Alert>
+          <p className="flex gap-3 rounded-2xl bg-warning-soft p-3 font-semibold">
+            <HugeiconsIcon
+              className="mt-0.5 size-5 shrink-0"
+              icon={Alert02Icon}
+            />
+            {a.alert}
+          </p>
         )}
 
-        <dl className="grid grid-cols-3 gap-2 text-center">
+        <dl className="grid grid-cols-3 gap-2">
           {[
             ["Race", a.breed],
             ["Gabarit", a.size],
             ["Pelage", a.coat],
-          ].map(([label, value]) => (
-            <div className="rounded-lg bg-muted/60 p-2" key={label}>
-              <dt className="text-[0.6875rem] text-muted-foreground">
-                {label}
-              </dt>
-              <dd className="text-xs font-semibold">{value}</dd>
+          ].map(([name, value]) => (
+            <div className="rounded-2xl bg-background p-3" key={name}>
+              <dt className={label}>{name}</dt>
+              <dd className="leading-tight font-semibold">{value}</dd>
             </div>
           ))}
         </dl>
 
-        <div className="space-y-1">
-          <p className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-            <HugeiconsIcon className="size-3.5" icon={ScissorIcon} />
-            Coupe habituelle
-          </p>
-          <p className="text-sm">{a.cut}</p>
-        </div>
-        <div className="space-y-1">
-          <p className="text-xs font-semibold text-muted-foreground">
-            Comportement
-          </p>
-          <p className="text-sm">{a.behaviour}</p>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {a.products.map((product) => (
-            <Badge key={product} variant="outline">
-              {product}
-            </Badge>
-          ))}
-        </div>
+        <dl className="divide-y-2 divide-muted overflow-hidden rounded-2xl bg-background">
+          <div className="space-y-0.5 p-3">
+            <dt className={cn(label, "flex items-center gap-1.5")}>
+              <HugeiconsIcon className="size-3.5" icon={ScissorIcon} />
+              Coupe habituelle
+            </dt>
+            <dd>{a.cut}</dd>
+          </div>
+          <div className="space-y-0.5 p-3">
+            <dt className={label}>Comportement</dt>
+            <dd>{a.behaviour}</dd>
+          </div>
+          <div className="space-y-1.5 p-3">
+            <dt className={label}>Produits</dt>
+            <dd className="flex flex-wrap gap-1.5">
+              {a.products.map((product) => (
+                <span
+                  className="rounded-full bg-muted px-3 py-1 text-sm font-semibold"
+                  key={product}
+                >
+                  {product}
+                </span>
+              ))}
+            </dd>
+          </div>
+        </dl>
 
-        <ul className="space-y-1 border-t pt-3 text-sm">
-          {a.services.map((s) => (
-            <li className="flex justify-between" key={s.label}>
-              <span className="text-muted-foreground">{s.label}</span>
-              <span className="tabular-nums">{formatAmount(s.price)}</span>
+        <ul className="divide-y-2 divide-muted overflow-hidden rounded-2xl bg-background">
+          {a.services.map((x) => (
+            <li
+              className="flex justify-between gap-3 px-3 py-2.5"
+              key={x.label}
+            >
+              <span>{x.label}</span>
+              <span className="tabular-nums">{formatAmount(x.price)}</span>
             </li>
           ))}
-          <li className="flex justify-between font-semibold">
+          <li className="flex justify-between gap-3 px-3 py-2.5 text-lg font-semibold">
             <span>Total</span>
             <span className="tabular-nums">{formatAmount(priceOf(a))}</span>
           </li>
@@ -445,7 +485,7 @@ function GroomingSheet({
           <Button
             className="w-full"
             onClick={() => onStatus("checked-in")}
-            variant="outline"
+            size="lg"
           >
             Enregistrer l&apos;arrivée
           </Button>
@@ -455,181 +495,36 @@ function GroomingSheet({
             className="w-full"
             disabled={tableBusy}
             onClick={() => onStatus("in-progress")}
+            size="lg"
           >
             {tableBusy ? "Table occupée" : "Installer sur la table"}
           </Button>
         )}
         {a.status === "done" &&
           (a.paid ? (
-            <Badge className="w-full" size="lg" variant="success">
-              <HugeiconsIcon icon={Tick02Icon} />
+            <p className="flex h-11 items-center justify-center gap-2 rounded-full bg-success-soft font-semibold">
+              <HugeiconsIcon className="size-5" icon={Tick02Icon} />
               Réglé
-            </Badge>
+            </p>
           ) : (
-            <Button className="w-full" onClick={onPay}>
+            <Button className="w-full" onClick={onPay} size="lg">
               Encaisser {formatAmount(priceOf(a))}
             </Button>
           ))}
       </div>
-    </Widget>
-  )
-}
-
-function CashCard({ appointments }: { appointments: GroomingAppointment[] }) {
-  const lines = [
-    ...appointments.map((a) => ({
-      label: `${a.pet} · ${a.services[0].label}`,
-      paid: a.paid,
-      price: priceOf(a),
-      status: a.status,
-    })),
-    ...productSales.map((s) => ({ ...s, status: "sale" as const })),
-  ]
-  const total = lines.reduce((sum, l) => sum + l.price, 0)
-  const collected = lines
-    .filter((l) => l.paid)
-    .reduce((sum, l) => sum + l.price, 0)
-  return (
-    <Widget description="Prestations et ventes" title="Caisse du jour">
-      <div className="flex items-baseline justify-between gap-2">
-        <span className="font-heading text-2xl font-semibold tabular-nums">
-          {formatAmount(collected)}
-        </span>
-        <span className="text-xs text-muted-foreground">
-          encaissés sur {formatAmount(total)}
-        </span>
-      </div>
-      <div className="mt-2">
-        <Bar
-          className="bg-grooming-strong"
-          label="Encaissé"
-          value={(collected / total) * 100}
-        />
-      </div>
-      <ul className="mt-4 space-y-2 text-sm">
-        {lines.map((l) => (
-          <li className="flex items-center gap-2" key={l.label}>
-            <span
-              className={cn(
-                "size-2 shrink-0 rounded-full",
-                l.paid ? "bg-grooming-strong" : "bg-muted-foreground/30"
-              )}
-            />
-            <span className="min-w-0 flex-1 truncate">{l.label}</span>
-            {l.status === "sale" && (
-              <Badge size="sm" variant="outline">
-                Vente
-              </Badge>
-            )}
-            <span
-              className={cn("tabular-nums", !l.paid && "text-muted-foreground")}
-            >
-              {formatAmount(l.price)}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </Widget>
-  )
-}
-
-function StockCard() {
-  return (
-    <Widget
-      action={
-        <Button size="sm" variant="ghost">
-          <HugeiconsIcon icon={PackageIcon} />
-          Commander
-        </Button>
-      }
-      description="Niveau des produits ouverts"
-      title="Produits"
-    >
-      <ul className="space-y-3">
-        {stock.map((item) => {
-          const low = item.level < 25
-          return (
-            <li className="space-y-1.5" key={item.label}>
-              <div className="flex items-center justify-between gap-2 text-sm">
-                <span className="truncate">{item.label}</span>
-                <span
-                  className={cn(
-                    "text-xs tabular-nums",
-                    low
-                      ? "font-semibold text-warning-foreground"
-                      : "text-muted-foreground"
-                  )}
-                >
-                  {item.level} %
-                </span>
-              </div>
-              <Meter aria-label={item.label} value={item.level}>
-                <MeterTrack>
-                  <MeterIndicator
-                    className={low ? "bg-warning" : "bg-grooming-strong"}
-                  />
-                </MeterTrack>
-              </Meter>
-            </li>
-          )
-        })}
-      </ul>
-    </Widget>
-  )
-}
-
-function WaitlistCard() {
-  const [offered, setOffered] = useState<string[]>([])
-  return (
-    <Widget
-      description="Clients à recontacter si un créneau se libère"
-      title="Liste d'attente"
-    >
-      <ul className="divide-y">
-        {waitlist.map((w) => (
-          <li
-            className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0"
-            key={w.id}
-          >
-            <Avatar className="size-10">
-              <AvatarFallback className="text-xs">{w.initials}</AvatarFallback>
-            </Avatar>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm">
-                <span className="font-semibold">{w.pet}</span>
-                <span className="text-muted-foreground"> · {w.owner}</span>
-              </p>
-              <p className="truncate text-sm text-muted-foreground">
-                {w.request}
-              </p>
-            </div>
-            {offered.includes(w.id) ? (
-              <Badge variant="success">
-                <HugeiconsIcon icon={Tick02Icon} />
-                Proposé
-              </Badge>
-            ) : (
-              <Button
-                onClick={() => setOffered((list) => [...list, w.id])}
-                size="sm"
-                variant="outline"
-              >
-                Proposer {w.slot}
-              </Button>
-            )}
-          </li>
-        ))}
-      </ul>
-    </Widget>
+    </Section>
   )
 }
 
 export function GroomingTodayView() {
   const [appointments, setAppointments] = useState(initialAppointments)
+  const [bookings, setBookings] = useState(salonBookings)
   const [step, setStep] = useState(2)
   const [selectedId, setSelectedId] = useState("cannelle")
   const [notified, setNotified] = useState<string | null>(null)
   const [slot, setSlot] = useState<number | null>(null)
+  const [offered, setOffered] = useState<string[]>([])
+  const [ordered, setOrdered] = useState(false)
 
   const current = appointments.find((a) => a.status === "in-progress")
   const next = appointments.find(
@@ -637,13 +532,8 @@ export function GroomingTodayView() {
   )
   const selected =
     appointments.find((a) => a.id === selectedId) ?? appointments[0]
-  const done = appointments.filter((a) => a.status === "done").length
   const planned = appointments.reduce((sum, a) => sum + durationOf(a), 0)
-  const opening = AGENDA_END - AGENDA_START
-  const slots = freeSlots(appointments)
-  const revenue =
-    appointments.reduce((sum, a) => sum + priceOf(a), 0) +
-    productSales.reduce((sum, s) => sum + s.price, 0)
+  const low = stock.filter((item) => item.level < 25)
 
   const update = (id: string, patch: Partial<GroomingAppointment>) =>
     setAppointments((list) =>
@@ -669,6 +559,49 @@ export function GroomingTodayView() {
     )
   }
 
+  const attention: Attention[] = [
+    ...appointments
+      .filter((a) => a.status === "done" && !a.paid)
+      .map((a) => ({
+        actions: (
+          <Button onClick={() => update(a.id, { paid: true })}>
+            Encaisser {formatAmount(priceOf(a))}
+          </Button>
+        ),
+        detail: `${a.services.map((x) => x.label).join(" + ")} · ${a.owner}`,
+        icon: EuroCircleIcon,
+        id: a.id,
+        onOpen: () => setSelectedId(a.id),
+        title: `${a.pet} · à encaisser`,
+        tone: "bg-success-soft",
+      })),
+    ...(low.length && !ordered
+      ? [
+          {
+            actions: (
+              <Button onClick={() => setOrdered(true)}>
+                <HugeiconsIcon icon={PackageIcon} />
+                Commander
+              </Button>
+            ),
+            detail: low
+              .map((item) => `${item.label} ${item.level} %`)
+              .join(" · "),
+            icon: PackageIcon,
+            id: "stock",
+            title: `${low.length} produit${low.length > 1 ? "s" : ""} presque vide${low.length > 1 ? "s" : ""}`,
+            tone: "bg-warning-soft text-warning-foreground",
+          },
+        ]
+      : []),
+    ...bookingRequests(bookings, {
+      setStatus: (id, status) =>
+        setBookings((list) =>
+          list.map((b) => (b.id === id ? { ...b, status } : b))
+        ),
+    }),
+  ]
+
   return (
     <ActivityDayPage
       actions={
@@ -683,21 +616,22 @@ export function GroomingTodayView() {
       }
       activity="Toilettage"
       aside={
-        <div className="flex items-center gap-2 rounded-full border py-1 ps-1 pe-3 text-sm">
-          <Avatar className="size-6">
-            <AvatarFallback className="text-[0.625rem]">MA</AvatarFallback>
+        <div className="flex h-10 items-center gap-2 rounded-full bg-muted ps-1 pe-4 text-sm font-semibold">
+          <Avatar className="size-8">
+            <AvatarFallback className="bg-background text-xs">
+              MA
+            </AvatarFallback>
           </Avatar>
           Marc
-          <span className="text-muted-foreground">· au salon 9h – 18h</span>
+          <span className="font-normal text-muted-foreground">
+            · au salon 9h – 18h
+          </span>
         </div>
       }
       summary={
         <>
           {appointments.length} rendez-vous et {formatDuration(planned)} de
-          toilettage au planning.{" "}
-          {current
-            ? `${current.pet} est sur la table.`
-            : next && `Prochain : ${next.pet} à ${formatHour(next.start)}.`}
+          toilettage aujourd&apos;hui.
         </>
       }
     >
@@ -710,86 +644,37 @@ export function GroomingTodayView() {
         step={step}
       />
 
-      <Alert variant="warning">
-        <HugeiconsIcon icon={Alert02Icon} />
-        <AlertTitle>Rocky à 14h : peau sensible</AlertTitle>
-        <AlertDescription>
-          Shampoing hypoallergénique obligatoire, et il n&apos;en reste
-          qu&apos;un flacon entamé (12 %). Filou (16h) est stressé par le
-          séchoir : prévoir un séchage serviette.
-        </AlertDescription>
-        <AlertAction>
-          <Button size="sm" variant="outline">
-            <HugeiconsIcon icon={PackageIcon} />
-            Commander
-          </Button>
-        </AlertAction>
-      </Alert>
+      <Section count={attention.length || undefined} title="À traiter">
+        <AttentionList
+          items={attention}
+          limit={3}
+          moreHref="/grooming/appointments"
+        />
+      </Section>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi
-          icon={Calendar03Icon}
-          label="Rendez-vous"
-          value={`${done} / ${appointments.length}`}
-        >
-          {current ? `1 en cours · ${current.pet}` : "Aucun en cours"}
-        </Kpi>
-        <Kpi
-          icon={Clock01Icon}
-          label="Remplissage"
-          value={`${Math.round((planned / opening) * 100)} %`}
-        >
-          <Bar
-            className="bg-grooming-strong"
-            label="Remplissage du planning"
-            value={(planned / opening) * 100}
+      <div className="grid items-start gap-8 lg:grid-cols-3">
+        <div className="space-y-8 lg:col-span-2">
+          <SalonAgenda
+            appointments={appointments}
+            offered={offered}
+            onOffer={(id) => setOffered((list) => [...list, id])}
+            onSelect={setSelectedId}
+            onSlot={setSlot}
+            selectedId={selected.id}
           />
-          <p className="mt-1.5">
-            {formatDuration(planned)} sur {opening}h d&apos;ouverture
-          </p>
-        </Kpi>
-        <Kpi
-          icon={EuroCircleIcon}
-          label="CA du jour"
-          value={formatAmount(revenue)}
-        >
-          dont {formatAmount(productSales.reduce((s, p) => s + p.price, 0))} de
-          ventes de produits
-        </Kpi>
-        <Kpi icon={HourglassIcon} label="Créneaux libres" value={slots.length}>
-          {slots
-            .map(
-              (s) =>
-                `${formatHour(s.start)} (${formatDuration(s.end - s.start)})`
-            )
-            .join(" · ")}
-        </Kpi>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-3">
-        <SalonAgenda
-          appointments={appointments}
-          className="lg:col-span-2"
-          onSelect={setSelectedId}
-          onSlot={setSlot}
-          selectedId={selected.id}
-        />
-        <GroomingSheet
-          appointment={selected}
-          onPay={() => update(selected.id, { paid: true })}
-          onStatus={(status) =>
-            status === "in-progress"
-              ? install(selected.id)
-              : update(selected.id, { status })
-          }
-          tableBusy={Boolean(current)}
-        />
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <CashCard appointments={appointments} />
-        <StockCard />
-        <WaitlistCard />
+        </div>
+        <div className="lg:sticky lg:top-6">
+          <GroomingSheet
+            appointment={selected}
+            onPay={() => update(selected.id, { paid: true })}
+            onStatus={(status) =>
+              status === "in-progress"
+                ? install(selected.id)
+                : update(selected.id, { status })
+            }
+            tableBusy={Boolean(current)}
+          />
+        </div>
       </div>
 
       {slot !== null && (
@@ -797,7 +682,7 @@ export function GroomingTodayView() {
           defaultOpen
           initial={{ day: TODAY, start: slot }}
           key={slot}
-          onOpenChange={(next) => !next && setSlot(null)}
+          onOpenChange={(open) => !open && setSlot(null)}
         />
       )}
     </ActivityDayPage>

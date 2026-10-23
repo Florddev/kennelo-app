@@ -103,7 +103,7 @@ export function SettingsPage({
           )}
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div className="min-w-0 space-y-2">
-              <h1 className="flex items-center gap-3 font-heading text-3xl font-semibold md:text-4xl">
+              <h1 className="flex items-center gap-3 font-display text-5xl text-balance md:text-6xl">
                 {title}
               </h1>
               {description && (
@@ -192,7 +192,7 @@ export function SettingsSection({
       {(title || action) && (
         <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
           <div className="space-y-0.5">
-            {title && <h2 className="text-lg font-semibold">{title}</h2>}
+            {title && <h2 className="font-display text-3xl">{title}</h2>}
             {description && (
               <p className="text-sm text-muted-foreground">{description}</p>
             )}

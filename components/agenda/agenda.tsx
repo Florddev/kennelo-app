@@ -21,11 +21,12 @@ export const hourOf = (time: string) => {
   return Number(h) + (Number(m) || 0) / 60
 }
 
-export type AgendaView = "day" | "week" | "list"
+export type AgendaView = "day" | "week" | "month" | "list"
 
 const viewLabels: Record<AgendaView, string> = {
   day: "Jour",
   list: "Liste",
+  month: "Mois",
   week: "Semaine",
 }
 
@@ -80,7 +81,7 @@ export function AgendaToolbar({
           <HugeiconsIcon icon={ArrowRight01Icon} />
         </Button>
       </div>
-      <h2 className="font-heading text-xl font-semibold">{label}</h2>
+      <h2 className="font-display text-3xl">{label}</h2>
       <div className="flex flex-wrap items-center gap-3 sm:ms-auto">
         {children}
         {view && onView && (
@@ -270,7 +271,7 @@ export function TimeGrid({
                 {day === TODAY && NOW > open && NOW < close && (
                   <span
                     aria-hidden="true"
-                    className="pointer-events-none absolute inset-x-0 z-2 h-0.5 bg-control"
+                    className="pointer-events-none absolute inset-x-0 z-0 h-0.5 bg-control"
                     style={{ top: top(NOW) }}
                   >
                     <span className="absolute -start-1 -top-[3px] size-2 rounded-full bg-control" />

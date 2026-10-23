@@ -9,12 +9,10 @@ import { NewSessionDialog } from "@/components/training/new-session-dialog"
 import {
   Calendar03Icon,
   CalendarAdd01Icon,
-  Clock01Icon,
   FileEditIcon,
   Home01Icon,
   Location01Icon,
   Target02Icon,
-  Tick02Icon,
   UserGroupIcon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -23,9 +21,10 @@ import { dateOf, longDate, relativeDate, TODAY } from "@/components/calendar"
 import { NOW } from "@/components/today/data"
 import {
   ActivityPage,
+  AttentionList,
   Bar,
   formatHour,
-  Kpi,
+  Section,
   Widget,
 } from "@/components/today/widgets"
 import {
@@ -542,10 +541,6 @@ export function SessionsView() {
   const [openId, setOpenId] = useState<string | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
 
-  const active = sessions.filter((s) => !s.cancelled)
-  const hours = active.reduce((sum, s) => sum + s.end - s.start, 0)
-  const dogs =
-    programmes.length + groups.reduce((sum, g) => sum + g.members.length, 0)
   const toReport = sessions.filter((s) => stateOf(s) === "done" && !s.report)
   const openSession = sessions.find((s) => s.id === openId) ?? null
   const open = (id: string) => {
@@ -569,67 +564,23 @@ export function SessionsView() {
         />
       }
       activity="Éducation"
-      className="max-w-7xl"
       title="Séances"
     >
       {toReport.length > 0 && (
-        <Widget
-          description="Envoyés aux propriétaires après chaque séance"
-          title={`${toReport.length} compte${toReport.length > 1 ? "s" : ""}-rendu${toReport.length > 1 ? "s" : ""} à rédiger`}
-        >
-          <ul className="-mx-2 -my-2">
-            {toReport.map((s) => (
-              <li
-                className="flex items-center gap-4 rounded-2xl p-2"
-                key={s.id}
-              >
-                <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-training text-sm font-semibold text-training-foreground">
-                  {s.title.slice(0, 2)}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-semibold">
-                    {s.title}
-                    {s.owner && (
-                      <span className="font-normal text-muted-foreground">
-                        {" "}
-                        · {s.owner}
-                      </span>
-                    )}
-                  </span>
-                  <span className="block truncate text-sm text-muted-foreground">
-                    {relativeDate(s.day)} · {range(s)} · {s.place}
-                  </span>
-                </span>
-                <Button onClick={() => open(s.id)} variant="secondary">
-                  Rédiger
-                </Button>
-              </li>
-            ))}
-          </ul>
-        </Widget>
+        <Section count={toReport.length} title="À traiter">
+          <AttentionList
+            items={toReport.map((x) => ({
+              actions: <Button onClick={() => open(x.id)}>Rédiger</Button>,
+              detail: `${relativeDate(x.day)} · ${range(x)} · ${x.place}`,
+              icon: FileEditIcon,
+              id: x.id,
+              onOpen: () => open(x.id),
+              title: `Compte-rendu · ${x.title}${x.owner ? ` · ${x.owner}` : ""}`,
+              tone: "bg-training text-training-foreground",
+            }))}
+          />
+        </Section>
       )}
-
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Kpi icon={Calendar03Icon} label="Cette semaine" value={active.length}>
-          {active.filter((s) => stateOf(s) === "done").length} terminées ·{" "}
-          {sessions.length - active.length} annulée
-        </Kpi>
-        <Kpi icon={UserGroupIcon} label="Chiens suivis" value={dogs}>
-          {programmes.length} en individuel · {groups.length} cours collectifs
-        </Kpi>
-        <Kpi
-          icon={Clock01Icon}
-          label="Heures de coaching"
-          value={formatHour(hours)}
-        >
-          Inès · du lundi au dimanche
-        </Kpi>
-        <Kpi icon={Tick02Icon} label="Comptes-rendus" value={toReport.length}>
-          {toReport.length > 0
-            ? "À rédiger pour les séances passées"
-            : "Tous envoyés"}
-        </Kpi>
-      </div>
 
       <Tabs onValueChange={(value) => setTab(String(value))} value={tab}>
         <TabsList>

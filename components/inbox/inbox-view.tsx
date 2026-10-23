@@ -26,22 +26,15 @@ import {
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
 import Link from "next/link"
-import { Fragment, type ReactNode, useState } from "react"
-import { ActivityMark } from "@/components/activity-mark"
+import { type ReactNode, useState } from "react"
+import { ActivityMark, activityMeta } from "@/components/activity-mark"
 import {
   type InboxItem,
   type InboxKind,
   inboxItems,
   type PriceLine,
 } from "@/components/inbox/data"
-import {
-  Alert,
-  AlertAction,
-  AlertDescription,
-  AlertTitle,
-} from "@/components/ui/alert"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Empty,
@@ -51,8 +44,6 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty"
 import { Meter, MeterIndicator, MeterTrack } from "@/components/ui/meter"
-import { SidebarTrigger } from "@/components/ui/sidebar"
-import { Tabs, TabsList, TabsTab } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 
 type Filter = "all" | "unread" | "todo"
@@ -108,12 +99,16 @@ const kindMeta: Record<
 const groups = ["Aujourd'hui", "Hier", "Plus tôt"] as const
 
 const vaccineStatus = {
-  expired: { label: "Expiré", variant: "error" },
-  ok: { label: "À jour", variant: "success" },
-  soon: { label: "Expire bientôt", variant: "warning" },
+  expired: { label: "Expiré", tone: "bg-destructive-soft" },
+  ok: { label: "À jour", tone: "bg-success-soft" },
+  soon: { label: "Expire bientôt", tone: "bg-warning-soft" },
 } as const
 
-const panel = "rounded-xl border bg-card p-4"
+/** Carte crème qui regroupe des blocs blancs, comme partout dans l'espace pro. */
+const panel = "rounded-3xl bg-muted p-3 md:p-4"
+const block = "rounded-2xl bg-background p-4"
+const list = "divide-y-2 divide-muted overflow-hidden rounded-2xl bg-background"
+const pill = "inline-block rounded-full px-3 py-1 text-sm font-semibold"
 
 const formatEuro = (amount: number) =>
   `${Number.isInteger(amount) ? amount : amount.toFixed(2).replace(".", ",")} €`
@@ -216,32 +211,63 @@ function Section({
   children: ReactNode
 }) {
   return (
-    <section className="space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
-          {title}
-        </h3>
-        {aside}
+    <section className="flex flex-col gap-3">
+      <div className="flex items-baseline justify-between gap-2">
+        <h3 className="font-display text-2xl">{title}</h3>
+        {aside && (
+          <span className="text-sm font-semibold text-muted-foreground">
+            {aside}
+          </span>
+        )}
       </div>
       {children}
     </section>
   )
 }
 
+function Callout({
+  icon,
+  title,
+  tone,
+  children,
+}: {
+  icon: IconSvgElement
+  title: string
+  tone: string
+  children?: ReactNode
+}) {
+  return (
+    <div className={cn("flex gap-3 rounded-3xl p-4 md:p-5", tone)}>
+      <HugeiconsIcon className="mt-0.5 size-5 shrink-0" icon={icon} />
+      <div className="space-y-0.5">
+        <p className="font-semibold">{title}</p>
+        {children && <p className="opacity-80">{children}</p>}
+      </div>
+    </div>
+  )
+}
+
 function PriceTable({ lines }: { lines: PriceLine[] }) {
   return (
-    <dl className={cn(panel, "space-y-2 text-sm")}>
-      {lines.map((line) => (
-        <div className="flex justify-between gap-4" key={line.label}>
-          <dt className="text-muted-foreground">{line.label}</dt>
-          <dd className="tabular-nums">{formatEuro(line.amount)}</dd>
+    <div className={panel}>
+      <dl className={list}>
+        {lines.map((line) => (
+          <div
+            className="flex justify-between gap-4 px-4 py-3"
+            key={line.label}
+          >
+            <dt>{line.label}</dt>
+            <dd className="tabular-nums">{formatEuro(line.amount)}</dd>
+          </div>
+        ))}
+        <div className="flex items-baseline justify-between gap-4 px-4 py-3">
+          <dt className="font-semibold">Total</dt>
+          <dd className="font-display text-3xl tabular-nums">
+            {formatEuro(sum(lines))}
+          </dd>
         </div>
-      ))}
-      <div className="flex justify-between gap-4 border-t pt-2 font-semibold">
-        <dt>Total</dt>
-        <dd className="tabular-nums">{formatEuro(sum(lines))}</dd>
-      </div>
-    </dl>
+      </dl>
+    </div>
   )
 }
 
@@ -259,17 +285,17 @@ function StayStop({
   end?: boolean
 }) {
   return (
-    <div className={cn("space-y-0.5", end && "text-end")}>
+    <div className={cn(block, end && "text-end")}>
       <span
         className={cn(
-          "flex items-center gap-1.5 text-sm text-muted-foreground",
+          "flex items-center gap-1.5 text-sm font-semibold text-muted-foreground",
           end && "justify-end"
         )}
       >
-        <HugeiconsIcon className="size-3.5" icon={icon} />
+        <HugeiconsIcon className="size-4" icon={icon} />
         {label}
       </span>
-      <p className="font-semibold">{day}</p>
+      <p className="mt-1 font-display text-3xl">{day}</p>
       <p className="text-sm text-muted-foreground">{time}</p>
     </div>
   )
@@ -280,22 +306,24 @@ function BookingDetail({ data }: { data: DataOf<"booking"> }) {
   return (
     <>
       <Section title="Séjour demandé">
-        <div className={cn(panel, "flex items-center gap-4")}>
+        <div
+          className={cn(
+            panel,
+            "grid grid-cols-[1fr_auto_1fr] items-center gap-3"
+          )}
+        >
           <StayStop icon={Login03Icon} label="Arrivée" {...data.arrival} />
-          <div className="flex flex-1 flex-col items-center gap-1.5">
-            <div className="flex w-full items-center gap-1">
+          <div className="flex flex-col items-center gap-2 sm:px-4">
+            <div className="flex gap-1 text-muted-foreground max-sm:hidden">
               {Array.from({ length: data.nights }, (_, night) => (
-                <Fragment key={night}>
-                  <span className="h-px flex-1 bg-border" />
-                  <HugeiconsIcon
-                    className="size-4 text-pension-strong"
-                    icon={Moon02Icon}
-                  />
-                </Fragment>
+                <HugeiconsIcon
+                  className="size-4"
+                  icon={Moon02Icon}
+                  key={night}
+                />
               ))}
-              <span className="h-px flex-1 bg-border" />
             </div>
-            <span className="text-sm text-muted-foreground">
+            <span className={cn(pill, "bg-wise-orange text-wise-maroon")}>
               {data.nights} nuits
             </span>
           </div>
@@ -307,52 +335,59 @@ function BookingDetail({ data }: { data: DataOf<"booking"> }) {
           />
         </div>
       </Section>
-      <div className="grid gap-6 sm:grid-cols-2">
+
+      <div className="grid gap-6 md:grid-cols-2">
         <Section title="Hébergement">
-          <div className={cn(panel, "space-y-3")}>
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-2 font-semibold">
-                <HugeiconsIcon
-                  className="size-4 text-muted-foreground"
-                  icon={BedDoubleIcon}
-                />
-                {data.box}
-              </span>
-              <Badge variant="success">Disponible</Badge>
+          <div className={cn(panel, "flex-1")}>
+            <div className={cn(block, "space-y-3")}>
+              <div className="flex items-center justify-between gap-2">
+                <span className="flex items-center gap-2 font-display text-2xl">
+                  <HugeiconsIcon className="size-5" icon={BedDoubleIcon} />
+                  {data.box}
+                </span>
+                <span className={cn(pill, "bg-success-soft")}>Disponible</span>
+              </div>
+              <Meter aria-label="Occupation" max={total} value={occupied}>
+                <MeterTrack className="h-2.5 rounded-full bg-muted">
+                  <MeterIndicator className="rounded-full bg-wise-orange" />
+                </MeterTrack>
+              </Meter>
+              <p className="text-sm text-muted-foreground">
+                {occupied}/{total} box occupés sur la période ·{" "}
+                {total - occupied} restants
+              </p>
             </div>
-            <Meter aria-label="Occupation" max={total} value={occupied}>
-              <MeterTrack>
-                <MeterIndicator className="bg-pension-strong" />
-              </MeterTrack>
-            </Meter>
-            <p className="text-sm text-muted-foreground">
-              {occupied}/{total} box occupés sur la période · {total - occupied}{" "}
-              restants
-            </p>
           </div>
         </Section>
         <Section title="Animal">
           <div
-            className={cn(panel, "flex h-full flex-wrap content-start gap-1.5")}
+            className={cn(panel, "flex flex-1 flex-wrap content-start gap-2")}
           >
             {data.petInfo.map((info) => (
-              <Badge key={info} variant="outline">
+              <span className={cn(pill, "bg-background")} key={info}>
                 {info}
-              </Badge>
+              </span>
             ))}
           </div>
         </Section>
       </div>
-      <Section title="Estimation">
-        <PriceTable lines={data.lines} />
-      </Section>
-      {data.note && (
-        <Alert variant="info">
-          <HugeiconsIcon icon={QuoteDownIcon} />
-          <AlertTitle>Note du client</AlertTitle>
-          <AlertDescription>{data.note}</AlertDescription>
-        </Alert>
-      )}
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <Section title="Estimation">
+          <PriceTable lines={data.lines} />
+        </Section>
+        {data.note && (
+          <Section title="Note du client">
+            <blockquote className={cn(panel, "flex flex-1 gap-3 p-5 md:p-5")}>
+              <HugeiconsIcon
+                className="mt-1 size-5 shrink-0 text-muted-foreground"
+                icon={QuoteDownIcon}
+              />
+              <p className="text-lg font-semibold">{data.note}</p>
+            </blockquote>
+          </Section>
+        )}
+      </div>
     </>
   )
 }
@@ -360,21 +395,18 @@ function BookingDetail({ data }: { data: DataOf<"booking"> }) {
 function MessageDetail({ data }: { data: DataOf<"message"> }) {
   return (
     <>
-      <div className={cn(panel, "flex items-center gap-3 text-sm")}>
-        <HugeiconsIcon
-          className="size-4 text-muted-foreground"
-          icon={BedDoubleIcon}
-        />
+      <p className={cn(pill, "flex w-fit items-center gap-2 bg-muted")}>
+        <HugeiconsIcon className="size-4" icon={BedDoubleIcon} />
         {data.context}
-      </div>
+      </p>
       <Section title="Messages non lus">
-        <div className={cn(panel, "space-y-2 bg-muted/40")}>
+        <div className={cn(panel, "space-y-3 p-4 md:p-5")}>
           {data.messages.map((message) => (
-            <div className="flex items-end gap-2" key={message.text}>
-              <p className="max-w-[85%] rounded-2xl rounded-es-sm bg-background px-3 py-2 text-sm shadow-xs ring-1 ring-border">
+            <div className="flex flex-col items-start gap-1" key={message.text}>
+              <p className="max-w-[85%] rounded-3xl bg-background px-4 py-2.5">
                 {message.text}
               </p>
-              <span className="text-sm text-muted-foreground">
+              <span className="px-2 text-xs text-muted-foreground">
                 {message.time}
               </span>
             </div>
@@ -385,33 +417,36 @@ function MessageDetail({ data }: { data: DataOf<"message"> }) {
   )
 }
 
-const serviceShades = ["bg-grooming-strong", "bg-grooming", "bg-grooming/50"]
+const serviceShades = ["bg-wise-purple", "bg-wise-pink", "bg-wise-pink/50"]
 
 function AppointmentDetail({ data }: { data: DataOf<"appointment"> }) {
   const minutes = data.services.reduce((total, s) => total + s.minutes, 0)
   const price = data.services.reduce((total, s) => total + s.price, 0)
   return (
-    <>
+    <div className="grid gap-6 lg:grid-cols-2">
       <Section title="Créneau demandé">
-        <div className={cn(panel, "flex items-center gap-4")}>
-          <div className="w-20 shrink-0 overflow-hidden rounded-xl border text-center">
-            <div className="bg-grooming py-0.5 text-sm font-semibold text-grooming-foreground">
+        <div className={cn(panel, "flex flex-1 items-center gap-3 md:gap-4")}>
+          <div className="w-24 shrink-0 overflow-hidden rounded-2xl bg-background text-center">
+            <div className="bg-wise-pink py-1 text-sm font-semibold text-wise-purple">
               {data.weekday}
             </div>
-            <div className="pt-1 text-2xl font-semibold">{data.day}</div>
-            <div className="pb-1.5 text-sm text-muted-foreground">
+            <div className="pt-2 font-display text-5xl leading-none">
+              {data.day}
+            </div>
+            <div className="pb-2 text-sm text-muted-foreground">
               {data.month}
             </div>
           </div>
-          <div className="grid flex-1 grid-cols-3 gap-1.5">
+          <div className="grid flex-1 grid-cols-3 gap-2">
             {data.slots.map((slot) => (
               <span
                 className={cn(
-                  "rounded-md border py-1.5 text-center text-sm tabular-nums",
+                  "flex h-10 items-center justify-center rounded-full text-sm font-semibold tabular-nums",
+                  slot.status === "free" && "bg-background",
                   slot.status === "busy" &&
-                    "bg-muted text-muted-foreground line-through",
+                    "font-normal text-muted-foreground line-through",
                   slot.status === "requested" &&
-                    "border-grooming-strong bg-grooming font-semibold text-grooming-foreground"
+                    "bg-wise-pink text-wise-purple ring-2 ring-wise-purple"
                 )}
                 key={slot.time}
               >
@@ -424,16 +459,10 @@ function AppointmentDetail({ data }: { data: DataOf<"appointment"> }) {
           Avec {data.groomer} · les créneaux barrés sont déjà réservés
         </p>
       </Section>
-      <Section
-        aside={
-          <span className="text-sm text-muted-foreground">
-            {formatDuration(minutes)}
-          </span>
-        }
-        title="Prestations"
-      >
+
+      <Section aside={formatDuration(minutes)} title="Prestations">
         <div className={cn(panel, "space-y-3")}>
-          <div className="flex h-2.5 gap-0.5 overflow-hidden rounded-full">
+          <div className="mx-1 flex h-2.5 gap-0.5 overflow-hidden rounded-full">
             {data.services.map((service, i) => (
               <span
                 className={serviceShades[i % serviceShades.length]}
@@ -442,17 +471,20 @@ function AppointmentDetail({ data }: { data: DataOf<"appointment"> }) {
               />
             ))}
           </div>
-          <ul className="space-y-2 text-sm">
+          <ul className={list}>
             {data.services.map((service, i) => (
-              <li className="flex items-center gap-2" key={service.label}>
+              <li
+                className="flex items-center gap-3 px-4 py-3"
+                key={service.label}
+              >
                 <span
                   className={cn(
-                    "size-2 rounded-full",
+                    "size-2.5 shrink-0 rounded-full",
                     serviceShades[i % serviceShades.length]
                   )}
                 />
                 <span className="flex-1">{service.label}</span>
-                <span className="text-muted-foreground tabular-nums">
+                <span className="text-sm text-muted-foreground tabular-nums">
                   {service.minutes} min
                 </span>
                 <span className="w-14 text-end tabular-nums">
@@ -460,51 +492,55 @@ function AppointmentDetail({ data }: { data: DataOf<"appointment"> }) {
                 </span>
               </li>
             ))}
+            <li className="flex items-baseline justify-between gap-3 px-4 py-3">
+              <span className="font-semibold">Total</span>
+              <span className="font-display text-3xl tabular-nums">
+                {formatEuro(price)}
+              </span>
+            </li>
           </ul>
-          <div className="flex justify-between border-t pt-2 text-sm font-semibold">
-            <span>Total</span>
-            <span className="tabular-nums">{formatEuro(price)}</span>
-          </div>
         </div>
       </Section>
-    </>
+    </div>
   )
 }
 
 function HealthDetail({ data }: { data: DataOf<"health"> }) {
   return (
     <>
-      <Alert variant="warning">
-        <HugeiconsIcon icon={Alert02Icon} />
-        <AlertTitle>Arrivée prévue le {data.arrival.toLowerCase()}</AlertTitle>
-        <AlertDescription>
-          Le séjour ne pourra pas être confirmé tant que les vaccins ne sont pas
-          à jour.
-        </AlertDescription>
-      </Alert>
+      <Callout
+        icon={Alert02Icon}
+        title={`Arrivée prévue le ${data.arrival.toLowerCase()}`}
+        tone="bg-warning-soft"
+      >
+        Le séjour ne pourra pas être confirmé tant que les vaccins ne sont pas à
+        jour.
+      </Callout>
       <Section title="Vaccinations">
-        <ul className={cn(panel, "divide-y p-0")}>
-          {data.vaccines.map((vaccine) => {
-            const status = vaccineStatus[vaccine.status]
-            return (
-              <li
-                className="flex items-center gap-3 px-4 py-3"
-                key={vaccine.name}
-              >
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted">
-                  <HugeiconsIcon className="size-4" icon={InjectionIcon} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold">{vaccine.name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {vaccine.date}
-                  </p>
-                </div>
-                <Badge variant={status.variant}>{status.label}</Badge>
-              </li>
-            )
-          })}
-        </ul>
+        <div className={panel}>
+          <ul className={list}>
+            {data.vaccines.map((vaccine) => {
+              const status = vaccineStatus[vaccine.status]
+              return (
+                <li
+                  className="flex items-center gap-3 p-3 md:px-4"
+                  key={vaccine.name}
+                >
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted">
+                    <HugeiconsIcon className="size-5" icon={InjectionIcon} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold">{vaccine.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {vaccine.date}
+                    </p>
+                  </div>
+                  <span className={cn(pill, status.tone)}>{status.label}</span>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
       </Section>
     </>
   )
@@ -515,48 +551,65 @@ function PaymentDetail({ data }: { data: DataOf<"payment"> }) {
   return (
     <>
       <div
-        className={cn(panel, "flex flex-wrap items-end justify-between gap-4")}
+        className={cn(
+          panel,
+          "flex flex-wrap items-end justify-between gap-4 p-5 md:p-6"
+        )}
       >
         <div>
-          <p className="text-sm text-muted-foreground">
+          <p className="font-semibold text-muted-foreground">
             Facture {data.invoice}
           </p>
-          <p className="text-3xl font-semibold tabular-nums">
+          <p className="font-display text-6xl tabular-nums">
             {formatEuro(sum(data.lines))}
           </p>
         </div>
         <div className="space-y-1 text-end">
-          <Badge variant={paid ? "success" : "error"}>
+          <span
+            className={cn(
+              pill,
+              paid ? "bg-success-soft" : "bg-destructive-soft"
+            )}
+          >
             {paid ? "Payée" : `${data.daysLate} jours de retard`}
-          </Badge>
+          </span>
           <p className="text-sm text-muted-foreground">
             {paid ? data.method : `Échéance le ${data.due}`}
           </p>
         </div>
       </div>
-      <Section title="Détail">
-        <PriceTable lines={data.lines} />
-      </Section>
-      <Section title="Historique">
-        <ol className="ms-1 space-y-3 border-s ps-4">
-          {data.history.map((step, i) => (
-            <li className="relative text-sm" key={step.label}>
-              <span
-                className={cn(
-                  "absolute start-[calc(-1rem-4.5px)] top-1.5 size-2 rounded-full",
-                  i < data.history.length - 1
-                    ? "bg-muted-foreground/40"
-                    : paid
-                      ? "bg-success"
-                      : "bg-warning"
-                )}
-              />
-              <span className="font-semibold">{step.label}</span>
-              <span className="text-muted-foreground"> · {step.date}</span>
-            </li>
-          ))}
-        </ol>
-      </Section>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Section title="Détail">
+          <PriceTable lines={data.lines} />
+        </Section>
+        <Section title="Historique">
+          <div className={panel}>
+            <ol className={list}>
+              {data.history.map((step, i) => (
+                <li
+                  className="flex items-center gap-3 px-4 py-3"
+                  key={step.label}
+                >
+                  <span
+                    className={cn(
+                      "size-2.5 shrink-0 rounded-full",
+                      i < data.history.length - 1
+                        ? "bg-muted-foreground/40"
+                        : paid
+                          ? "bg-success"
+                          : "bg-warning"
+                    )}
+                  />
+                  <span className="flex-1 font-semibold">{step.label}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {step.date}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </Section>
+      </div>
     </>
   )
 }
@@ -565,33 +618,38 @@ function CapacityDetail({ data }: { data: DataOf<"capacity"> }) {
   return (
     <>
       <Section title="Occupation des box">
-        <div className={cn(panel, "flex h-56 items-end justify-around gap-3")}>
+        <div
+          className={cn(
+            panel,
+            "flex h-72 items-end justify-around gap-3 p-5 md:p-6"
+          )}
+        >
           {data.days.map((day) => {
             const ratio = day.occupied / day.total
             const full = ratio >= 1
             return (
               <div
-                className="flex h-full max-w-16 flex-1 flex-col items-center gap-2"
+                className="flex h-full max-w-24 flex-1 flex-col items-center gap-2"
                 key={day.label}
               >
                 <span
                   className={cn(
-                    "text-sm font-semibold tabular-nums",
+                    "font-display text-2xl tabular-nums",
                     full && "text-destructive-foreground"
                   )}
                 >
                   {day.occupied}/{day.total}
                 </span>
-                <div className="relative w-full flex-1 overflow-hidden rounded-lg bg-muted">
+                <div className="relative w-full flex-1 overflow-hidden rounded-2xl bg-background">
                   <div
                     className={cn(
-                      "absolute inset-x-0 bottom-0 rounded-lg",
-                      full ? "bg-destructive" : "bg-pension-strong"
+                      "absolute inset-x-0 bottom-0",
+                      full ? "bg-destructive" : "bg-wise-orange"
                     )}
                     style={{ height: `${ratio * 100}%` }}
                   />
                 </div>
-                <span className="text-sm text-muted-foreground">
+                <span className="text-sm font-semibold text-muted-foreground">
                   {day.label}
                 </span>
               </div>
@@ -599,42 +657,40 @@ function CapacityDetail({ data }: { data: DataOf<"capacity"> }) {
           })}
         </div>
       </Section>
-      <Alert variant="warning">
-        <HugeiconsIcon icon={Clock01Icon} />
-        <AlertTitle>
-          {data.waiting} demandes en attente sur ces dates
-        </AlertTitle>
-        <AlertDescription>
-          La liste d&apos;attente les placera automatiquement en cas
-          d&apos;annulation.
-        </AlertDescription>
-      </Alert>
+      <Callout
+        icon={Clock01Icon}
+        title={`${data.waiting} demandes en attente sur ces dates`}
+        tone="bg-warning-soft"
+      >
+        La liste d&apos;attente les placera automatiquement en cas
+        d&apos;annulation.
+      </Callout>
     </>
   )
 }
 
 function ReviewDetail({ data }: { data: DataOf<"review"> }) {
   return (
-    <div className={cn(panel, "space-y-4")}>
-      <div className="flex items-center justify-between">
+    <figure className={cn(panel, "space-y-4 p-5 md:p-6")}>
+      <div className="flex items-center justify-between gap-3">
         <div
           aria-label={`${data.rating} sur 5`}
-          className="text-2xl tracking-widest text-warning"
+          className="text-3xl tracking-widest text-warning"
           role="img"
         >
           {"★".repeat(data.rating)}
-          <span className="text-muted">{"★".repeat(5 - data.rating)}</span>
+          <span className="text-background">{"★".repeat(5 - data.rating)}</span>
         </div>
-        <Badge variant="outline">{data.source}</Badge>
+        <span className={cn(pill, "bg-background")}>{data.source}</span>
       </div>
-      <blockquote className="flex gap-3 leading-relaxed">
+      <blockquote className="flex gap-3">
         <HugeiconsIcon
-          className="size-5 shrink-0 text-muted-foreground"
+          className="mt-1 size-6 shrink-0 text-muted-foreground"
           icon={QuoteDownIcon}
         />
-        {data.text}
+        <p className="text-xl leading-relaxed font-semibold">{data.text}</p>
       </blockquote>
-    </div>
+    </figure>
   )
 }
 
@@ -676,69 +732,79 @@ function DetailPane({
 }) {
   const meta = kindMeta[item.kind]
   const actions = actionsFor(item)
+  const onTint = "border-transparent bg-white/60 text-current hover:bg-white/80"
   return (
     <>
-      <div className="flex h-12 shrink-0 items-center gap-1 border-b px-2">
+      <header
+        className={cn(
+          "flex shrink-0 items-center gap-3 px-3 py-3 md:rounded-4xl md:px-5 md:py-4",
+          item.activity ? activityMeta[item.activity].tint : meta.tone
+        )}
+      >
         <Button
           aria-label="Retour à la liste"
-          className="md:hidden"
+          className={cn("md:hidden", onTint)}
           onClick={onBack}
-          size="icon-sm"
-          variant="ghost"
+          size="icon"
         >
           <HugeiconsIcon icon={ArrowLeft01Icon} />
         </Button>
-        <Button onClick={onArchive} size="sm" variant="ghost">
-          <HugeiconsIcon icon={Archive01Icon} />
-          Archiver
-        </Button>
-        <Button onClick={onMarkUnread} size="sm" variant="ghost">
+        <KindTile className="bg-white/60 text-current" kind={item.kind} />
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-display text-3xl leading-none">
+            {meta.label}
+          </p>
+          <p className="mt-1 truncate text-sm opacity-80">
+            {[...new Set([item.activity, item.group, item.time])]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
+        </div>
+        <Button
+          aria-label="Marquer non lu"
+          className={onTint}
+          onClick={onMarkUnread}
+          size="icon"
+        >
           <HugeiconsIcon icon={MailOpen01Icon} />
-          Marquer non lu
         </Button>
-        <span className="ms-auto hidden pe-2 text-sm text-muted-foreground sm:block">
-          {item.group} · {item.time}
-        </span>
-      </div>
+        <Button
+          aria-label="Archiver"
+          className={onTint}
+          onClick={onArchive}
+          size="icon"
+        >
+          <HugeiconsIcon icon={Archive01Icon} />
+        </Button>
+      </header>
 
       <div className="flex-1 overflow-y-auto">
-        <article className="mx-auto max-w-2xl space-y-6 p-4 md:p-8">
-          <header className="space-y-3">
-            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-              <KindTile
-                className="size-7 [&_svg]:size-4"
-                kind={item.kind}
-              />
-              {meta.label}
-              {item.activity && (
-                <>
-                  <span aria-hidden="true">·</span>
-                  <ActivityMark
-                    activity={item.activity}
-                    className="size-4 rounded text-[0.5rem]"
-                  />
-                  {item.activity}
-                </>
-              )}
-            </div>
-            <h2 className="font-heading text-xl font-semibold">{item.title}</h2>
+        <article className="space-y-6 px-4 py-6 md:px-0 md:py-8">
+          <header className="space-y-4">
+            <h2 className="font-display text-4xl text-balance md:text-5xl">
+              {item.title}
+            </h2>
             {item.client && (
               <div className="flex items-center gap-3">
-                <Avatar className="size-9">
-                  <AvatarFallback>{item.client.initials}</AvatarFallback>
+                <Avatar className="size-11">
+                  <AvatarFallback className="bg-muted font-semibold">
+                    {item.client.initials}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-2 text-sm font-semibold">
+                  <p className="flex items-center gap-2 font-semibold">
                     {item.client.name}
                     {item.kind === "booking" && item.data.newClient && (
-                      <Badge variant="info">Nouveau client</Badge>
+                      <span className={cn(pill, "bg-info-soft py-0.5 text-xs")}>
+                        Nouveau client
+                      </span>
                     )}
                   </p>
                   {item.pet && (
                     <p className="text-sm text-muted-foreground">{item.pet}</p>
                   )}
                 </div>
-                <Button aria-label="Appeler" size="icon-sm" variant="outline">
+                <Button aria-label="Appeler" size="icon" variant="secondary">
                   <HugeiconsIcon icon={Call02Icon} />
                 </Button>
               </div>
@@ -746,22 +812,27 @@ function DetailPane({
           </header>
 
           {resolution && (
-            <Alert variant="success">
-              <HugeiconsIcon icon={CheckmarkCircle02Icon} />
-              <AlertTitle>{resolution}</AlertTitle>
-              <AlertAction>
-                <Button onClick={onUndo} size="sm" variant="ghost">
-                  Annuler
-                </Button>
-              </AlertAction>
-            </Alert>
+            <div className="flex items-center gap-3 rounded-3xl bg-success-soft p-3 ps-5">
+              <HugeiconsIcon
+                className="size-5 shrink-0"
+                icon={CheckmarkCircle02Icon}
+              />
+              <p className="flex-1 font-semibold">{resolution}</p>
+              <Button
+                className="border-transparent bg-white/60 text-current hover:bg-white/80"
+                onClick={onUndo}
+                size="sm"
+              >
+                Annuler
+              </Button>
+            </div>
           )}
 
           <ItemBody item={item} />
         </article>
       </div>
 
-      <footer className="flex flex-wrap justify-end gap-2 border-t p-3">
+      <footer className="flex flex-wrap justify-end gap-2 border-t px-4 py-3 md:px-0 md:pb-0">
         {actions.map((action) =>
           action.href ? (
             <Button
@@ -803,8 +874,8 @@ function InboxRow({
     <button
       aria-current={active ? "true" : undefined}
       className={cn(
-        "flex w-full gap-4 rounded-2xl p-3 text-start transition-colors hover:bg-accent",
-        active && "bg-accent"
+        "flex w-full gap-4 rounded-3xl p-3 text-start transition-colors hover:bg-muted",
+        active && "md:bg-muted"
       )}
       onClick={onSelect}
       type="button"
@@ -841,12 +912,12 @@ function InboxRow({
           )}
           <span className="truncate">{item.client?.name ?? item.activity}</span>
           {resolved && (
-            <Badge size="sm" variant="success">
+            <span className="rounded-full bg-success-soft px-2 py-0.5 text-xs font-semibold text-foreground">
               Traité
-            </Badge>
+            </span>
           )}
           {item.unread && (
-            <span className="ms-auto size-2.5 shrink-0 rounded-full bg-primary-active">
+            <span className="ms-auto size-2.5 shrink-0 rounded-full bg-destructive">
               <span className="sr-only">Non lu</span>
             </span>
           )}
@@ -894,6 +965,12 @@ export function InboxView() {
     else setShowDetail(false)
   }
 
+  const filters: { label: string; value: Filter; count?: number }[] = [
+    { label: "Tout", value: "all" },
+    { count: unreadCount, label: "Non lus", value: "unread" },
+    { count: todoCount, label: "À traiter", value: "todo" },
+  ]
+
   const setResolution = (id: string, label?: string) =>
     setResolved((current) => {
       const next = { ...current }
@@ -903,126 +980,123 @@ export function InboxView() {
     })
 
   return (
-    <>
-      <header className="flex h-16 shrink-0 items-center gap-3 border-b px-4 md:px-6">
-        <SidebarTrigger className="md:hidden" />
-        <h1 className="font-heading text-xl font-semibold">
-          Boîte de réception
-        </h1>
-        <Button
-          className="ms-auto"
-          disabled={unreadCount === 0}
-          onClick={() =>
-            setItems((list) => list.map((item) => ({ ...item, unread: false })))
-          }
-          size="sm"
-          variant="ghost"
-        >
-          <HugeiconsIcon icon={Tick02Icon} />
-          Tout marquer comme lu
-        </Button>
-      </header>
-
-      <div className="flex min-h-0 flex-1">
-        <aside
-          className={cn(
-            "w-full shrink-0 flex-col border-e md:flex md:w-96",
-            showDetail ? "hidden" : "flex"
-          )}
-        >
-          <div className="p-3">
-            <Tabs
-              onValueChange={(value) => setFilter(value as Filter)}
-              value={filter}
+    <div className="flex min-h-0 flex-1 md:mx-auto md:w-full md:max-w-[110rem] md:px-10 md:py-6">
+      <aside
+        className={cn(
+          "w-full flex-col md:flex md:w-96 md:shrink-0 md:border-e md:pe-4 xl:w-[28rem] 2xl:w-[32rem]",
+          showDetail ? "hidden" : "flex"
+        )}
+      >
+        <div className="space-y-4 px-4 pt-6 pb-2 md:px-0 md:pt-0">
+          <div className="flex items-start justify-between gap-3">
+            <h1 className="font-display text-5xl text-balance">
+              Boîte de réception
+            </h1>
+            <Button
+              aria-label="Tout marquer comme lu"
+              disabled={unreadCount === 0}
+              onClick={() =>
+                setItems((list) =>
+                  list.map((item) => ({ ...item, unread: false }))
+                )
+              }
+              size="icon-lg"
+              title="Tout marquer comme lu"
+              variant="secondary"
             >
-              <TabsList className="w-full" size="sm">
-                <TabsTab className="flex-1" value="all">
-                  Tout
-                </TabsTab>
-                <TabsTab className="flex-1 gap-1.5" value="unread">
-                  Non lus
-                  <span className="text-sm text-muted-foreground tabular-nums">
-                    {unreadCount}
-                  </span>
-                </TabsTab>
-                <TabsTab className="flex-1 gap-1.5" value="todo">
-                  À traiter
-                  <span className="text-sm text-muted-foreground tabular-nums">
-                    {todoCount}
-                  </span>
-                </TabsTab>
-              </TabsList>
-            </Tabs>
+              <HugeiconsIcon icon={Tick02Icon} />
+            </Button>
           </div>
-          <nav
-            aria-label="Notifications"
-            className="flex-1 overflow-y-auto px-2 pb-2"
-          >
-            {visible.length === 0 && (
-              <p className="p-6 text-center text-sm text-muted-foreground">
-                Tout est traité 🎉
-              </p>
-            )}
-            {groups.map((group) => {
-              const list = visible.filter((item) => item.group === group)
-              if (list.length === 0) return null
-              return (
-                <div className="mb-2" key={group}>
-                  <h2 className="px-2.5 py-1.5 text-sm font-semibold text-muted-foreground">
-                    {group}
-                  </h2>
-                  <div className="space-y-0.5">
-                    {list.map((item) => (
-                      <InboxRow
-                        active={item.id === selectedId}
-                        item={item}
-                        key={item.id}
-                        onSelect={() => open(item.id)}
-                        resolved={Boolean(resolved[item.id])}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )
-            })}
-          </nav>
-        </aside>
-
-        <section
-          className={cn(
-            "min-w-0 flex-1 flex-col md:flex",
-            showDetail ? "flex" : "hidden"
-          )}
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 md:mx-0 md:px-0">
+            {filters.map((f) => (
+              <button
+                aria-pressed={filter === f.value}
+                className={cn(
+                  "flex h-9 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-semibold transition-colors",
+                  filter === f.value
+                    ? "bg-control text-control-foreground"
+                    : "bg-secondary text-secondary-foreground hover:bg-neutral-hover"
+                )}
+                key={f.value}
+                onClick={() => setFilter(f.value)}
+                type="button"
+              >
+                {f.label}
+                {f.count !== undefined && (
+                  <span className="tabular-nums opacity-70">{f.count}</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+        <nav
+          aria-label="Notifications"
+          className="flex-1 overflow-y-auto px-2 pb-4 md:px-0"
         >
-          {selected ? (
-            <DetailPane
-              item={selected}
-              key={selected.id}
-              onArchive={() => archive(selected.id)}
-              onBack={() => setShowDetail(false)}
-              onMarkUnread={() => {
-                setUnread(selected.id, true)
-                setShowDetail(false)
-              }}
-              onResolve={(label) => setResolution(selected.id, label)}
-              onUndo={() => setResolution(selected.id)}
-              resolution={resolved[selected.id]}
-            />
-          ) : (
-            <Empty className="flex-1">
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <HugeiconsIcon icon={InboxIcon} />
-                </EmptyMedia>
-                <EmptyTitle>Aucune notification sélectionnée</EmptyTitle>
-                <EmptyDescription>
-                  Choisissez une alerte dans la liste pour afficher ses détails.
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
+          {visible.length === 0 && (
+            <p className="p-6 text-center text-sm text-muted-foreground">
+              Tout est traité 🎉
+            </p>
           )}
-        </section>
-      </div>
-    </>
+          {groups.map((group) => {
+            const list = visible.filter((item) => item.group === group)
+            if (list.length === 0) return null
+            return (
+              <div className="mb-2" key={group}>
+                <h2 className="px-3 pt-4 pb-1 text-sm font-semibold text-muted-foreground">
+                  {group}
+                </h2>
+                <div className="space-y-0.5">
+                  {list.map((item) => (
+                    <InboxRow
+                      active={item.id === selectedId}
+                      item={item}
+                      key={item.id}
+                      onSelect={() => open(item.id)}
+                      resolved={Boolean(resolved[item.id])}
+                    />
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+        </nav>
+      </aside>
+
+      <section
+        className={cn(
+          "min-w-0 flex-1 flex-col md:flex md:ps-6",
+          showDetail ? "flex" : "hidden"
+        )}
+      >
+        {selected ? (
+          <DetailPane
+            item={selected}
+            key={selected.id}
+            onArchive={() => archive(selected.id)}
+            onBack={() => setShowDetail(false)}
+            onMarkUnread={() => {
+              setUnread(selected.id, true)
+              setShowDetail(false)
+            }}
+            onResolve={(label) => setResolution(selected.id, label)}
+            onUndo={() => setResolution(selected.id)}
+            resolution={resolved[selected.id]}
+          />
+        ) : (
+          <Empty className="flex-1">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <HugeiconsIcon icon={InboxIcon} />
+              </EmptyMedia>
+              <EmptyTitle>Aucune notification sélectionnée</EmptyTitle>
+              <EmptyDescription>
+                Choisissez une alerte dans la liste pour afficher ses détails.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        )}
+      </section>
+    </div>
   )
 }
