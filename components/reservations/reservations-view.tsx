@@ -7,11 +7,7 @@ import {
   Calendar03Icon,
   CalendarAdd01Icon,
   Cancel01Icon,
-  ClipboardListIcon,
-  Clock01Icon,
-  EuroCircleIcon,
   MoreHorizontalIcon,
-  Search01Icon,
   Tick02Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -20,35 +16,30 @@ import { useState } from "react"
 import {
   type Activity,
   ActivityMark,
-  activityNames,
+  activityMeta,
 } from "@/components/activity-mark"
-import { relativeDate, shortDate, TODAY } from "@/components/calendar"
+import { relativeDate, shortDate } from "@/components/calendar"
 import {
   type Reservation,
   type ReservationStatus,
   reservations as initialReservations,
 } from "@/components/reservations/data"
+import { activityIcons } from "@/components/site/site-ui"
 import {
-  Bar,
+  activityChips,
+  AttentionList,
+  FilterChips,
   formatAmount,
   formatHour,
-  Kpi,
+  listCard,
+  listRow,
+  Monogram,
   PageShell,
-  Widget,
+  SearchField,
+  Section,
+  StatusPill,
 } from "@/components/today/widgets"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
-} from "@/components/ui/empty"
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@/components/ui/input-group"
 import {
   Menu,
   MenuItem,
@@ -57,20 +48,32 @@ import {
   MenuSeparator,
   MenuTrigger,
 } from "@/components/ui/menu"
-import { Tabs, TabsList, TabsTab } from "@/components/ui/tabs"
 
 export const reservationStatus: Record<
   ReservationStatus,
   {
     label: string
     variant: "warning" | "info" | "success" | "secondary" | "error"
+    tone: string
   }
 > = {
-  cancelled: { label: "Annulée", variant: "error" },
-  confirmed: { label: "Confirmée", variant: "info" },
-  done: { label: "Terminée", variant: "secondary" },
-  ongoing: { label: "En cours", variant: "success" },
-  pending: { label: "À confirmer", variant: "warning" },
+  cancelled: {
+    label: "Annulée",
+    tone: "bg-destructive-soft",
+    variant: "error",
+  },
+  confirmed: { label: "Confirmée", tone: "bg-info-soft", variant: "info" },
+  done: {
+    label: "Terminée",
+    tone: "bg-background text-muted-foreground",
+    variant: "secondary",
+  },
+  ongoing: { label: "En cours", tone: "bg-success-soft", variant: "success" },
+  pending: {
+    label: "À confirmer",
+    tone: "bg-warning-soft",
+    variant: "warning",
+  },
 }
 
 export const activityHref: Record<Activity, string> = {
@@ -107,9 +110,6 @@ const byDay = (list: Reservation[], latestFirst: boolean) => {
   return [...days]
 }
 
-const sum = (list: Reservation[]) =>
-  list.reduce((total, r) => total + (r.amount ?? 0), 0)
-
 export function ReservationsView() {
   const [list, setList] = useState(initialReservations)
   const [activity, setActivity] = useState<ActivityFilter>("all")
@@ -124,16 +124,6 @@ export function ReservationsView() {
       ? scoped.length
       : scoped.filter((r) => r.status === value).length
   const pending = scoped.filter((r) => r.status === "pending")
-  const today = scoped.filter(
-    (r) => r.status !== "cancelled" && (r.start === TODAY || r.end === TODAY)
-  )
-  const week = scoped.filter(
-    (r) => r.status !== "cancelled" && r.start >= 0 && r.start <= 6
-  )
-  const booked = scoped.filter(
-    (r) => r.status === "confirmed" || r.status === "ongoing"
-  )
-  const cancelled = scoped.filter((r) => r.status === "cancelled")
   const q = query.trim().toLowerCase()
   const rows = scoped
     .filter((r) => status === "all" || r.status === status)
@@ -142,12 +132,6 @@ export function ReservationsView() {
         !q ||
         `${r.pet} ${r.owner} ${r.title} ${r.breed}`.toLowerCase().includes(q)
     )
-  const sources = ["En ligne", "Téléphone", "Messages", "Sur place"].map(
-    (source) => ({
-      count: scoped.filter((r) => r.source === source).length,
-      source,
-    })
-  )
 
   const setStatusOf = (id: string, next: ReservationStatus) =>
     setList((items) =>
@@ -190,272 +174,187 @@ export function ReservationsView() {
           />
         </>
       }
-      icon={ClipboardListIcon}
       title="Réservations"
     >
-      <Tabs
-        onValueChange={(value) => setActivity(value as ActivityFilter)}
+      <FilterChips
+        label="Activité"
+        onChange={setActivity}
+        options={activityChips}
         value={activity}
-      >
-        <TabsList>
-          <TabsTab value="all">Toutes les activités</TabsTab>
-          {activityNames.map((name) => (
-            <TabsTab className="gap-1.5" key={name} value={name}>
-              <ActivityMark activity={name} className="size-4 text-[0.5rem]" />
-              {name}
-            </TabsTab>
-          ))}
-        </TabsList>
-      </Tabs>
+      />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi icon={Clock01Icon} label="À confirmer" value={pending.length}>
-          Demandes en attente de réponse
-        </Kpi>
-        <Kpi icon={Calendar03Icon} label="Aujourd'hui" value={today.length}>
-          Arrivées, départs et rendez-vous
-        </Kpi>
-        <Kpi icon={ClipboardListIcon} label="Cette semaine" value={week.length}>
-          Du lundi 19 au dimanche 25 oct.
-        </Kpi>
-        <Kpi
-          icon={EuroCircleIcon}
-          label="Montant réservé"
-          value={formatAmount(sum(booked))}
-        >
-          {cancelled.length} annulation{cancelled.length > 1 && "s"} ·{" "}
-          {Math.round((cancelled.length / Math.max(1, scoped.length)) * 100)} %
-        </Kpi>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Widget
-          className="lg:col-span-2"
-          description="Demandes reçues en ligne, par téléphone ou par message"
-          title="À confirmer"
-        >
-          {pending.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Toutes les demandes sont traitées 🎉
-            </p>
-          ) : (
-            <ul className="divide-y">
-              {pending.map((r) => (
-                <li
-                  className="flex flex-wrap items-center gap-3 py-2.5 first:pt-0 last:pb-0"
-                  key={r.id}
+      <Section count={pending.length || undefined} title="À traiter">
+        <AttentionList
+          empty="Toutes les demandes sont traitées"
+          items={pending.map((r) => ({
+            actions: (
+              <>
+                <Button
+                  className="bg-background"
+                  onClick={() => setStatusOf(r.id, "cancelled")}
+                  variant="outline"
                 >
-                  <ActivityMark activity={r.activity} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">
-                      {r.pet}{" "}
-                      <span className="font-normal text-muted-foreground">
-                        · {r.owner}
-                      </span>
-                    </p>
-                    <p className="truncate text-sm text-muted-foreground">
-                      {r.title} · {reservationDate(r)}
-                    </p>
-                  </div>
-                  {r.amount !== undefined && (
-                    <span className="text-sm tabular-nums">
-                      {formatAmount(r.amount)}
-                    </span>
-                  )}
-                  <div className="flex gap-1.5">
-                    <Button
-                      onClick={() => setStatusOf(r.id, "cancelled")}
-                      size="sm"
-                      variant="ghost"
-                    >
-                      Refuser
-                    </Button>
-                    <Button
-                      onClick={() => setStatusOf(r.id, "confirmed")}
-                      size="sm"
-                    >
-                      <HugeiconsIcon icon={Tick02Icon} />
-                      Accepter
-                    </Button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Widget>
-        <Widget description="Origine des réservations" title="Canaux">
-          <ul className="space-y-3">
-            {sources.map(({ source, count: n }) => (
-              <li className="space-y-1.5" key={source}>
-                <div className="flex justify-between text-sm">
-                  <span>{source}</span>
-                  <span className="text-muted-foreground tabular-nums">
-                    {n} · {Math.round((n / Math.max(1, scoped.length)) * 100)} %
-                  </span>
-                </div>
-                <Bar
-                  className="bg-foreground/70"
-                  label={source}
-                  value={(n / Math.max(1, scoped.length)) * 100}
-                />
-              </li>
-            ))}
-          </ul>
-        </Widget>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3">
-        <Tabs
-          onValueChange={(value) => setStatus(value as StatusFilter)}
-          value={status}
-        >
-          <TabsList size="sm">
-            {statusFilters.map((f) => (
-              <TabsTab className="gap-1.5" key={f.value} value={f.value}>
-                {f.label}
-                <span className="text-muted-foreground tabular-nums">
-                  {count(f.value)}
+                  Refuser
+                </Button>
+                <Button onClick={() => setStatusOf(r.id, "confirmed")}>
+                  Accepter
+                </Button>
+              </>
+            ),
+            detail: [
+              r.title,
+              reservationDate(r),
+              r.amount !== undefined ? formatAmount(r.amount) : undefined,
+            ]
+              .filter(Boolean)
+              .join(" · "),
+            icon: activityIcons[r.activity],
+            id: r.id,
+            title: (
+              <>
+                {r.pet}{" "}
+                <span className="font-normal text-muted-foreground">
+                  · {r.owner}
                 </span>
-              </TabsTab>
-            ))}
-          </TabsList>
-        </Tabs>
-        <InputGroup className="ms-auto w-full sm:w-64">
-          <InputGroupAddon>
-            <HugeiconsIcon icon={Search01Icon} />
-          </InputGroupAddon>
-          <InputGroupInput
-            aria-label="Rechercher une réservation"
-            onChange={(e) => setQuery(e.target.value)}
+              </>
+            ),
+            tone: activityMeta[r.activity].tint,
+          }))}
+          limit={3}
+        />
+      </Section>
+
+      <Section
+        action={
+          <SearchField
+            className="w-full sm:w-72"
+            label="Rechercher une réservation"
+            onChange={setQuery}
             placeholder="Animal, client, prestation…"
             value={query}
           />
-        </InputGroup>
-      </div>
-
-      {rows.length === 0 ? (
-        <Empty className="rounded-xl border">
-          <EmptyHeader>
-            <EmptyTitle>Aucune réservation</EmptyTitle>
-            <EmptyDescription>
-              Aucune réservation ne correspond à ces critères.
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-      ) : (
-        <div className="space-y-8">
-          {byDay(rows, status === "done" || status === "cancelled").map(
-            ([day, items]) => (
-              <section className="space-y-1" key={day}>
-                <h2 className="text-sm font-semibold text-muted-foreground">
-                  {relativeDate(day)}
-                </h2>
-                <ul className="-mx-3">
-                  {items.map((r) => (
-                    <li
-                      className="flex items-center gap-4 rounded-2xl p-3 transition-colors hover:bg-accent"
-                      key={r.id}
-                    >
-                      <span className="relative shrink-0">
-                        <span className="flex size-12 items-center justify-center rounded-full bg-muted text-sm font-semibold">
-                          {r.pet.slice(0, 2)}
-                        </span>
-                        <ActivityMark
-                          activity={r.activity}
-                          className="absolute -end-1 -bottom-1 size-5 text-[0.625rem] ring-2 ring-background"
+        }
+        title="Toutes les réservations"
+      >
+        <FilterChips
+          label="Statut"
+          onChange={setStatus}
+          options={statusFilters.map((f) => ({ ...f, count: count(f.value) }))}
+          value={status}
+        />
+        {rows.length === 0 ? (
+          <p className="rounded-3xl bg-muted p-6 text-center font-semibold text-muted-foreground">
+            Aucune réservation ne correspond à ces critères.
+          </p>
+        ) : (
+          <div className="space-y-6">
+            {byDay(rows, status === "done" || status === "cancelled").map(
+              ([day, items]) => (
+                <section className="space-y-2" key={day}>
+                  <h3 className="px-1 font-semibold text-muted-foreground">
+                    {relativeDate(day)}
+                  </h3>
+                  <ul className={listCard}>
+                    {items.map((r) => (
+                      <li className={listRow} key={r.id}>
+                        <Monogram
+                          text={r.pet.slice(0, 2)}
+                          tone={activityMeta[r.activity].tint}
                         />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-semibold">
-                          {r.pet}
-                          <span className="font-normal text-muted-foreground">
-                            {" "}
-                            · {r.owner}
-                          </span>
-                        </p>
-                        <p className="truncate text-sm text-muted-foreground">
-                          {[
-                            r.title,
-                            r.detail,
-                            r.end !== undefined
-                              ? `${shortDate(r.start)} → ${shortDate(r.end)}`
-                              : r.hour !== undefined
-                                ? formatHour(r.hour)
-                                : undefined,
-                          ]
-                            .filter(Boolean)
-                            .join(" · ")}
-                        </p>
-                      </div>
-                      <div className="shrink-0 space-y-1 text-end">
-                        <p className="font-semibold tabular-nums">
-                          {r.amount !== undefined
-                            ? formatAmount(r.amount)
-                            : "Forfait"}
-                        </p>
-                        <Badge variant={reservationStatus[r.status].variant}>
-                          {reservationStatus[r.status].label}
-                        </Badge>
-                      </div>
-                      {r.status === "pending" && (
-                        <Button
-                          className="max-sm:hidden"
-                          onClick={() => setStatusOf(r.id, "confirmed")}
-                          size="sm"
-                        >
-                          Confirmer
-                        </Button>
-                      )}
-                      <Menu>
-                        <MenuTrigger
-                          render={
-                            <Button
-                              aria-label="Actions"
-                              size="icon-sm"
-                              variant="ghost"
-                            />
-                          }
-                        >
-                          <HugeiconsIcon icon={MoreHorizontalIcon} />
-                        </MenuTrigger>
-                        <MenuPopup align="end">
-                          <MenuLinkItem
-                            render={<Link href={activityHref[r.activity]} />}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-semibold">
+                            {r.pet}
+                            <span className="font-normal text-muted-foreground">
+                              {" "}
+                              · {r.owner}
+                            </span>
+                          </p>
+                          <p className="truncate text-sm text-muted-foreground">
+                            {[
+                              r.title,
+                              r.detail,
+                              r.end !== undefined
+                                ? `${shortDate(r.start)} → ${shortDate(r.end)}`
+                                : r.hour !== undefined
+                                  ? formatHour(r.hour)
+                                  : undefined,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </p>
+                        </div>
+                        <div className="shrink-0 space-y-1 text-end">
+                          <p className="font-semibold tabular-nums">
+                            {r.amount !== undefined
+                              ? formatAmount(r.amount)
+                              : "Forfait"}
+                          </p>
+                          <StatusPill tone={reservationStatus[r.status].tone}>
+                            {reservationStatus[r.status].label}
+                          </StatusPill>
+                        </div>
+                        {r.status === "pending" && (
+                          <Button
+                            className="max-sm:hidden"
+                            onClick={() => setStatusOf(r.id, "confirmed")}
+                            size="sm"
                           >
-                            <HugeiconsIcon icon={Calendar03Icon} />
-                            Ouvrir dans {r.activity}
-                          </MenuLinkItem>
-                          {r.status === "pending" && (
-                            <MenuItem
-                              onClick={() => setStatusOf(r.id, "confirmed")}
+                            Confirmer
+                          </Button>
+                        )}
+                        <Menu>
+                          <MenuTrigger
+                            render={
+                              <Button
+                                aria-label="Actions"
+                                size="icon-sm"
+                                variant="ghost"
+                              />
+                            }
+                          >
+                            <HugeiconsIcon icon={MoreHorizontalIcon} />
+                          </MenuTrigger>
+                          <MenuPopup align="end">
+                            <MenuLinkItem
+                              render={<Link href={activityHref[r.activity]} />}
                             >
-                              <HugeiconsIcon icon={Tick02Icon} />
-                              Confirmer
-                            </MenuItem>
-                          )}
-                          {(r.status === "pending" ||
-                            r.status === "confirmed") && (
-                            <>
-                              <MenuSeparator />
+                              <HugeiconsIcon icon={Calendar03Icon} />
+                              Ouvrir dans {r.activity}
+                            </MenuLinkItem>
+                            {r.status === "pending" && (
                               <MenuItem
-                                onClick={() => setStatusOf(r.id, "cancelled")}
-                                variant="destructive"
+                                onClick={() => setStatusOf(r.id, "confirmed")}
                               >
-                                <HugeiconsIcon icon={Cancel01Icon} />
-                                {r.status === "pending" ? "Refuser" : "Annuler"}
+                                <HugeiconsIcon icon={Tick02Icon} />
+                                Confirmer
                               </MenuItem>
-                            </>
-                          )}
-                        </MenuPopup>
-                      </Menu>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )
-          )}
-        </div>
-      )}
+                            )}
+                            {(r.status === "pending" ||
+                              r.status === "confirmed") && (
+                              <>
+                                <MenuSeparator />
+                                <MenuItem
+                                  onClick={() => setStatusOf(r.id, "cancelled")}
+                                  variant="destructive"
+                                >
+                                  <HugeiconsIcon icon={Cancel01Icon} />
+                                  {r.status === "pending"
+                                    ? "Refuser"
+                                    : "Annuler"}
+                                </MenuItem>
+                              </>
+                            )}
+                          </MenuPopup>
+                        </Menu>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )
+            )}
+          </div>
+        )}
+      </Section>
     </PageShell>
   )
 }

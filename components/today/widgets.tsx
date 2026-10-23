@@ -1,16 +1,25 @@
 "use client"
 
-import { Tick02Icon } from "@hugeicons/core-free-icons"
+import { Search01Icon, Tick02Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { type ReactNode, useState } from "react"
-import { type Activity, activityMeta } from "@/components/activity-mark"
+import {
+  type Activity,
+  activityMeta,
+  activityNames,
+} from "@/components/activity-mark"
 import { activityNav } from "@/components/navigation"
 import { Sparkle } from "@/components/site/doodles"
 import { activityIcons } from "@/components/site/site-ui"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group"
 import {
   Progress,
   ProgressIndicator,
@@ -64,6 +73,9 @@ export type Attention = {
   onOpen?: () => void
 }
 
+const moreClass =
+  "flex h-12 items-center justify-center rounded-3xl bg-muted font-semibold text-muted-foreground transition-colors hover:text-foreground"
+
 /** « À traiter » : quelques cartes, chacune avec son bouton. */
 export function AttentionList({
   items,
@@ -77,7 +89,9 @@ export function AttentionList({
   limit?: number
   moreHref?: string
 }) {
-  const hidden = limit ? items.length - limit : 0
+  const [expanded, setExpanded] = useState(false)
+  const shown = expanded ? undefined : limit
+  const hidden = shown ? items.length - shown : 0
   if (!items.length) {
     return (
       <p className="flex items-center gap-3 rounded-3xl bg-muted p-4 text-lg font-semibold md:p-5">
@@ -90,7 +104,7 @@ export function AttentionList({
   }
   return (
     <ul className="space-y-3">
-      {items.slice(0, limit).map((item) => {
+      {items.slice(0, shown).map((item) => {
         const text = (
           <>
             <span className="block text-lg font-semibold">{item.title}</span>
@@ -131,19 +145,161 @@ export function AttentionList({
           </li>
         )
       })}
-      {hidden > 0 && moreHref && (
+      {hidden > 0 && (
         <li>
-          <Link
-            className="flex h-12 items-center justify-center rounded-3xl bg-muted font-semibold text-muted-foreground transition-colors hover:text-foreground"
-            href={moreHref}
-          >
-            {hidden > 1 ? `Voir les ${hidden} autres` : "Voir la suivante"}
-          </Link>
+          {moreHref ? (
+            <Link className={moreClass} href={moreHref}>
+              {hidden > 1 ? `Voir les ${hidden} autres` : "Voir la suivante"}
+            </Link>
+          ) : (
+            <button
+              className={cn(moreClass, "w-full")}
+              onClick={() => setExpanded(true)}
+              type="button"
+            >
+              {hidden > 1 ? `Voir les ${hidden} autres` : "Voir la suivante"}
+            </button>
+          )}
         </li>
       )}
     </ul>
   )
 }
+
+export type Chip<T extends string> = {
+  value: T
+  label: string
+  count?: number
+  icon?: IconSvgElement
+}
+
+export const activityChips: Chip<Activity | "all">[] = [
+  { label: "Toutes", value: "all" },
+  ...activityNames.map((name) => ({
+    icon: activityIcons[name],
+    label: name,
+    value: name,
+  })),
+]
+
+/** Filtres en pastilles : l'actif en vert foncé, les autres en crème. */
+export function FilterChips<T extends string>({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string
+  options: Chip<T>[]
+  value: T
+  onChange: (value: T) => void
+}) {
+  return (
+    <div
+      aria-label={label}
+      className="-mx-4 flex gap-2 overflow-x-auto px-4 md:mx-0 md:flex-wrap md:px-0"
+      role="group"
+    >
+      {options.map((option) => (
+        <button
+          aria-pressed={option.value === value}
+          className={cn(
+            "flex h-10 shrink-0 items-center gap-2 rounded-full px-4 font-semibold transition-colors",
+            option.value === value
+              ? "bg-control text-control-foreground"
+              : "bg-muted hover:bg-neutral-hover"
+          )}
+          key={option.value}
+          onClick={() => onChange(option.value)}
+          type="button"
+        >
+          {option.icon && (
+            <HugeiconsIcon className="size-5" icon={option.icon} />
+          )}
+          {option.label}
+          {option.count !== undefined && (
+            <span className="tabular-nums opacity-60">{option.count}</span>
+          )}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+export function SearchField({
+  label,
+  placeholder,
+  value,
+  onChange,
+  className,
+}: {
+  label: string
+  placeholder: string
+  value: string
+  onChange: (value: string) => void
+  className?: string
+}) {
+  return (
+    <InputGroup className={cn("rounded-full", className)}>
+      <InputGroupAddon>
+        <HugeiconsIcon icon={Search01Icon} />
+      </InputGroupAddon>
+      <InputGroupInput
+        aria-label={label}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        value={value}
+      />
+    </InputGroup>
+  )
+}
+
+export function StatusPill({
+  tone,
+  children,
+}: {
+  tone: string
+  children: ReactNode
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex h-6 items-center rounded-full px-2.5 text-xs font-semibold whitespace-nowrap",
+        tone
+      )}
+    >
+      {children}
+    </span>
+  )
+}
+
+/** Pastille ronde avec des initiales, à la couleur de l'activité. */
+export function Monogram({
+  text,
+  tone = "bg-background",
+  className,
+}: {
+  text: string
+  tone?: string
+  className?: string
+}) {
+  return (
+    <span
+      className={cn(
+        "flex size-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
+        tone,
+        className
+      )}
+    >
+      {text}
+    </span>
+  )
+}
+
+/** Liste crème à lignes séparées de blanc, comme TaskList. */
+export const listCard =
+  "divide-y-2 divide-background overflow-hidden rounded-3xl bg-muted"
+export const listRow = "flex items-center gap-3 px-4 py-3 md:gap-4 md:px-5"
 
 export type Task = {
   id: string

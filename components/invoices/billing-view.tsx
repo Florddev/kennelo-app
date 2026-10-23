@@ -2,15 +2,11 @@
 
 import {
   Alert02Icon,
-  Clock01Icon,
   Download04Icon,
-  EuroCircleIcon,
   Invoice01Icon,
   MailSend01Icon,
   MoreHorizontalIcon,
   PlusSignIcon,
-  ReceiptIcon,
-  Search01Icon,
   Tick02Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -19,7 +15,6 @@ import {
   type Activity,
   ActivityMark,
   activityMeta,
-  activityNames,
 } from "@/components/activity-mark"
 import { shortDate, TODAY } from "@/components/calendar"
 import { type ActivityInvoice, allInvoices } from "@/components/clients/data"
@@ -29,25 +24,19 @@ import {
   invoiceTotal,
 } from "@/components/invoices/data"
 import {
+  activityChips,
+  AttentionList,
+  FilterChips,
   formatAmount,
-  Kpi,
+  listCard,
+  listRow,
+  Monogram,
   PageShell,
-  Widget,
+  SearchField,
+  Section,
+  StatusPill,
 } from "@/components/today/widgets"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
-} from "@/components/ui/empty"
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@/components/ui/input-group"
 import {
   Menu,
   MenuItem,
@@ -63,25 +52,13 @@ import {
   SheetPopup,
   SheetTitle,
 } from "@/components/ui/sheet"
-import { Tabs, TabsList, TabsTab } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 
-const statusMeta: Record<
-  InvoiceStatus,
-  {
-    label: string
-    dot: string
-    variant: "success" | "warning" | "error" | "secondary"
-  }
-> = {
-  draft: {
-    dot: "bg-muted-foreground/60",
-    label: "Brouillon",
-    variant: "secondary",
-  },
-  overdue: { dot: "bg-destructive", label: "En retard", variant: "error" },
-  paid: { dot: "bg-success", label: "Payée", variant: "success" },
-  pending: { dot: "bg-warning", label: "À encaisser", variant: "warning" },
+const statusMeta: Record<InvoiceStatus, { label: string; tone: string }> = {
+  draft: { label: "Brouillon", tone: "bg-background text-muted-foreground" },
+  overdue: { label: "En retard", tone: "bg-destructive-soft" },
+  paid: { label: "Payée", tone: "bg-success-soft" },
+  pending: { label: "À encaisser", tone: "bg-warning-soft" },
 }
 
 const prefixes: Record<Activity, string> = {
@@ -187,10 +164,10 @@ function InvoiceSheet({
           <>
             <SheetHeader>
               <div className="flex items-center gap-2">
-                <Badge variant={statusMeta[invoice.status].variant}>
+                <StatusPill tone={statusMeta[invoice.status].tone}>
                   {statusMeta[invoice.status].label}
-                </Badge>
-                <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                </StatusPill>
+                <span className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
                   <ActivityMark
                     activity={invoice.activity}
                     className="size-4 text-[0.5rem]"
@@ -198,31 +175,33 @@ function InvoiceSheet({
                   {invoice.activity}
                 </span>
               </div>
-              <SheetTitle>
+              <SheetTitle className="font-display text-3xl">
                 {invoice.status === "draft"
                   ? "Facture brouillon"
                   : `Facture ${invoice.number}`}
               </SheetTitle>
             </SheetHeader>
-            <SheetPanel className="space-y-5">
+            <SheetPanel className="space-y-4">
               {invoice.status === "overdue" && (
-                <Alert variant="error">
-                  <HugeiconsIcon icon={Alert02Icon} />
-                  <AlertDescription>
-                    Échéance dépassée de {TODAY - invoice.due} jours
-                    {invoice.reminders
-                      ? ` · ${invoice.reminders} relance${invoice.reminders > 1 ? "s" : ""} envoyée${invoice.reminders > 1 ? "s" : ""}`
-                      : ""}
-                    .
-                  </AlertDescription>
-                </Alert>
+                <p className="flex gap-3 rounded-3xl bg-destructive-soft p-4 font-semibold">
+                  <HugeiconsIcon
+                    className="mt-0.5 size-5 shrink-0"
+                    icon={Alert02Icon}
+                  />
+                  Échéance dépassée de {TODAY - invoice.due} jours
+                  {invoice.reminders
+                    ? ` · ${invoice.reminders} relance${invoice.reminders > 1 ? "s" : ""} envoyée${invoice.reminders > 1 ? "s" : ""}`
+                    : ""}
+                </p>
               )}
-              <div className="space-y-5 rounded-xl border bg-card p-5 shadow-xs/5">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-center gap-2">
-                    <span className="flex size-8 items-center justify-center rounded-md bg-pension text-sm font-semibold text-pension-foreground">
-                      LC
-                    </span>
+              <div className="space-y-2 rounded-3xl bg-muted p-3">
+                <div className="flex items-start justify-between gap-4 rounded-2xl bg-background p-4">
+                  <div className="flex items-center gap-3">
+                    <Monogram
+                      className="size-10"
+                      text="LC"
+                      tone="bg-wise-orange text-wise-maroon"
+                    />
                     <div className="text-sm">
                       <p className="font-semibold">Les Coteaux</p>
                       <p className="text-muted-foreground">
@@ -237,62 +216,56 @@ function InvoiceSheet({
                     </p>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="rounded-2xl bg-background p-4">
                     <p className="text-muted-foreground">Facturé à</p>
                     <p className="font-semibold">{invoice.client}</p>
                     <p className="text-muted-foreground">{invoice.detail}</p>
                   </div>
-                  <div className="text-end">
+                  <div className="rounded-2xl bg-background p-4 text-end">
                     <p className="text-muted-foreground">Échéance</p>
                     <p className="font-semibold">{shortDate(invoice.due)}</p>
                   </div>
                 </div>
-                <table className="w-full text-sm">
-                  <thead className="text-muted-foreground">
-                    <tr className="border-b">
-                      <th className="pb-2 text-start font-normal">
-                        Désignation
-                      </th>
-                      <th className="pb-2 text-end font-normal">Qté</th>
-                      <th className="pb-2 text-end font-normal">Montant</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {invoice.lines.map((line) => (
-                      <tr className="border-b border-dashed" key={line.label}>
-                        <td className="py-2">{line.label}</td>
-                        <td className="py-2 text-end tabular-nums">
-                          {line.quantity}
-                        </td>
-                        <td className="py-2 text-end tabular-nums">
-                          {formatAmount(line.quantity * line.unit)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <dl className="ms-auto w-48 space-y-1 text-sm">
-                  <div className="flex justify-between">
-                    <dt className="text-muted-foreground">Total HT</dt>
-                    <dd className="tabular-nums">
-                      {ht.toFixed(2).replace(".", ",")} €
-                    </dd>
-                  </div>
-                  <div className="flex justify-between">
-                    <dt className="text-muted-foreground">TVA 20 %</dt>
-                    <dd className="tabular-nums">
-                      {(total - ht).toFixed(2).replace(".", ",")} €
-                    </dd>
-                  </div>
-                  <div className="flex justify-between border-t pt-1 text-sm font-semibold">
-                    <dt>Total TTC</dt>
-                    <dd className="tabular-nums">{formatAmount(total)}</dd>
-                  </div>
-                </dl>
+                <ul className="divide-y-2 divide-muted overflow-hidden rounded-2xl bg-background">
+                  {invoice.lines.map((line) => (
+                    <li
+                      className="flex items-center justify-between gap-3 px-4 py-3"
+                      key={line.label}
+                    >
+                      <span className="min-w-0 flex-1">{line.label}</span>
+                      <span className="text-sm text-muted-foreground tabular-nums">
+                        × {line.quantity}
+                      </span>
+                      <span className="w-20 text-end tabular-nums">
+                        {formatAmount(line.quantity * line.unit)}
+                      </span>
+                    </li>
+                  ))}
+                  <li className="space-y-1 px-4 py-3 text-sm">
+                    <p className="flex justify-between text-muted-foreground">
+                      <span>Total HT</span>
+                      <span className="tabular-nums">
+                        {ht.toFixed(2).replace(".", ",")} €
+                      </span>
+                    </p>
+                    <p className="flex justify-between text-muted-foreground">
+                      <span>TVA 20 %</span>
+                      <span className="tabular-nums">
+                        {(total - ht).toFixed(2).replace(".", ",")} €
+                      </span>
+                    </p>
+                  </li>
+                  <li className="flex items-baseline justify-between px-4 py-3">
+                    <span className="font-semibold">Total TTC</span>
+                    <span className="font-display text-3xl tabular-nums">
+                      {formatAmount(total)}
+                    </span>
+                  </li>
+                </ul>
                 {invoice.status === "paid" && (
-                  <p className="flex items-center gap-1.5 text-sm text-pension-strong">
-                    <HugeiconsIcon className="size-3.5" icon={Tick02Icon} />
+                  <p className="flex items-center gap-2 rounded-2xl bg-success-soft px-4 py-3 font-semibold">
+                    <HugeiconsIcon className="size-5" icon={Tick02Icon} />
                     Réglée par{" "}
                     {invoice.method?.toLowerCase() ?? "carte bancaire"}
                   </p>
@@ -335,6 +308,52 @@ function InvoiceSheet({
 
 type ActivityFilter = Activity | "all"
 
+/** Le mois en un coup d'œil : facturé, encaissé, ce qu'il reste à rentrer. */
+function MonthHero({ invoices }: { invoices: ActivityInvoice[] }) {
+  const of = (status: InvoiceStatus) =>
+    invoices.filter((i) => i.status === status)
+  const issued = sumOf(invoices.filter((i) => i.status !== "draft"))
+  const paid = sumOf(of("paid"))
+  const ratio = Math.round((paid / Math.max(1, issued)) * 100)
+  return (
+    <section className="grid gap-6 rounded-4xl bg-wise-forest p-6 text-white md:grid-cols-[1fr_auto] md:items-end md:p-8">
+      <div className="space-y-4">
+        <p className="font-semibold text-white/70">Facturé en octobre</p>
+        <p className="font-display text-6xl text-wise-green md:text-7xl">
+          {formatAmount(issued)}
+        </p>
+        <div className="max-w-md space-y-2">
+          <div className="h-2.5 overflow-hidden rounded-full bg-white/15">
+            <div
+              className="h-full rounded-full bg-wise-green"
+              style={{ width: `${ratio}%` }}
+            />
+          </div>
+          <p className="text-sm text-white/70">
+            {formatAmount(paid)} encaissés · {ratio} %
+          </p>
+        </div>
+      </div>
+      <dl className="grid grid-cols-2 gap-3 md:w-md">
+        {[
+          { label: "À encaisser", list: of("pending") },
+          { label: "En retard", list: of("overdue") },
+        ].map(({ label, list }) => (
+          <div className="rounded-3xl bg-white/10 p-4" key={label}>
+            <dt className="text-sm font-semibold text-white/70">{label}</dt>
+            <dd className="font-display text-3xl">
+              {formatAmount(sumOf(list))}
+            </dd>
+            <dd className="text-sm text-white/70">
+              {list.length} facture{list.length > 1 && "s"}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  )
+}
+
 export function BillingView() {
   const [invoices, setInvoices] = useState(allInvoices)
   const [activity, setActivity] = useState<ActivityFilter>("all")
@@ -348,7 +367,6 @@ export function BillingView() {
   )
   const of = (status: InvoiceStatus) =>
     scoped.filter((i) => i.status === status)
-  const issued = scoped.filter((i) => i.status !== "draft")
   const q = query.trim().toLowerCase()
   const rows = scoped
     .filter((i) => filter === "all" || i.status === filter)
@@ -360,7 +378,6 @@ export function BillingView() {
           .includes(q)
     )
   const openInvoice = invoices.find((i) => i.id === openId) ?? null
-  const chartActivities = activity === "all" ? activityNames : [activity]
 
   const update = (id: string, patch: Partial<ActivityInvoice>) =>
     setInvoices((list) =>
@@ -381,215 +398,127 @@ export function BillingView() {
     }
     update(id, { reminders: (invoice.reminders ?? 0) + 1 })
   }
+  const openSheet = (id: string) => {
+    setOpenId(id)
+    setSheetOpen(true)
+  }
 
   return (
     <PageShell
       actions={
         <>
-          <Button className="max-sm:hidden" size="sm" variant="outline">
+          <Button className="max-sm:hidden" variant="secondary">
             <HugeiconsIcon icon={Download04Icon} />
             Exporter
           </Button>
-          <Button size="sm">
+          <Button>
             <HugeiconsIcon icon={PlusSignIcon} />
             Nouvelle facture
           </Button>
         </>
       }
-      icon={ReceiptIcon}
       title="Facturation"
     >
-      <Tabs
-        onValueChange={(value) => setActivity(value as ActivityFilter)}
+      <FilterChips
+        label="Activité"
+        onChange={setActivity}
+        options={activityChips}
         value={activity}
+      />
+
+      <MonthHero invoices={scoped} />
+
+      <Section
+        count={of("overdue").length + of("draft").length || undefined}
+        title="À traiter"
       >
-        <TabsList>
-          <TabsTab value="all">Toutes les activités</TabsTab>
-          {activityNames.map((name) => (
-            <TabsTab className="gap-1.5" key={name} value={name}>
-              <ActivityMark activity={name} className="size-4 text-[0.5rem]" />
-              {name}
-            </TabsTab>
-          ))}
-        </TabsList>
-      </Tabs>
+        <AttentionList
+          empty="Aucune facture en retard ni brouillon"
+          items={[
+            ...of("overdue").map((i) => ({
+              actions: (
+                <>
+                  <Button
+                    className="bg-background"
+                    onClick={() => markPaid(i.id)}
+                    variant="outline"
+                  >
+                    Marquer payée
+                  </Button>
+                  <Button onClick={() => remind(i.id)}>
+                    <HugeiconsIcon icon={MailSend01Icon} />
+                    Relancer
+                  </Button>
+                </>
+              ),
+              detail: `${i.number} · ${TODAY - i.due} jours de retard · ${
+                i.reminders
+                  ? `${i.reminders} relance${i.reminders > 1 ? "s" : ""}`
+                  : "jamais relancée"
+              }`,
+              icon: Alert02Icon,
+              id: i.id,
+              onOpen: () => openSheet(i.id),
+              title: `${i.client} · ${formatAmount(invoiceTotal(i))}`,
+              tone: "bg-destructive-soft",
+            })),
+            ...of("draft").map((i) => ({
+              actions: (
+                <Button onClick={() => remind(i.id)}>
+                  <HugeiconsIcon icon={MailSend01Icon} />
+                  Émettre
+                </Button>
+              ),
+              detail: `Brouillon · ${i.subject}`,
+              icon: Invoice01Icon,
+              id: i.id,
+              onOpen: () => openSheet(i.id),
+              title: `${i.client} · ${formatAmount(invoiceTotal(i))}`,
+              tone: "bg-background",
+            })),
+          ]}
+          limit={3}
+        />
+      </Section>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi
-          icon={Invoice01Icon}
-          label="Facturé ce mois"
-          value={formatAmount(sumOf(issued))}
-        >
-          {issued.length} factures émises
-        </Kpi>
-        <Kpi
-          icon={EuroCircleIcon}
-          label="Encaissé"
-          value={formatAmount(sumOf(of("paid")))}
-        >
-          {Math.round((sumOf(of("paid")) / Math.max(1, sumOf(issued))) * 100)} %
-          du facturé
-        </Kpi>
-        <Kpi
-          icon={Clock01Icon}
-          label="À encaisser"
-          value={formatAmount(sumOf(of("pending")))}
-        >
-          {of("pending").length} factures en attente
-        </Kpi>
-        <Kpi
-          icon={Alert02Icon}
-          label="En retard"
-          value={
-            <span
-              className={cn(
-                of("overdue").length > 0 && "text-destructive-foreground"
-              )}
-            >
-              {formatAmount(sumOf(of("overdue")))}
-            </span>
-          }
-        >
-          {of("overdue").length} facture{of("overdue").length > 1 && "s"} à
-          relancer
-        </Kpi>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Widget
-          className="lg:col-span-2"
-          description="Chiffre d'affaires facturé sur 6 mois"
-          title="Évolution"
-        >
-          <RevenueChart activities={chartActivities} />
-          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 border-t pt-3">
-            {chartActivities.map((name) => (
-              <span className="flex items-center gap-2 text-sm" key={name}>
-                <span
-                  className={cn(
-                    "size-2 rounded-full",
-                    activityMeta[name].color
-                  )}
-                />
-                <span className="text-muted-foreground">{name}</span>
-                <span className="font-semibold tabular-nums">
-                  {formatAmount(invoiceBooks[name].months[5].amount)}
-                </span>
-              </span>
-            ))}
-          </div>
-        </Widget>
-        <Widget description="Factures échues non réglées" title="À relancer">
-          {of("overdue").length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Aucune facture en retard 🎉
-            </p>
-          ) : (
-            <ul className="space-y-3">
-              {of("overdue").map((i) => (
-                <li className="space-y-2 rounded-xl border p-3" key={i.id}>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="flex items-center gap-1.5 truncate text-sm font-semibold">
-                        <ActivityMark
-                          activity={i.activity}
-                          className="size-4 text-[0.5rem]"
-                        />
-                        {i.client}
-                      </p>
-                      <p className="truncate text-sm text-muted-foreground">
-                        {i.number} · {TODAY - i.due} jours de retard
-                      </p>
-                    </div>
-                    <span className="text-sm font-semibold tabular-nums">
-                      {formatAmount(invoiceTotal(i))}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm text-muted-foreground">
-                      {i.reminders
-                        ? `${i.reminders} relance${i.reminders > 1 ? "s" : ""}`
-                        : "Jamais relancée"}
-                    </span>
-                    <Button
-                      onClick={() => remind(i.id)}
-                      size="sm"
-                      variant="outline"
-                    >
-                      <HugeiconsIcon icon={MailSend01Icon} />
-                      Relancer
-                    </Button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Widget>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3">
-        <Tabs
-          onValueChange={(value) => setFilter(value as Filter)}
-          value={filter}
-        >
-          <TabsList size="sm">
-            {filters.map((f) => (
-              <TabsTab className="gap-1.5" key={f.value} value={f.value}>
-                {f.label}
-                <span className="text-muted-foreground tabular-nums">
-                  {f.value === "all" ? scoped.length : of(f.value).length}
-                </span>
-              </TabsTab>
-            ))}
-          </TabsList>
-        </Tabs>
-        <InputGroup className="ms-auto w-full sm:w-64">
-          <InputGroupAddon>
-            <HugeiconsIcon icon={Search01Icon} />
-          </InputGroupAddon>
-          <InputGroupInput
-            aria-label="Rechercher une facture"
-            onChange={(e) => setQuery(e.target.value)}
+      <Section
+        action={
+          <SearchField
+            className="w-full sm:w-72"
+            label="Rechercher une facture"
+            onChange={setQuery}
             placeholder="N°, client, animal…"
             value={query}
           />
-        </InputGroup>
-      </div>
-
-      {rows.length === 0 ? (
-        <Empty className="rounded-xl border">
-          <EmptyHeader>
-            <EmptyTitle>Aucune facture</EmptyTitle>
-            <EmptyDescription>
-              Aucune facture ne correspond à ces critères.
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-      ) : (
-        <div className="space-y-2">
-          <ul className="-mx-3">
+        }
+        title="Factures"
+      >
+        <FilterChips
+          label="Statut"
+          onChange={setFilter}
+          options={filters.map((f) => ({
+            ...f,
+            count: f.value === "all" ? scoped.length : of(f.value).length,
+          }))}
+          value={filter}
+        />
+        {rows.length === 0 ? (
+          <p className="rounded-3xl bg-muted p-6 text-center font-semibold text-muted-foreground">
+            Aucune facture ne correspond à ces critères.
+          </p>
+        ) : (
+          <ul className={listCard}>
             {rows.map((i) => (
-              <li
-                className="flex items-center gap-4 rounded-2xl p-3 transition-colors hover:bg-accent"
-                key={i.id}
-              >
+              <li className={listRow} key={i.id}>
                 <button
-                  className="flex min-w-0 flex-1 items-center gap-4 text-start"
-                  onClick={() => {
-                    setOpenId(i.id)
-                    setSheetOpen(true)
-                  }}
+                  className="flex min-w-0 flex-1 items-center gap-3 text-start md:gap-4"
+                  onClick={() => openSheet(i.id)}
                   type="button"
                 >
-                  <span className="relative shrink-0">
-                    <span className="flex size-12 items-center justify-center rounded-full bg-muted text-sm font-semibold">
-                      {initials(i.client)}
-                    </span>
-                    <ActivityMark
-                      activity={i.activity}
-                      className="absolute -end-1 -bottom-1 size-5 text-[0.625rem] ring-2 ring-background"
-                    />
-                  </span>
+                  <Monogram
+                    text={initials(i.client)}
+                    tone={activityMeta[i.activity].tint}
+                  />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-semibold">
                       {i.client}
@@ -598,26 +527,19 @@ export function BillingView() {
                       {i.subject} · {i.number}
                     </span>
                   </span>
-                  <span className="shrink-0 text-end">
+                  <span className="shrink-0 space-y-1 text-end">
                     <span className="block font-semibold tabular-nums">
                       {formatAmount(invoiceTotal(i))}
                     </span>
-                    <span
-                      className={cn(
-                        "flex items-center justify-end gap-1.5 text-sm",
-                        i.status === "overdue"
-                          ? "font-semibold text-destructive-foreground"
-                          : "text-muted-foreground"
+                    <span className="flex items-center justify-end gap-2 text-sm text-muted-foreground">
+                      {i.status !== "paid" && (
+                        <span className="max-sm:hidden">
+                          {shortDate(i.due)}
+                        </span>
                       )}
-                    >
-                      <span
-                        className={cn(
-                          "size-2 rounded-full",
-                          statusMeta[i.status].dot
-                        )}
-                      />
-                      {statusMeta[i.status].label}
-                      {i.status !== "paid" && ` · ${shortDate(i.due)}`}
+                      <StatusPill tone={statusMeta[i.status].tone}>
+                        {statusMeta[i.status].label}
+                      </StatusPill>
                     </span>
                   </span>
                 </button>
@@ -657,15 +579,17 @@ export function BillingView() {
                 </Menu>
               </li>
             ))}
+            <li className="flex items-baseline justify-between px-4 py-4 md:px-5">
+              <span className="font-semibold">
+                {rows.length} facture{rows.length > 1 && "s"}
+              </span>
+              <span className="font-display text-3xl tabular-nums">
+                {formatAmount(sumOf(rows))}
+              </span>
+            </li>
           </ul>
-          <p className="flex justify-between border-t pt-4 font-semibold">
-            <span>
-              {rows.length} facture{rows.length > 1 && "s"}
-            </span>
-            <span className="tabular-nums">{formatAmount(sumOf(rows))}</span>
-          </p>
-        </div>
-      )}
+        )}
+      </Section>
 
       <InvoiceSheet
         invoice={openInvoice}

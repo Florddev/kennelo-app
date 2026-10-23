@@ -25,24 +25,23 @@ import {
   reservationStatus,
 } from "@/components/reservations/reservations-view"
 import { Photo } from "@/components/site/site-ui"
-import { formatAmount, PageBody } from "@/components/today/widgets"
-import { Badge } from "@/components/ui/badge"
+import { formatAmount, PageBody, StatusPill } from "@/components/today/widgets"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { toastManager } from "@/components/ui/toast"
 import { cn } from "@/lib/utils"
 
 const invoiceStatus = {
-  draft: { label: "Brouillon", variant: "secondary" },
-  overdue: { label: "En retard", variant: "error" },
-  paid: { label: "Payée", variant: "success" },
-  pending: { label: "À encaisser", variant: "warning" },
+  draft: { label: "Brouillon", tone: "bg-background text-muted-foreground" },
+  overdue: { label: "En retard", tone: "bg-destructive-soft" },
+  paid: { label: "Payée", tone: "bg-success-soft" },
+  pending: { label: "À encaisser", tone: "bg-warning-soft" },
 } as const
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="space-y-4">
-      <h2 className="font-heading text-2xl font-semibold">{title}</h2>
+      <h2 className="font-display text-3xl">{title}</h2>
       {children}
     </section>
   )
@@ -51,7 +50,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 function Stat({ value, label }: { value: ReactNode; label: string }) {
   return (
     <div className="rounded-3xl bg-muted p-5">
-      <p className="text-3xl font-semibold tabular-nums">{value}</p>
+      <p className="font-display text-4xl tabular-nums">{value}</p>
       <p className="mt-1 text-muted-foreground">{label}</p>
     </div>
   )
@@ -70,7 +69,7 @@ function Contact({
 }) {
   return (
     <div className="flex items-center gap-4 px-5 py-4">
-      <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted">
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-background">
         <HugeiconsIcon className="size-5" icon={icon} />
       </span>
       <div className="min-w-0 flex-1">
@@ -311,7 +310,7 @@ export function ClientProfile({ slug }: { slug: string }) {
 
           <Section title="Historique">
             {history.length ? (
-              <div className="divide-y overflow-hidden rounded-3xl border bg-card">
+              <div className="divide-y-2 divide-background overflow-hidden rounded-3xl bg-muted">
                 {history.map((r) => (
                   <div className="flex items-center gap-4 px-5 py-4" key={r.id}>
                     <ActivityMark
@@ -326,9 +325,9 @@ export function ClientProfile({ slug }: { slug: string }) {
                         {reservationDate(r)}
                       </p>
                     </div>
-                    <Badge variant={reservationStatus[r.status].variant}>
+                    <StatusPill tone={reservationStatus[r.status].tone}>
                       {reservationStatus[r.status].label}
-                    </Badge>
+                    </StatusPill>
                   </div>
                 ))}
               </div>
@@ -341,7 +340,7 @@ export function ClientProfile({ slug }: { slug: string }) {
 
           {client.invoices.length > 0 && (
             <Section title="Factures">
-              <div className="divide-y overflow-hidden rounded-3xl border bg-card">
+              <div className="divide-y-2 divide-background overflow-hidden rounded-3xl bg-muted">
                 {client.invoices.map((invoice) => (
                   <div
                     className="flex items-center gap-4 px-5 py-4"
@@ -359,9 +358,9 @@ export function ClientProfile({ slug }: { slug: string }) {
                       <p className="font-semibold tabular-nums">
                         {formatAmount(invoiceTotal(invoice))}
                       </p>
-                      <Badge variant={invoiceStatus[invoice.status].variant}>
+                      <StatusPill tone={invoiceStatus[invoice.status].tone}>
                         {invoiceStatus[invoice.status].label}
-                      </Badge>
+                      </StatusPill>
                     </div>
                   </div>
                 ))}
@@ -372,8 +371,8 @@ export function ClientProfile({ slug }: { slug: string }) {
 
         <div className="space-y-8">
           <section className="space-y-3">
-            <h2 className="font-heading text-xl font-semibold">Coordonnées</h2>
-            <div className="divide-y overflow-hidden rounded-3xl border bg-card">
+            <h2 className="font-display text-2xl">Coordonnées</h2>
+            <div className="divide-y-2 divide-background overflow-hidden rounded-3xl bg-muted">
               <Contact
                 href={`tel:${phone}`}
                 icon={Call02Icon}
@@ -395,7 +394,7 @@ export function ClientProfile({ slug }: { slug: string }) {
           </section>
 
           <section className="space-y-3">
-            <h2 className="font-heading text-xl font-semibold">Activités</h2>
+            <h2 className="font-display text-2xl">Activités</h2>
             <div className="flex flex-wrap gap-2">
               {client.activities.map((a) => (
                 <span
@@ -410,9 +409,7 @@ export function ClientProfile({ slug }: { slug: string }) {
           </section>
 
           <section className="space-y-3">
-            <h2 className="font-heading text-xl font-semibold">
-              Notes internes
-            </h2>
+            <h2 className="font-display text-2xl">Notes internes</h2>
             <Textarea
               aria-label="Notes internes"
               placeholder={`Préférences de ${first}, consignes particulières…`}

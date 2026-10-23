@@ -15,7 +15,7 @@ import {
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import Link from "next/link"
-import type { ReactNode } from "react"
+import { type ReactNode, useState } from "react"
 import { daysBetween, formatDate } from "@/components/pets/data"
 import {
   ageOf,
@@ -43,8 +43,7 @@ import {
   SitePage,
 } from "@/components/site/site-ui"
 import { dayMonth, todayIso } from "@/components/services/data"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Badge } from "@/components/ui/badge"
+import { FilterChips } from "@/components/today/widgets"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -54,10 +53,30 @@ const speciesIcon = (pet: Pick<MyPet, "species">) =>
 const moodWords = ["Moyen", "Bon", "Excellent"]
 
 export const vaxStyle = {
-  expired: { bar: "bg-destructive", label: "Expiré", variant: "error" },
-  soon: { bar: "bg-warning", label: "Bientôt", variant: "warning" },
-  valid: { bar: "bg-primary", label: "À jour", variant: "success" },
+  expired: {
+    bar: "bg-destructive",
+    label: "Expiré",
+    tone: "bg-destructive-soft",
+    variant: "error",
+  },
+  soon: {
+    bar: "bg-warning",
+    label: "Bientôt",
+    tone: "bg-warning-soft",
+    variant: "warning",
+  },
+  valid: {
+    bar: "bg-primary",
+    label: "À jour",
+    tone: "bg-success-soft",
+    variant: "success",
+  },
 } as const
+
+/** Carte crème à lignes blanches, comme dans l'espace pro. */
+const cream = "divide-y-2 divide-background border-0 bg-muted"
+const pill =
+  "inline-flex h-7 items-center rounded-full px-3 text-sm font-semibold"
 
 /** Sa carte d'identité, dessinée comme une carte Wise. */
 export function IdCard({ pet }: { pet: MyPet }) {
@@ -106,26 +125,27 @@ export function IdCard({ pet }: { pet: MyPet }) {
 function ProfileCard({
   title,
   edit,
+  action,
   children,
 }: {
   title: string
   edit?: string
+  action?: ReactNode
   children: ReactNode
 }) {
   return (
     <section className="space-y-3">
       <div className="flex items-end justify-between gap-4">
         <h2 className="font-display text-4xl">{title}</h2>
-        {edit && (
-          <Link
-            className="text-sm font-semibold text-link underline underline-offset-4"
-            href={edit}
-          >
+        {action}
+        {!action && edit && (
+          <Button render={<Link href={edit} />} size="sm" variant="secondary">
+            <HugeiconsIcon icon={Edit02Icon} />
             Modifier
-          </Link>
+          </Button>
         )}
       </div>
-      <RowsCard className="rounded-3xl">{children}</RowsCard>
+      <RowsCard className={cn("rounded-3xl", cream)}>{children}</RowsCard>
     </section>
   )
 }
@@ -138,7 +158,9 @@ export function NoteExtras({
   tags = [],
   tip,
   photos = [],
+  onCream,
 }: {
+  onCream?: boolean
   author: string
   title: string
   mood?: { appetite: number; sleep: number; play: number }
@@ -157,7 +179,13 @@ export function NoteExtras({
       {mood && (
         <div className="grid grid-cols-3 gap-2">
           {mood.map((m) => (
-            <div className="space-y-2 rounded-2xl bg-muted p-3" key={m.label}>
+            <div
+              className={cn(
+                "space-y-2 rounded-2xl p-3",
+                onCream ? "bg-background" : "bg-muted"
+              )}
+              key={m.label}
+            >
               <p className="text-sm text-muted-foreground">{m.label}</p>
               <p className="font-semibold">{moodWords[m.value - 1]}</p>
               <div className="flex gap-1">
@@ -165,7 +193,11 @@ export function NoteExtras({
                   <span
                     className={cn(
                       "h-1.5 flex-1 rounded-full",
-                      i <= m.value ? "bg-primary" : "bg-border"
+                      i <= m.value
+                        ? "bg-primary"
+                        : onCream
+                          ? "bg-muted"
+                          : "bg-border"
                     )}
                     key={i}
                   />
@@ -179,7 +211,10 @@ export function NoteExtras({
         <div className="flex flex-wrap gap-2">
           {note.tags.map((t) => (
             <span
-              className="flex h-8 items-center rounded-full bg-muted px-3 text-sm font-semibold"
+              className={cn(
+                "flex h-8 items-center rounded-full px-3 text-sm font-semibold",
+                onCream ? "bg-background" : "bg-muted"
+              )}
               key={t}
             >
               {t}
@@ -216,7 +251,7 @@ export function ReportCard({
   const venue = booking && venueOf(booking.venue)
   if (!booking || !venue) return null
   return (
-    <article className="space-y-5 rounded-3xl border bg-card p-5 md:p-6">
+    <article className="space-y-5 rounded-3xl bg-muted p-5 md:p-6">
       {!hideHeader && (
         <Link
           className="group flex items-center gap-3"
@@ -255,6 +290,7 @@ export function ReportCard({
       <NoteExtras
         author={note.author}
         mood={note.mood}
+        onCream
         photos={note.photos}
         tags={note.tags}
         tip={note.tip}
@@ -264,10 +300,53 @@ export function ReportCard({
   )
 }
 
+function VaccineRows({ pet }: { pet: MyPet }) {
+  if (!pet.vaccines.length)
+    return (
+      <p className="px-5 py-4 text-muted-foreground">Aucun vaccin renseigné.</p>
+    )
+  return pet.vaccines.map((v) => {
+    const status = vaxStatus(v.expires)
+    const left = Math.max(
+      0,
+      Math.min(100, (daysBetween(todayIso, v.expires) / 365) * 100)
+    )
+    return (
+      <div className="space-y-2 px-5 py-4" key={v.name}>
+        <div className="flex items-center justify-between gap-3">
+          <p className="font-semibold">{v.name}</p>
+          <span className={cn(pill, vaxStyle[status].tone)}>
+            {vaxStyle[status].label}
+          </span>
+        </div>
+        <div className="h-1.5 overflow-hidden rounded-full bg-background">
+          <div
+            className={cn("h-full rounded-full", vaxStyle[status].bar)}
+            style={{ width: `${Math.max(left, 3)}%` }}
+          />
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Jusqu&apos;au {formatDate(v.expires)}
+        </p>
+      </div>
+    )
+  })
+}
+
+function EmptyCard({ children }: { children: ReactNode }) {
+  return (
+    <div className="space-y-4 rounded-3xl bg-muted p-6 text-muted-foreground">
+      {children}
+    </div>
+  )
+}
+
+type Tab = "overview" | "profile" | "health" | "photos" | "visits"
+
 function Stat({ value, label }: { value: ReactNode; label: string }) {
   return (
     <div className="rounded-3xl bg-muted p-5">
-      <p className="text-4xl font-semibold tabular-nums">{value}</p>
+      <p className="font-display text-5xl tabular-nums">{value}</p>
       <p className="mt-1 text-muted-foreground">{label}</p>
     </div>
   )
@@ -287,7 +366,7 @@ export function WeightChart({ pet }: { pet: MyPet }) {
   return (
     <div className="space-y-5 p-5">
       <div>
-        <p className="text-3xl font-semibold">{kg(pet.weight)}</p>
+        <p className="font-display text-4xl">{kg(pet.weight)}</p>
         <p className="text-sm text-muted-foreground">
           {list.length > 1
             ? `${delta >= 0 ? "+" : "−"}${kg(Math.abs(delta))} depuis ${dayMonth(first.date)}`
@@ -322,6 +401,7 @@ export function WeightChart({ pet }: { pet: MyPet }) {
 
 export function PetProfile({ id }: { id: string }) {
   const site = useSite()
+  const [tab, setTab] = useState<Tab>("overview")
   const pet = site.pets.find((p) => p.id === id)
   if (!pet)
     return (
@@ -422,81 +502,329 @@ export function PetProfile({ id }: { id: string }) {
       </section>
 
       <SitePage>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <Stat
-            label={past.filter((b) => b.end).length > 1 ? "séjours" : "séjour"}
-            value={past.filter((b) => b.end).length}
-          />
-          <Stat label="nuits en pension" value={nights} />
-          <Stat label="rendez-vous" value={past.filter((b) => !b.end).length} />
-          <Stat
-            label={places > 1 ? "établissements" : "établissement"}
-            value={places}
-          />
-        </div>
-
-        {alerts.map((v) => (
-          <Alert
-            key={v.name}
-            variant={vaxStatus(v.expires) === "expired" ? "error" : "warning"}
-          >
-            <HugeiconsIcon icon={Alert02Icon} />
-            <AlertTitle>
-              Vaccin « {v.name} »{" "}
-              {vaxStatus(v.expires) === "expired" ? "expiré" : "à renouveler"}
-            </AlertTitle>
-            <AlertDescription>
-              Valable jusqu&apos;au {formatDate(v.expires)}. Les pensions le
-              demandent à l&apos;arrivée.
-            </AlertDescription>
-          </Alert>
-        ))}
-
-        <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_22rem]">
-          <div className="min-w-0 space-y-12">
-            {upcoming.length > 0 && (
-              <section className="space-y-4">
-                <SectionHead title="Bientôt" />
-                <RowsCard className="rounded-3xl">
-                  {upcoming.map((b) => (
-                    <BookingRow booking={b} key={b.id} />
-                  ))}
-                </RowsCard>
-              </section>
-            )}
-
-            <section className="space-y-4">
-              <SectionHead
-                action={
-                  <PhotoButton
-                    onPick={(url) =>
-                      savePet({ ...pet, gallery: [url, ...pet.gallery] })
-                    }
-                    variant="secondary"
-                  >
-                    <HugeiconsIcon icon={Camera01Icon} />
-                    Ajouter
-                  </PhotoButton>
-                }
-                description="Les vôtres et celles envoyées par les établissements"
-                title="Ses photos"
-              />
-              {photos.length ? (
-                <PhotoStrip
-                  className="grid-cols-3 md:grid-cols-4"
-                  max={8}
-                  photos={photos}
-                  title={`Photos de ${pet.name}`}
-                />
-              ) : (
-                <div className="rounded-3xl bg-muted p-6 text-muted-foreground">
-                  Ajoutez ses plus belles photos : les établissements les
-                  verront aussi.
-                </div>
+        {alerts.map((v) => {
+          const expired = vaxStatus(v.expires) === "expired"
+          return (
+            <div
+              className={cn(
+                "flex flex-wrap items-center gap-x-4 gap-y-3 rounded-3xl p-4 md:p-5",
+                expired ? "bg-destructive-soft" : "bg-warning-soft"
               )}
-            </section>
+              key={v.name}
+            >
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-white/60">
+                <HugeiconsIcon className="size-6" icon={Alert02Icon} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-lg font-semibold">
+                  Vaccin « {v.name} » {expired ? "expiré" : "à renouveler"}
+                </p>
+                <p className="opacity-80">
+                  Valable jusqu&apos;au {formatDate(v.expires)}. Les pensions le
+                  demandent à l&apos;arrivée.
+                </p>
+              </div>
+              <Button
+                className="border-transparent bg-white/60 text-current hover:bg-white/80 max-sm:w-full"
+                render={<Link href={edit} />}
+              >
+                Mettre à jour
+              </Button>
+            </div>
+          )
+        })}
 
-            <section className="space-y-4">
+        <FilterChips
+          label={`Fiche de ${pet.name}`}
+          onChange={setTab}
+          options={[
+            { label: "Aperçu", value: "overview" },
+            { label: "Sa fiche", value: "profile" },
+            { label: "Santé", value: "health" },
+            { count: photos.length, label: "Photos", value: "photos" },
+            { count: visits.length, label: "Visites", value: "visits" },
+          ]}
+          value={tab}
+        />
+
+        {tab === "overview" && (
+          <div className="space-y-12">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              <Stat
+                label={
+                  past.filter((b) => b.end).length > 1 ? "séjours" : "séjour"
+                }
+                value={past.filter((b) => b.end).length}
+              />
+              <Stat label="nuits en pension" value={nights} />
+              <Stat
+                label="rendez-vous"
+                value={past.filter((b) => !b.end).length}
+              />
+              <Stat
+                label={places > 1 ? "établissements" : "établissement"}
+                value={places}
+              />
+            </div>
+
+            <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_22rem]">
+              <div className="min-w-0 space-y-12">
+                <section className="space-y-4">
+                  <SectionHead title="Bientôt" />
+                  {upcoming.length ? (
+                    <RowsCard className={cn("rounded-3xl", cream)}>
+                      {upcoming.map((b) => (
+                        <BookingRow booking={b} key={b.id} />
+                      ))}
+                    </RowsCard>
+                  ) : (
+                    <EmptyCard>
+                      <p>Rien de prévu pour {pet.name} pour l&apos;instant.</p>
+                      <Button render={<Link href="/search" />}>
+                        Trouver un établissement
+                      </Button>
+                    </EmptyCard>
+                  )}
+                </section>
+
+                <section className="space-y-4">
+                  <SectionHead
+                    action={
+                      notes.length > 1 && (
+                        <Button
+                          onClick={() => setTab("visits")}
+                          variant="secondary"
+                        >
+                          Tous les mots · {notes.length}
+                        </Button>
+                      )
+                    }
+                    description="Le dernier mot laissé par un établissement"
+                    title="Dernières nouvelles"
+                  />
+                  {notes[0] ? (
+                    <ReportCard note={notes[0]} />
+                  ) : (
+                    <EmptyCard>
+                      Après sa première visite, l&apos;établissement pourra
+                      laisser un mot ici : comment {pet.name} a mangé, dormi,
+                      joué…
+                    </EmptyCard>
+                  )}
+                </section>
+              </div>
+
+              <div className="space-y-10">
+                <section className="space-y-3">
+                  <div className="flex items-end justify-between gap-4">
+                    <h2 className="font-display text-4xl">Ses photos</h2>
+                    {photos.length > 0 && (
+                      <Button
+                        onClick={() => setTab("photos")}
+                        size="sm"
+                        variant="secondary"
+                      >
+                        Tout voir
+                      </Button>
+                    )}
+                  </div>
+                  {photos.length ? (
+                    <PhotoStrip
+                      className="grid-cols-2"
+                      photos={photos}
+                      title={`Photos de ${pet.name}`}
+                    />
+                  ) : (
+                    <EmptyCard>
+                      Ajoutez ses plus belles photos : les établissements les
+                      verront aussi.
+                    </EmptyCard>
+                  )}
+                </section>
+
+                <ProfileCard
+                  action={
+                    <Button
+                      onClick={() => setTab("health")}
+                      size="sm"
+                      variant="secondary"
+                    >
+                      Tout voir
+                    </Button>
+                  }
+                  title="Vaccins"
+                >
+                  <VaccineRows pet={pet} />
+                </ProfileCard>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {tab === "profile" && (
+          <div className="grid items-start gap-10 lg:grid-cols-2">
+            <ProfileCard edit={edit} title="Identité">
+              {(
+                [
+                  ["Espèce", pet.species],
+                  ["Race", pet.breed],
+                  [
+                    "Sexe",
+                    `${pet.sex}${pet.neutered ? (female ? " stérilisée" : " stérilisé") : ""}`,
+                  ],
+                  [
+                    "Âge",
+                    `${ageOf(pet.birth)} · ${female ? "née" : "né"} le ${formatDate(pet.birth)}`,
+                  ],
+                  ["Poids", `${pet.weight} kg`],
+                  ["N° de puce", pet.chip || "À compléter"],
+                ] as const
+              ).map(([label, value]) => (
+                <div
+                  className="flex items-center justify-between gap-4 px-5 py-3.5"
+                  key={label}
+                >
+                  <span className="text-muted-foreground">{label}</span>
+                  <span className="text-end font-semibold">{value}</span>
+                </div>
+              ))}
+            </ProfileCard>
+
+            <div className="space-y-10">
+              <ProfileCard edit={edit} title="Au quotidien">
+                <div className="flex items-center gap-4 px-5 py-4">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-background">
+                    <HugeiconsIcon className="size-5" icon={Restaurant01Icon} />
+                  </span>
+                  <p className="min-w-0">
+                    {pet.food || "Alimentation à préciser"}
+                  </p>
+                </div>
+                {pet.routine.length > 0 && (
+                  <ol className="space-y-3 px-5 py-4">
+                    {pet.routine.map((r) => (
+                      <li className="flex gap-4" key={r.time}>
+                        <span className="w-12 shrink-0 font-semibold tabular-nums">
+                          {r.time}
+                        </span>
+                        <span className="text-muted-foreground">{r.text}</span>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </ProfileCard>
+
+              <ProfileCard edit={edit} title="Caractère">
+                {pet.behaviour && <p className="px-5 py-4">{pet.behaviour}</p>}
+                {(
+                  [
+                    ["Avec les chiens", pet.compat.dogs],
+                    ["Avec les chats", pet.compat.cats],
+                    ["Avec les enfants", pet.compat.kids],
+                  ] as const
+                ).map(([label, value]) => (
+                  <div
+                    className="flex min-h-14 items-center justify-between gap-4 px-5 py-3"
+                    key={label}
+                  >
+                    <span>{label}</span>
+                    <span className={cn(pill, compatMeta[value].tone)}>
+                      {compatMeta[value].label}
+                    </span>
+                  </div>
+                ))}
+              </ProfileCard>
+            </div>
+          </div>
+        )}
+
+        {tab === "health" && (
+          <div className="grid items-start gap-10 lg:grid-cols-2">
+            <ProfileCard edit={edit} title="Vaccins">
+              <VaccineRows pet={pet} />
+            </ProfileCard>
+
+            <div className="space-y-10">
+              <ProfileCard edit={edit} title="Soins">
+                <div className="flex items-center gap-4 px-5 py-4">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-background">
+                    <HugeiconsIcon className="size-5" icon={StethoscopeIcon} />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="font-semibold">Traitement</p>
+                    <p className="text-sm text-muted-foreground">
+                      {pet.health || "Aucun"}
+                    </p>
+                  </div>
+                </div>
+                {vetName && (
+                  <div className="flex items-center gap-4 px-5 py-4">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold">{vetName}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Vétérinaire{vetPhone && ` · ${vetPhone}`}
+                      </p>
+                    </div>
+                    {vetPhone && (
+                      <Button
+                        aria-label={`Appeler ${vetName}`}
+                        className="border-transparent bg-background hover:bg-background/70"
+                        render={
+                          <a href={`tel:${vetPhone.replace(/\s/g, "")}`} />
+                        }
+                        size="icon"
+                        variant="outline"
+                      >
+                        <HugeiconsIcon icon={Call02Icon} />
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </ProfileCard>
+
+              <ProfileCard edit={edit} title="Poids">
+                <WeightChart pet={pet} />
+              </ProfileCard>
+            </div>
+          </div>
+        )}
+
+        {tab === "photos" && (
+          <section className="space-y-4">
+            <SectionHead
+              action={
+                <PhotoButton
+                  onPick={(url) =>
+                    savePet({ ...pet, gallery: [url, ...pet.gallery] })
+                  }
+                  variant="secondary"
+                >
+                  <HugeiconsIcon icon={Camera01Icon} />
+                  Ajouter
+                </PhotoButton>
+              }
+              description="Les vôtres et celles envoyées par les établissements"
+              title="Ses photos"
+            />
+            {photos.length ? (
+              <PhotoStrip
+                className="grid-cols-2 sm:grid-cols-3 md:grid-cols-4"
+                max={photos.length}
+                photos={photos}
+                title={`Photos de ${pet.name}`}
+              />
+            ) : (
+              <EmptyCard>
+                Ajoutez ses plus belles photos : les établissements les verront
+                aussi.
+              </EmptyCard>
+            )}
+          </section>
+        )}
+
+        {tab === "visits" && (
+          <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_26rem]">
+            <section className="min-w-0 space-y-4">
               <SectionHead
                 description="Ce que les établissements ont noté après chaque visite"
                 title="Le mot des pros"
@@ -504,148 +832,38 @@ export function PetProfile({ id }: { id: string }) {
               {notes.length ? (
                 notes.map((n) => <ReportCard key={n.id} note={n} />)
               ) : (
-                <div className="rounded-3xl bg-muted p-6 text-muted-foreground">
+                <EmptyCard>
                   Après sa première visite, l&apos;établissement pourra laisser
                   un mot ici : comment {pet.name} a mangé, dormi, joué…
-                </div>
+                </EmptyCard>
               )}
             </section>
-
-            {past.length > 0 && (
-              <section className="space-y-4">
-                <SectionHead title="Toutes ses visites" />
-                <RowsCard className="rounded-3xl">
-                  {past.map((b) => (
-                    <BookingRow booking={b} key={b.id} />
-                  ))}
-                </RowsCard>
+            <div className="space-y-10">
+              {upcoming.length > 0 && (
+                <section className="space-y-3">
+                  <h2 className="font-display text-4xl">À venir</h2>
+                  <RowsCard className={cn("rounded-3xl", cream)}>
+                    {upcoming.map((b) => (
+                      <BookingRow booking={b} key={b.id} />
+                    ))}
+                  </RowsCard>
+                </section>
+              )}
+              <section className="space-y-3">
+                <h2 className="font-display text-4xl">Passées</h2>
+                {past.length ? (
+                  <RowsCard className={cn("rounded-3xl", cream)}>
+                    {past.map((b) => (
+                      <BookingRow booking={b} key={b.id} />
+                    ))}
+                  </RowsCard>
+                ) : (
+                  <EmptyCard>Aucune visite pour l&apos;instant.</EmptyCard>
+                )}
               </section>
-            )}
+            </div>
           </div>
-
-          <div className="space-y-10">
-            <ProfileCard edit={edit} title="Santé">
-              {pet.vaccines.map((v) => {
-                const status = vaxStatus(v.expires)
-                const left = Math.max(
-                  0,
-                  Math.min(100, (daysBetween(todayIso, v.expires) / 365) * 100)
-                )
-                return (
-                  <div className="space-y-2 px-5 py-4" key={v.name}>
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="font-semibold">{v.name}</p>
-                      <Badge variant={vaxStyle[status].variant}>
-                        {vaxStyle[status].label}
-                      </Badge>
-                    </div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                      <div
-                        className={cn(
-                          "h-full rounded-full",
-                          vaxStyle[status].bar
-                        )}
-                        style={{ width: `${Math.max(left, 3)}%` }}
-                      />
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Jusqu&apos;au {formatDate(v.expires)}
-                    </p>
-                  </div>
-                )
-              })}
-              {!pet.vaccines.length && (
-                <p className="px-5 py-4 text-muted-foreground">
-                  Aucun vaccin renseigné.
-                </p>
-              )}
-              <div className="flex items-center gap-4 px-5 py-4">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted">
-                  <HugeiconsIcon className="size-5" icon={StethoscopeIcon} />
-                </span>
-                <div className="min-w-0">
-                  <p className="font-semibold">Traitement</p>
-                  <p className="text-sm text-muted-foreground">
-                    {pet.health || "Aucun"}
-                  </p>
-                </div>
-              </div>
-              {vetName && (
-                <div className="flex items-center gap-4 px-5 py-4">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold">{vetName}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Vétérinaire{vetPhone && ` · ${vetPhone}`}
-                    </p>
-                  </div>
-                  {vetPhone && (
-                    <Button
-                      aria-label={`Appeler ${vetName}`}
-                      render={<a href={`tel:${vetPhone.replace(/\s/g, "")}`} />}
-                      size="icon"
-                      variant="secondary"
-                    >
-                      <HugeiconsIcon icon={Call02Icon} />
-                    </Button>
-                  )}
-                </div>
-              )}
-            </ProfileCard>
-
-            <ProfileCard edit={edit} title="Au quotidien">
-              <div className="flex items-center gap-4 px-5 py-4">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted">
-                  <HugeiconsIcon className="size-5" icon={Restaurant01Icon} />
-                </span>
-                <p className="min-w-0">
-                  {pet.food || "Alimentation à préciser"}
-                </p>
-              </div>
-              {pet.routine.length > 0 && (
-                <ol className="space-y-3 px-5 py-4">
-                  {pet.routine.map((r) => (
-                    <li className="flex gap-4" key={r.time}>
-                      <span className="w-12 shrink-0 font-semibold tabular-nums">
-                        {r.time}
-                      </span>
-                      <span className="text-muted-foreground">{r.text}</span>
-                    </li>
-                  ))}
-                </ol>
-              )}
-            </ProfileCard>
-
-            <ProfileCard edit={edit} title="Caractère">
-              {pet.behaviour && <p className="px-5 py-4">{pet.behaviour}</p>}
-              {(
-                [
-                  ["Avec les chiens", pet.compat.dogs],
-                  ["Avec les chats", pet.compat.cats],
-                  ["Avec les enfants", pet.compat.kids],
-                ] as const
-              ).map(([label, value]) => (
-                <div
-                  className="flex min-h-14 items-center justify-between gap-4 px-5 py-3"
-                  key={label}
-                >
-                  <span>{label}</span>
-                  <span
-                    className={cn(
-                      "rounded-full px-3 py-1 text-sm font-semibold",
-                      compatMeta[value].tone
-                    )}
-                  >
-                    {compatMeta[value].label}
-                  </span>
-                </div>
-              ))}
-            </ProfileCard>
-
-            <ProfileCard edit={edit} title="Poids">
-              <WeightChart pet={pet} />
-            </ProfileCard>
-          </div>
-        </div>
+        )}
       </SitePage>
     </>
   )
