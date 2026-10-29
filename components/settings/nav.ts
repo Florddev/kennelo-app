@@ -8,6 +8,7 @@ import {
   LinkIcon,
   Message01Icon,
   Notification03Icon,
+  PaintBoardIcon,
   PlugIcon,
   Shield01Icon,
   ShieldIcon,
@@ -69,6 +70,12 @@ export const settingsNav: { label: string; items: SettingsNavItem[] }[] = [
         href: "/settings/organization",
         icon: Building03Icon,
         title: "Établissement",
+      },
+      {
+        description: "Votre site, construit avec les blocs Kennelo",
+        href: "/editor",
+        icon: PaintBoardIcon,
+        title: "Site web",
       },
       {
         description: "L'équipe, les rôles et les invitations",
