@@ -1,0 +1,18 @@
+Objet : Question rapide sur la gestion de votre pension
+
+Bonjour {{nom_gerant}},
+
+Je m'appelle Florian, je suis développeur et je travaille avec {{prenom_associe}} sur un outil de gestion pensé pour les pensions animales : réservations, planning des présences, facturation…
+
+Avant d'aller plus loin, on veut s'assurer de construire quelque chose d'utile, et pour ça on cherche à échanger avec des gérants de pension sur leur façon de travailler au quotidien. J'ai vu que {{element_personnalise}}, et votre retour nous serait vraiment précieux.
+
+Est-ce que vous auriez 20 minutes à nous accorder dans les prochaines semaines, par téléphone ou directement chez vous si c'est plus simple ? Il ne s'agit pas de vous vendre quoi que ce soit, juste de comprendre votre métier.
+
+Je me permettrai de vous appeler en début de semaine prochaine, sauf si vous préférez me répondre directement ici. Et si ce n'est pas le moment, dites-le-moi, je ne vous relancerai pas.
+
+Bonne journée,
+
+--
+Florian Defay
+Cofondateur de Kennelo
+{{telephone}} · https://kennelo.fr
